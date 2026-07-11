@@ -310,13 +310,20 @@ class SettingsScreen extends StatelessWidget {
                 DropdownButtonFormField<MusicProvider>(
                   initialValue: service.musicProvider,
                   dropdownColor: context.f3card,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Music Provider',
-                    prefixIcon: Icon(Icons.music_note_rounded),
+                    prefixIcon: Padding(
+                      padding: const EdgeInsets.all(10),
+                      child: _MusicProviderIcon(service.musicProvider),
+                    ),
                   ),
                   items: MusicProvider.values.map((p) => DropdownMenuItem(
                     value: p,
-                    child: Text('${p.icon}  ${p.displayName}'),
+                    child: Row(children: [
+                      _MusicProviderIcon(p),
+                      const SizedBox(width: 10),
+                      Text(p.displayName),
+                    ]),
                   )).toList(),
                   onChanged: (p) { if (p != null) service.setMusicProvider(p); },
                 ),
@@ -644,13 +651,42 @@ class _VoiceSelectorState extends State<_VoiceSelector> {
     try {
       final raw = await _tts.getVoices;
       if (!mounted) return;
-      final pairs = (raw as List)
+
+      // English-only, deduplicated
+      final englishRaw = (raw as List)
           .map((v) => v is Map ? (v['name'] as String?) ?? '' : '')
-          .where((name) => name.isNotEmpty)
+          .where((name) {
+            if (name.isEmpty) return false;
+            final lower = name.toLowerCase();
+            return lower.startsWith('en-') || lower.startsWith('en_');
+          })
           .toSet()
-          .map((rawName) => (_beautifyVoiceName(rawName), rawName))
           .toList()
-        ..sort((a, b) => a.$1.compareTo(b.$1));
+        ..sort();
+
+      // Group by sub-locale (EN-US, EN-GB, …)
+      final Map<String, List<String>> byLocale = {};
+      for (final name in englishRaw) {
+        final parts = name.split(RegExp(r'[-_]'));
+        if (parts.length >= 2) {
+          final key = '${parts[0].toUpperCase()}-${parts[1].toUpperCase()}';
+          byLocale.putIfAbsent(key, () => []).add(name);
+        }
+      }
+
+      const localeOrder = ['EN-US', 'EN-GB', 'EN-AU', 'EN-IN', 'EN-CA', 'EN-ZA', 'EN-IE'];
+      final known = localeOrder.where((l) => byLocale.containsKey(l)).toList();
+      final others = byLocale.keys.where((l) => !localeOrder.contains(l)).toList()..sort();
+
+      final List<(String, String)> pairs = [];
+      for (final locale in [...known, ...others]) {
+        final voices = byLocale[locale]!;
+        final label = _localeName(locale).isNotEmpty ? _localeName(locale) : locale;
+        for (int i = 0; i < voices.length; i++) {
+          pairs.add(('$label — Voice ${i + 1}', voices[i]));
+        }
+      }
+
       setState(() {
         _voices = pairs;
         _loading = false;
@@ -660,43 +696,12 @@ class _VoiceSelectorState extends State<_VoiceSelector> {
     }
   }
 
-  static String _beautifyVoiceName(String raw) {
-    if (raw.isEmpty) return 'System Default';
-    final lower = raw.toLowerCase();
-
-    // iOS: com.apple.ttsbundle.Samantha-compact
-    if (lower.startsWith('com.apple.ttsbundle.')) {
-      final part = raw.substring('com.apple.ttsbundle.'.length);
-      final dash = part.lastIndexOf('-');
-      if (dash >= 0) {
-        final name = part.substring(0, dash);
-        final q = part.substring(dash + 1);
-        return '$name — ${q[0].toUpperCase()}${q.substring(1)}';
-      }
-      return part;
+  String _displayNameForVoice(String rawName) {
+    if (rawName.isEmpty) return 'System Default';
+    for (final (display, raw) in _voices) {
+      if (raw == rawName) return display;
     }
-
-    // Determine quality from suffix
-    String quality = '';
-    if (lower.contains('-network')) {
-      quality = ' — Neural';
-    } else if (lower.contains('-local') || lower.contains('-embedded')) {
-      quality = ' — Standard';
-    }
-
-    // Extract locale from first two dash-separated parts
-    final parts = raw.split('-');
-    if (parts.length >= 2) {
-      final locale = '${parts[0].toUpperCase()}-${parts[1].toUpperCase()}';
-      final name = _localeName(locale);
-      if (name.isNotEmpty) return '$name$quality';
-    }
-
-    // Fallback: humanise raw string
-    return raw
-        .replaceAll('com.apple.ttsbundle.', '')
-        .replaceAll('-x-', ' ')
-        .replaceAll('-', ' ');
+    return rawName;
   }
 
   static String _localeName(String locale) {
@@ -772,9 +777,7 @@ class _VoiceSelectorState extends State<_VoiceSelector> {
 
   @override
   Widget build(BuildContext context) {
-    final label = widget.currentVoice.isEmpty
-        ? 'System Default'
-        : _beautifyVoiceName(widget.currentVoice);
+    final label = _displayNameForVoice(widget.currentVoice);
     return GestureDetector(
       onTap: _loading ? null : () => _pick(context),
       child: Container(
@@ -1022,7 +1025,7 @@ class _LanguagePicker extends StatelessWidget {
 
   static const _options = [
     ('en', '🇺🇸', 'English'),
-    ('es', '🇲🇽', 'Español'),
+    ('es', '🇻🇪', 'Español'),
     ('fr', '🇫🇷', 'Français'),
   ];
 
@@ -1093,5 +1096,32 @@ class _ChangeGroup extends StatelessWidget {
         ]),
       )),
     ]);
+  }
+}
+
+// ── Music provider branded icon ───────────────────────────────────────────────
+
+class _MusicProviderIcon extends StatelessWidget {
+  final MusicProvider provider;
+  const _MusicProviderIcon(this.provider);
+
+  @override
+  Widget build(BuildContext context) {
+    final (color, icon) = switch (provider) {
+      MusicProvider.spotify      => (const Color(0xFF1DB954), Icons.graphic_eq_rounded),
+      MusicProvider.appleMusic   => (const Color(0xFFFC3C44), Icons.music_note_rounded),
+      MusicProvider.youtubeMusic => (const Color(0xFFFF0000), Icons.play_circle_filled_rounded),
+      MusicProvider.amazonMusic  => (const Color(0xFF00A8E0), Icons.library_music_rounded),
+      MusicProvider.custom       => (Colors.grey, Icons.link_rounded),
+    };
+    return Container(
+      width: 24,
+      height: 24,
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(5),
+      ),
+      child: Icon(icon, color: Colors.white, size: 14),
+    );
   }
 }
