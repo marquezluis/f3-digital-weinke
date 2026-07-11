@@ -91,7 +91,7 @@ class WorkoutPlan {
   });
 
   int get exerciseMinutes =>
-      blocks.fold(0, (sum, b) => sum + b.durationMinutes);
+      blocks.fold(0, (sum, b) => sum + b.durationMinutes * b.rounds);
 
   int get totalMinutes => nonExercisePhaseMinutes + exerciseMinutes;
 

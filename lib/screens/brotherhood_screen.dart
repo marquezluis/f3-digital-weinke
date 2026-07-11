@@ -6,8 +6,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../models/region_models.dart';
+import '../models/f3_api_models.dart';
 import '../services/region_service.dart';
 import '../services/app_profile_service.dart';
+import '../services/f3_api_service.dart';
 import '../theme/app_theme.dart';
 
 class BrotherhoodScreen extends StatefulWidget {
@@ -23,18 +25,18 @@ class _BrotherhoodScreenState extends State<BrotherhoodScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: F3Colors.background,
+      backgroundColor: context.f3bg,
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'BROTHERHOOD BOARD',
           style: TextStyle(
-            color: F3Colors.textPrimary,
+            color: context.f3textPrimary,
             fontSize: 18,
             fontWeight: FontWeight.w900,
             letterSpacing: 1.2,
           ),
         ),
-        backgroundColor: F3Colors.background,
+        backgroundColor: context.f3bg,
         scrolledUnderElevation: 0,
         surfaceTintColor: Colors.transparent,
         actions: [
@@ -161,9 +163,9 @@ class _BrotherhoodScreenState extends State<BrotherhoodScreen> {
             margin: const EdgeInsets.only(top: 4),
             padding: const EdgeInsets.symmetric(vertical: 12),
             decoration: BoxDecoration(
-              color: F3Colors.card,
+              color: context.f3card,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: F3Colors.divider),
+              border: Border.all(color: context.f3divider),
             ),
             child: Center(
               child: Text(
@@ -201,7 +203,7 @@ class _BrotherhoodScreenState extends State<BrotherhoodScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: F3Colors.card,
+      backgroundColor: context.f3card,
       builder: (_) => _SimpleFormSheet(
         title: 'Add AO',
         children: [
@@ -235,11 +237,14 @@ class _BrotherhoodScreenState extends State<BrotherhoodScreen> {
     final sponsor = TextEditingController();
     final notes = TextEditingController();
     DateTime? pickedFirstPost;
+    F3UserProfile? f3Result;
+    bool f3Searching = false;
+    final api = context.read<F3ApiService>();
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: F3Colors.card,
+      backgroundColor: context.f3card,
       builder: (sheetContext) => StatefulBuilder(
         builder: (ctx, setSheetState) {
           return _SimpleFormSheet(
@@ -249,6 +254,90 @@ class _BrotherhoodScreenState extends State<BrotherhoodScreen> {
                   controller: name,
                   label: 'F3 Name',
                   icon: Icons.person_rounded),
+              // F3 Nation lookup (only when API configured)
+              if (api.isConfigured) ...[
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Expanded(
+                      child: f3Result != null
+                          ? Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: F3Colors.accent.withValues(alpha: 0.10),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: F3Colors.accent.withValues(alpha: 0.35)),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.verified_rounded, color: F3Colors.accent, size: 14),
+                                  const SizedBox(width: 6),
+                                  Expanded(
+                                    child: Text(
+                                      '${f3Result!.f3Name}${f3Result!.homeRegionName != null ? ' · ${f3Result!.homeRegionName}' : ''}',
+                                      style: TextStyle(
+                                        color: ctx.f3textPrimary,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  GestureDetector(
+                                    onTap: () => setSheetState(() => f3Result = null),
+                                    child: Icon(Icons.close_rounded, size: 14, color: ctx.f3textMuted),
+                                  ),
+                                ],
+                              ),
+                            )
+                          : GestureDetector(
+                              onTap: () async {
+                                final q = name.text.trim();
+                                if (q.isEmpty) return;
+                                setSheetState(() => f3Searching = true);
+                                final result = await api.findPaxByF3Name(q);
+                                setSheetState(() {
+                                  f3Result = result;
+                                  f3Searching = false;
+                                  if (result != null && name.text.trim().isEmpty) {
+                                    name.text = result.f3Name;
+                                  }
+                                });
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                                decoration: BoxDecoration(
+                                  color: ctx.f3elevated,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: ctx.f3divider),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (f3Searching)
+                                      const SizedBox(
+                                        width: 11, height: 11,
+                                        child: CircularProgressIndicator(strokeWidth: 1.5, color: F3Colors.accent),
+                                      )
+                                    else
+                                      const Icon(Icons.search_rounded, size: 13, color: F3Colors.accent),
+                                    const SizedBox(width: 5),
+                                    Text(
+                                      f3Searching ? 'Searching…' : 'Look up on F3 Nation',
+                                      style: TextStyle(
+                                        color: f3Searching ? ctx.f3textMuted : F3Colors.accent,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                    ),
+                  ],
+                ),
+              ],
               _Field(
                   controller: contact,
                   label: 'Phone / Slack',
@@ -269,11 +358,11 @@ class _BrotherhoodScreenState extends State<BrotherhoodScreen> {
                     helpText: 'FIRST POST DATE',
                     builder: (context, child) => Theme(
                       data: Theme.of(context).copyWith(
-                        colorScheme: const ColorScheme.dark(
+                        colorScheme: ColorScheme.dark(
                           primary: F3Colors.accent,
                           onPrimary: Colors.white,
-                          surface: F3Colors.card,
-                          onSurface: F3Colors.textPrimary,
+                          surface: context.f3card,
+                          onSurface: context.f3textPrimary,
                         ),
                       ),
                       child: child!,
@@ -287,14 +376,14 @@ class _BrotherhoodScreenState extends State<BrotherhoodScreen> {
                   padding: const EdgeInsets.symmetric(
                       horizontal: 16, vertical: 16),
                   decoration: BoxDecoration(
-                    color: F3Colors.card,
+                    color: context.f3card,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: F3Colors.divider),
+                    border: Border.all(color: context.f3divider),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.calendar_today_rounded,
-                          color: F3Colors.textSecondary, size: 20),
+                      Icon(Icons.calendar_today_rounded,
+                          color: context.f3textSecondary, size: 20),
                       const SizedBox(width: 12),
                       Text(
                         pickedFirstPost != null
@@ -302,8 +391,8 @@ class _BrotherhoodScreenState extends State<BrotherhoodScreen> {
                             : 'First Post Date (optional)',
                         style: TextStyle(
                           color: pickedFirstPost != null
-                              ? F3Colors.textPrimary
-                              : F3Colors.textMuted,
+                              ? context.f3textPrimary
+                              : context.f3textMuted,
                           fontSize: 15,
                         ),
                       ),
@@ -312,8 +401,8 @@ class _BrotherhoodScreenState extends State<BrotherhoodScreen> {
                         GestureDetector(
                           onTap: () =>
                               setSheetState(() => pickedFirstPost = null),
-                          child: const Icon(Icons.clear_rounded,
-                              color: F3Colors.textMuted, size: 18),
+                          child: Icon(Icons.clear_rounded,
+                              color: context.f3textMuted, size: 18),
                         ),
                     ],
                   ),
@@ -350,14 +439,14 @@ class _BrotherhoodScreenState extends State<BrotherhoodScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: F3Colors.card,
+      backgroundColor: context.f3card,
       builder: (_) => StatefulBuilder(
         builder: (context, setSheetState) => _SimpleFormSheet(
           title: 'Add HC',
           children: [
             DropdownButtonFormField<String>(
               initialValue: selectedAo,
-              dropdownColor: F3Colors.card,
+              dropdownColor: context.f3card,
               decoration: const InputDecoration(
                 labelText: 'AO',
                 prefixIcon: Icon(Icons.flag_rounded),
@@ -432,8 +521,8 @@ class _HeroCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [F3Colors.elevated, F3Colors.card],
+        gradient: LinearGradient(
+          colors: [context.f3elevated, context.f3card],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -452,8 +541,8 @@ class _HeroCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   name,
-                  style: const TextStyle(
-                    color: F3Colors.textPrimary,
+                  style: TextStyle(
+                    color: context.f3textPrimary,
                     fontSize: 22,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 0.3,
@@ -470,8 +559,8 @@ class _HeroCard extends StatelessWidget {
             locationText,
             style: TextStyle(
               color: hasLocation
-                  ? F3Colors.textSecondary
-                  : F3Colors.textMuted,
+                  ? context.f3textSecondary
+                  : context.f3textMuted,
               fontSize: 13,
             ),
           ),
@@ -570,8 +659,8 @@ class _StatChip extends StatelessWidget {
             ),
             Text(
               label,
-              style: const TextStyle(
-                color: F3Colors.textMuted,
+              style: TextStyle(
+                color: context.f3textMuted,
                 fontSize: 9,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.5,
@@ -642,9 +731,9 @@ class _FngCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: F3Colors.card,
+        color: context.f3card,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: F3Colors.divider),
+        border: Border.all(color: context.f3divider),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -680,8 +769,8 @@ class _FngCard extends StatelessWidget {
                     Expanded(
                       child: Text(
                         pax.name,
-                        style: const TextStyle(
-                          color: F3Colors.textPrimary,
+                        style: TextStyle(
+                          color: context.f3textPrimary,
                           fontSize: 15,
                           fontWeight: FontWeight.w800,
                         ),
@@ -715,8 +804,8 @@ class _FngCard extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     'Sponsor: ${pax.sponsor}',
-                    style: const TextStyle(
-                      color: F3Colors.textSecondary,
+                    style: TextStyle(
+                      color: context.f3textSecondary,
                       fontSize: 12,
                     ),
                   ),
@@ -725,8 +814,8 @@ class _FngCard extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     pax.notes,
-                    style: const TextStyle(
-                      color: F3Colors.textMuted,
+                    style: TextStyle(
+                      color: context.f3textMuted,
                       fontSize: 12,
                     ),
                     maxLines: 1,
@@ -760,9 +849,9 @@ class _AoCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: F3Colors.card,
+        color: context.f3card,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: F3Colors.divider),
+        border: Border.all(color: context.f3divider),
       ),
       child: Row(
         children: [
@@ -774,8 +863,8 @@ class _AoCard extends StatelessWidget {
               children: [
                 Text(
                   ao.name,
-                  style: const TextStyle(
-                    color: F3Colors.textPrimary,
+                  style: TextStyle(
+                    color: context.f3textPrimary,
                     fontSize: 15,
                     fontWeight: FontWeight.w800,
                   ),
@@ -783,8 +872,8 @@ class _AoCard extends StatelessWidget {
                 if (subtitleParts.isNotEmpty)
                   Text(
                     subtitleParts.join(' · '),
-                    style: const TextStyle(
-                      color: F3Colors.textSecondary,
+                    style: TextStyle(
+                      color: context.f3textSecondary,
                       fontSize: 12,
                     ),
                   ),
@@ -830,9 +919,9 @@ class _PaxTile extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: F3Colors.card,
+        color: context.f3card,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: F3Colors.divider),
+        border: Border.all(color: context.f3divider),
       ),
       child: Row(
         children: [
@@ -859,16 +948,16 @@ class _PaxTile extends StatelessWidget {
           Expanded(
             child: Text(
               pax.name,
-              style: const TextStyle(
-                color: F3Colors.textPrimary,
+              style: TextStyle(
+                color: context.f3textPrimary,
                 fontSize: 15,
                 fontWeight: FontWeight.w700,
               ),
             ),
           ),
           if (pax.phoneOrSlack.isNotEmpty)
-            const Icon(Icons.phone_iphone_rounded,
-                color: F3Colors.textMuted, size: 16),
+            Icon(Icons.phone_iphone_rounded,
+                color: context.f3textMuted, size: 16),
         ],
       ),
     );
@@ -901,9 +990,9 @@ class _HcCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: F3Colors.card,
+        color: context.f3card,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: F3Colors.divider),
+        border: Border.all(color: context.f3divider),
       ),
       child: Row(
         children: [
@@ -916,16 +1005,16 @@ class _HcCard extends StatelessWidget {
               children: [
                 Text(
                   aoName,
-                  style: const TextStyle(
-                    color: F3Colors.textPrimary,
+                  style: TextStyle(
+                    color: context.f3textPrimary,
                     fontSize: 15,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
                 Text(
                   '${_shortDate(hc.date)} · $subtitle',
-                  style: const TextStyle(
-                    color: F3Colors.textSecondary,
+                  style: TextStyle(
+                    color: context.f3textSecondary,
                     fontSize: 12,
                   ),
                 ),
@@ -964,9 +1053,9 @@ class _BeatdownTile extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: F3Colors.card,
+        color: context.f3card,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: F3Colors.divider),
+        border: Border.all(color: context.f3divider),
       ),
       child: Row(
         children: [
@@ -979,16 +1068,16 @@ class _BeatdownTile extends StatelessWidget {
               children: [
                 Text(
                   entry.aoName.isEmpty ? 'Beatdown' : entry.aoName,
-                  style: const TextStyle(
-                    color: F3Colors.textPrimary,
+                  style: TextStyle(
+                    color: context.f3textPrimary,
                     fontSize: 15,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
                 Text(
                   subtitle,
-                  style: const TextStyle(
-                    color: F3Colors.textSecondary,
+                  style: TextStyle(
+                    color: context.f3textSecondary,
                     fontSize: 12,
                   ),
                 ),
@@ -1023,7 +1112,7 @@ class _SectionHeader extends StatelessWidget {
         Text(
           title,
           style: TextStyle(
-            color: accentTitle ? F3Colors.accent : F3Colors.textMuted,
+            color: accentTitle ? F3Colors.accent : context.f3textMuted,
             fontSize: 11,
             fontWeight: FontWeight.w800,
             letterSpacing: 1.5,
@@ -1065,19 +1154,19 @@ class _EmptyState extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: F3Colors.card,
+        color: context.f3card,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: F3Colors.divider),
+        border: Border.all(color: context.f3divider),
       ),
       child: Row(
         children: [
-          Icon(icon, color: F3Colors.textMuted, size: 22),
+          Icon(icon, color: context.f3textMuted, size: 22),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               message,
-              style: const TextStyle(
-                color: F3Colors.textSecondary,
+              style: TextStyle(
+                color: context.f3textSecondary,
                 fontSize: 13,
                 height: 1.35,
               ),
@@ -1160,7 +1249,7 @@ class _Field extends StatelessWidget {
     return TextField(
       controller: controller,
       maxLines: maxLines,
-      style: const TextStyle(color: F3Colors.textPrimary),
+      style: TextStyle(color: context.f3textPrimary),
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,

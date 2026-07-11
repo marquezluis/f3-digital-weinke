@@ -71,10 +71,10 @@ class _CustomExerciseScreenState extends State<CustomExerciseScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: F3Colors.background,
+      backgroundColor: context.f3bg,
       appBar: AppBar(
         title: const Text('Create Exercise'),
-        backgroundColor: F3Colors.background,
+        backgroundColor: context.f3bg,
       ),
       body: Form(
         key: _formKey,
@@ -91,9 +91,9 @@ class _CustomExerciseScreenState extends State<CustomExerciseScreen> {
               ),
             ),
             const SizedBox(height: 4),
-            const Text(
+            Text(
               'Your exercise is stored locally and available for beatdown generation.',
-              style: TextStyle(color: F3Colors.textSecondary, fontSize: 13),
+              style: TextStyle(color: context.f3textSecondary, fontSize: 13),
             ),
             const SizedBox(height: 20),
             _field(
@@ -139,14 +139,14 @@ class _CustomExerciseScreenState extends State<CustomExerciseScreen> {
                     }
                   }),
                   selectedColor: color.withValues(alpha: 0.2),
-                  backgroundColor: F3Colors.card,
+                  backgroundColor: context.f3card,
                   labelStyle: TextStyle(
-                    color: selected ? color : F3Colors.textSecondary,
+                    color: selected ? color : context.f3textSecondary,
                     fontWeight:
                         selected ? FontWeight.w700 : FontWeight.w500,
                   ),
                   side: BorderSide(
-                    color: selected ? color : F3Colors.divider,
+                    color: selected ? color : context.f3divider,
                   ),
                 );
               }).toList(),
@@ -164,14 +164,14 @@ class _CustomExerciseScreenState extends State<CustomExerciseScreen> {
                   selected: selected,
                   onSelected: (_) => setState(() => _intensity = lvl),
                   selectedColor: color.withValues(alpha: 0.2),
-                  backgroundColor: F3Colors.card,
+                  backgroundColor: context.f3card,
                   labelStyle: TextStyle(
-                    color: selected ? color : F3Colors.textSecondary,
+                    color: selected ? color : context.f3textSecondary,
                     fontWeight:
                         selected ? FontWeight.w700 : FontWeight.w500,
                   ),
                   side: BorderSide(
-                    color: selected ? color : F3Colors.divider,
+                    color: selected ? color : context.f3divider,
                   ),
                 );
               }).toList(),
@@ -208,7 +208,7 @@ class _CustomExerciseScreenState extends State<CustomExerciseScreen> {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Divider(color: F3Colors.divider),
+                    Divider(color: context.f3divider),
                     const SizedBox(height: 8),
                     _sectionLabel('YOUR CUSTOM EXERCISES'),
                     const SizedBox(height: 8),
@@ -225,8 +225,8 @@ class _CustomExerciseScreenState extends State<CustomExerciseScreen> {
 
   Widget _sectionLabel(String text) => Text(
         text,
-        style: const TextStyle(
-          color: F3Colors.textMuted,
+        style: TextStyle(
+          color: context.f3textMuted,
           fontSize: 11,
           fontWeight: FontWeight.w700,
           letterSpacing: 1.5,
@@ -244,11 +244,11 @@ class _CustomExerciseScreenState extends State<CustomExerciseScreen> {
     return TextFormField(
       controller: controller,
       maxLines: maxLines,
-      style: const TextStyle(color: F3Colors.textPrimary),
+      style: TextStyle(color: context.f3textPrimary),
       decoration: InputDecoration(
         labelText: label,
         labelStyle:
-            const TextStyle(color: F3Colors.textSecondary, fontSize: 13),
+            TextStyle(color: context.f3textSecondary, fontSize: 13),
         hintText: hint,
         prefixIcon: Icon(icon, size: 20),
       ),
@@ -268,26 +268,26 @@ class _CustomExerciseTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: F3Colors.card,
+          color: context.f3card,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: F3Colors.divider),
+          border: Border.all(color: context.f3divider),
         ),
         child: Row(children: [
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(ex.name,
-                  style: const TextStyle(
-                      color: F3Colors.textPrimary,
+                  style: TextStyle(
+                      color: context.f3textPrimary,
                       fontWeight: FontWeight.w700,
                       fontSize: 15)),
               Text('${ex.category.displayName} · ${ex.intensity.displayName}',
-                  style: const TextStyle(
-                      color: F3Colors.textSecondary, fontSize: 12)),
+                  style: TextStyle(
+                      color: context.f3textSecondary, fontSize: 12)),
             ]),
           ),
           IconButton(
-            icon: const Icon(Icons.delete_outline_rounded,
-                color: F3Colors.textMuted, size: 20),
+            icon: Icon(Icons.delete_outline_rounded,
+                color: context.f3textMuted, size: 20),
             onPressed: () async {
               await context.read<ExerciseService>().deleteCustomExercise(ex.id);
             },

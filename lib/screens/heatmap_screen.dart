@@ -12,10 +12,10 @@ class HeatmapScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: F3Colors.background,
+      backgroundColor: context.f3bg,
       appBar: AppBar(
         title: const Text('Activity Heatmap'),
-        backgroundColor: F3Colors.background,
+        backgroundColor: context.f3bg,
       ),
       body: Consumer<HistoryService>(
         builder: (context, svc, _) {
@@ -74,9 +74,9 @@ class _HeatmapView extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: F3Colors.card,
+            color: context.f3card,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: F3Colors.divider),
+            border: Border.all(color: context.f3divider),
           ),
           child: Row(children: [
             _StatCell('$totalSessions', 'All Time', F3Colors.accent),
@@ -85,10 +85,10 @@ class _HeatmapView extends StatelessWidget {
           ]),
         ),
         const SizedBox(height: 20),
-        const Text(
+        Text(
           'PAST 52 WEEKS',
           style: TextStyle(
-              color: F3Colors.textMuted,
+              color: context.f3textMuted,
               fontSize: 11,
               fontWeight: FontWeight.w700,
               letterSpacing: 1.5),
@@ -96,18 +96,18 @@ class _HeatmapView extends StatelessWidget {
         const SizedBox(height: 8),
         // Legend
         Row(children: [
-          const Text('Less', style: TextStyle(color: F3Colors.textMuted, fontSize: 10)),
+          Text('Less', style: TextStyle(color: context.f3textMuted, fontSize: 10)),
           const SizedBox(width: 6),
           ...List.generate(5, (i) => Container(
                 width: 10, height: 10,
                 margin: const EdgeInsets.only(right: 3),
                 decoration: BoxDecoration(
-                  color: _heatColor(i, 0, 4),
+                  color: _heatColor(context, i, 0, 4),
                   borderRadius: BorderRadius.circular(2),
                 ),
               )),
           const SizedBox(width: 6),
-          const Text('More', style: TextStyle(color: F3Colors.textMuted, fontSize: 10)),
+          Text('More', style: TextStyle(color: context.f3textMuted, fontSize: 10)),
         ]),
         const SizedBox(height: 8),
         // Heatmap grid — scrollable horizontally
@@ -126,8 +126,8 @@ class _HeatmapView extends StatelessWidget {
                       left: col * 14.0,
                       child: Text(
                         months[entry.key],
-                        style: const TextStyle(
-                            color: F3Colors.textMuted, fontSize: 9),
+                        style: TextStyle(
+                            color: context.f3textMuted, fontSize: 9),
                       ),
                     );
                   }).toList(),
@@ -157,7 +157,7 @@ class _HeatmapView extends StatelessWidget {
                           height: 12,
                           margin: const EdgeInsets.all(1),
                           decoration: BoxDecoration(
-                            color: _heatColor(count, 0, maxCount),
+                            color: _heatColor(context, count, 0, maxCount),
                             borderRadius: BorderRadius.circular(2),
                           ),
                         ),
@@ -173,8 +173,8 @@ class _HeatmapView extends StatelessWidget {
                   SizedBox(
                     height: 14,
                     child: Text(d,
-                        style: const TextStyle(
-                            color: F3Colors.textMuted, fontSize: 9)),
+                        style: TextStyle(
+                            color: context.f3textMuted, fontSize: 9)),
                   )).toList(),
               ),
             ],
@@ -182,10 +182,10 @@ class _HeatmapView extends StatelessWidget {
         ),
         const SizedBox(height: 24),
         // Monthly breakdown bar chart
-        const Text(
+        Text(
           'SESSIONS BY MONTH',
           style: TextStyle(
-              color: F3Colors.textMuted,
+              color: context.f3textMuted,
               fontSize: 11,
               fontWeight: FontWeight.w700,
               letterSpacing: 1.5),
@@ -196,8 +196,8 @@ class _HeatmapView extends StatelessWidget {
     );
   }
 
-  Color _heatColor(int count, int min, int max) {
-    if (count == 0) return F3Colors.card;
+  Color _heatColor(BuildContext context, int count, int min, int max, {Color? zeroColor}) {
+    if (count == 0) return zeroColor ?? context.f3card;
     if (max == 0) return F3Colors.accent.withValues(alpha: 0.3);
     final ratio = (count - min) / (max - min).clamp(1, 999);
     return Color.lerp(
@@ -238,7 +238,7 @@ class _StatCell extends StatelessWidget {
             style: TextStyle(
                 color: color, fontSize: 24, fontWeight: FontWeight.w900)),
         Text(label,
-            style: const TextStyle(color: F3Colors.textMuted, fontSize: 11)),
+            style: TextStyle(color: context.f3textMuted, fontSize: 11)),
       ]),
     );
   }
@@ -274,9 +274,9 @@ class _MonthlyBarChart extends StatelessWidget {
       height: 100,
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: F3Colors.card,
+        color: context.f3card,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: F3Colors.divider),
+        border: Border.all(color: context.f3divider),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
@@ -303,7 +303,7 @@ class _MonthlyBarChart extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: count > 0
                               ? F3Colors.accent
-                              : F3Colors.divider,
+                              : context.f3divider,
                           borderRadius: const BorderRadius.vertical(
                               top: Radius.circular(2)),
                         ),
@@ -313,8 +313,8 @@ class _MonthlyBarChart extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     monthNames[monthNum],
-                    style: const TextStyle(
-                        color: F3Colors.textMuted, fontSize: 8),
+                    style: TextStyle(
+                        color: context.f3textMuted, fontSize: 8),
                   ),
                 ],
               ),

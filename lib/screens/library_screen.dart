@@ -73,7 +73,7 @@ class _LibraryScreenState extends State<LibraryScreen>
     };
 
     return Scaffold(
-      backgroundColor: F3Colors.background,
+      backgroundColor: context.f3bg,
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
           final exercises = filteredByTab[_tabs[_tabController.index].$2]!;
@@ -89,7 +89,7 @@ class _LibraryScreenState extends State<LibraryScreen>
       ),
       appBar: AppBar(
         title: const Text('Exicon Library'),
-        backgroundColor: F3Colors.background,
+        backgroundColor: context.f3bg,
         scrolledUnderElevation: 0,
         surfaceTintColor: Colors.transparent,
         actions: [
@@ -181,7 +181,7 @@ class _LibraryScreenState extends State<LibraryScreen>
           PopupMenuButton<Intensity>(
             icon: const Icon(Icons.filter_list_rounded),
             tooltip: 'Filter by intensity',
-            color: F3Colors.card,
+            color: context.f3card,
             onSelected: (intensity) {
               setState(() {
                 if (_intensityFilter.contains(intensity)) {
@@ -221,7 +221,7 @@ class _LibraryScreenState extends State<LibraryScreen>
             height: 108,
             width: double.infinity,
             child: ColoredBox(
-              color: F3Colors.background,
+              color: context.f3bg,
               child: Column(
                 mainAxisSize: MainAxisSize.max,
                 children: [
@@ -229,7 +229,7 @@ class _LibraryScreenState extends State<LibraryScreen>
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
                     child: TextField(
                       controller: _searchCtrl,
-                      style: const TextStyle(color: F3Colors.textPrimary, fontSize: 16),
+                      style: TextStyle(color: context.f3textPrimary, fontSize: 16),
                       decoration: const InputDecoration(
                         hintText: 'Search exercises…',
                         prefixIcon: Icon(Icons.search_rounded),
@@ -242,7 +242,7 @@ class _LibraryScreenState extends State<LibraryScreen>
                     tabAlignment: TabAlignment.start,
                     indicatorColor: F3Colors.accent,
                     labelColor: F3Colors.accent,
-                    unselectedLabelColor: F3Colors.textSecondary,
+                    unselectedLabelColor: context.f3textSecondary,
                     labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
                     dividerColor: Colors.transparent,
                     tabs: _tabs.map((t) {
@@ -257,7 +257,7 @@ class _LibraryScreenState extends State<LibraryScreen>
         ),
       ),
       body: ColoredBox(
-        color: F3Colors.background,
+        color: context.f3bg,
         child: TabBarView(
           controller: _tabController,
           children: _tabs.map((t) {
@@ -342,7 +342,7 @@ class _ExerciseList extends StatelessWidget {
   Widget build(BuildContext context) {
     if (exercises.isEmpty) {
       return ColoredBox(
-        color: F3Colors.background,
+        color: context.f3bg,
         child: Center(
           child: Padding(
             padding: const EdgeInsets.all(32),
@@ -350,18 +350,18 @@ class _ExerciseList extends StatelessWidget {
               Container(
                 width: 72, height: 72,
                 decoration: BoxDecoration(
-                  color: F3Colors.elevated,
+                  color: context.f3elevated,
                   borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: F3Colors.divider),
+                  border: Border.all(color: context.f3divider),
                 ),
-                child: const Icon(Icons.search_off_rounded, color: F3Colors.textMuted, size: 36),
+                child: Icon(Icons.search_off_rounded, color: context.f3textMuted, size: 36),
               ),
               const SizedBox(height: 16),
               Text(
                 query.isEmpty ? 'No exercises match.' : 'No results for "$query"',
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                    color: F3Colors.textPrimary, fontSize: 16, fontWeight: FontWeight.w700),
+                style: TextStyle(
+                    color: context.f3textPrimary, fontSize: 16, fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 6),
               Text(
@@ -369,7 +369,7 @@ class _ExerciseList extends StatelessWidget {
                     ? 'Try adjusting the intensity or equipment filter.'
                     : 'Check spelling or try a shorter search term.',
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: F3Colors.textSecondary, fontSize: 13),
+                style: TextStyle(color: context.f3textSecondary, fontSize: 13),
               ),
             ]),
           ),
@@ -378,7 +378,7 @@ class _ExerciseList extends StatelessWidget {
     }
 
     return ColoredBox(
-      color: F3Colors.background,
+      color: context.f3bg,
       child: ListView.builder(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
         itemCount: exercises.length,

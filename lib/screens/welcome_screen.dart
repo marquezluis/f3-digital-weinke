@@ -84,7 +84,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      backgroundColor: F3Colors.background,
+      backgroundColor: context.f3bg,
       body: FadeTransition(
         opacity: _fade,
         child: SafeArea(
@@ -99,8 +99,8 @@ class _WelcomeScreenState extends State<WelcomeScreen>
               Text(
                 l10n.appTagline,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: F3Colors.textSecondary,
+                style: TextStyle(
+                  color: context.f3textSecondary,
                   fontSize: 14,
                   height: 1.55,
                 ),
@@ -112,7 +112,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
               TextField(
                 controller: _nameCtrl,
                 textCapitalization: TextCapitalization.words,
-                style: const TextStyle(color: F3Colors.textPrimary),
+                style: TextStyle(color: context.f3textPrimary),
                 decoration: InputDecoration(
                   labelText: l10n.welcomeF3Name,
                   hintText: l10n.welcomeF3NameHint,
@@ -123,7 +123,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
               TextField(
                 controller: _homeAoCtrl,
                 textCapitalization: TextCapitalization.words,
-                style: const TextStyle(color: F3Colors.textPrimary),
+                style: TextStyle(color: context.f3textPrimary),
                 decoration: InputDecoration(
                   labelText: l10n.welcomeHomeAo,
                   hintText: l10n.welcomeHomeAoHint,
@@ -134,7 +134,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
               TextField(
                 controller: _regionCtrl,
                 textCapitalization: TextCapitalization.words,
-                style: const TextStyle(color: F3Colors.textPrimary),
+                style: TextStyle(color: context.f3textPrimary),
                 decoration: InputDecoration(
                   labelText: l10n.welcomeRegion,
                   hintText: l10n.welcomeRegionHint,
@@ -160,21 +160,21 @@ class _WelcomeScreenState extends State<WelcomeScreen>
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: F3Colors.elevated,
+                  color: context.f3elevated,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: F3Colors.divider),
+                  border: Border.all(color: context.f3divider),
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.lock_outline_rounded,
-                        color: F3Colors.textSecondary, size: 18),
+                    Icon(Icons.lock_outline_rounded,
+                        color: context.f3textSecondary, size: 18),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
                         l10n.welcomePrivacy,
-                        style: const TextStyle(
-                          color: F3Colors.textSecondary,
+                        style: TextStyle(
+                          color: context.f3textSecondary,
                           fontSize: 12,
                           height: 1.4,
                         ),
@@ -187,9 +187,9 @@ class _WelcomeScreenState extends State<WelcomeScreen>
               // ── App lock ────────────────────────────────────────────────────
               Container(
                 decoration: BoxDecoration(
-                  color: F3Colors.card,
+                  color: context.f3card,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: F3Colors.divider),
+                  border: Border.all(color: context.f3divider),
                 ),
                 child: SwitchListTile(
                   value: _appLockEnabled,
@@ -203,8 +203,8 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                   secondary: const Icon(Icons.fingerprint_rounded),
                   title: Text(
                     l10n.welcomeProtectApp,
-                    style: const TextStyle(
-                      color: F3Colors.textPrimary,
+                    style: TextStyle(
+                      color: context.f3textPrimary,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
@@ -212,8 +212,8 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                     _lockSupported
                         ? l10n.welcomeProtectAppDesc
                         : l10n.welcomeProtectNotAvailable,
-                    style: const TextStyle(
-                      color: F3Colors.textSecondary,
+                    style: TextStyle(
+                      color: context.f3textSecondary,
                       fontSize: 12,
                     ),
                   ),
@@ -241,8 +241,8 @@ class _WelcomeScreenState extends State<WelcomeScreen>
               Text(
                 l10n.welcomeSubtext,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: F3Colors.textMuted,
+                style: TextStyle(
+                  color: context.f3textMuted,
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 3,
@@ -299,11 +299,11 @@ class _AppLogo extends StatelessWidget {
         // App name
         RichText(
           textAlign: TextAlign.center,
-          text: const TextSpan(children: [
+          text: TextSpan(children: [
             TextSpan(
               text: 'DIGITAL ',
               style: TextStyle(
-                color: F3Colors.textPrimary,
+                color: context.f3textPrimary,
                 fontSize: 30,
                 fontWeight: FontWeight.w900,
                 letterSpacing: 3,
@@ -323,10 +323,10 @@ class _AppLogo extends StatelessWidget {
           ]),
         ),
         const SizedBox(height: 6),
-        const Text(
+        Text(
           'F3 NATION · SPARTAN UP',
           style: TextStyle(
-            color: F3Colors.textMuted,
+            color: context.f3textMuted,
             fontSize: 11,
             fontWeight: FontWeight.w700,
             letterSpacing: 2.5,
@@ -438,20 +438,20 @@ class _SectionLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(children: [
-      const Expanded(child: Divider(color: F3Colors.divider, thickness: 1)),
+      Expanded(child: Divider(color: context.f3divider, thickness: 1)),
       Padding(
         padding: const EdgeInsets.symmetric(horizontal: 10),
         child: Text(
           text,
-          style: const TextStyle(
-            color: F3Colors.textMuted,
+          style: TextStyle(
+            color: context.f3textMuted,
             fontSize: 10,
             fontWeight: FontWeight.w800,
             letterSpacing: 1.5,
           ),
         ),
       ),
-      const Expanded(child: Divider(color: F3Colors.divider, thickness: 1)),
+      Expanded(child: Divider(color: context.f3divider, thickness: 1)),
     ]);
   }
 }
@@ -498,7 +498,7 @@ class _RoleTile extends StatelessWidget {
       borderRadius: BorderRadius.circular(12),
       child: Material(
         color:
-            selected ? F3Colors.accent.withValues(alpha: 0.12) : F3Colors.card,
+            selected ? F3Colors.accent.withValues(alpha: 0.12) : context.f3card,
         child: InkWell(
           onTap: onTap,
           child: Container(
@@ -506,7 +506,7 @@ class _RoleTile extends StatelessWidget {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: selected ? F3Colors.accent : F3Colors.divider,
+                color: selected ? F3Colors.accent : context.f3divider,
                 width: selected ? 1.5 : 1,
               ),
             ),
@@ -515,7 +515,7 @@ class _RoleTile extends StatelessWidget {
                 selected
                     ? Icons.radio_button_checked_rounded
                     : Icons.radio_button_off_rounded,
-                color: selected ? F3Colors.accent : F3Colors.textMuted,
+                color: selected ? F3Colors.accent : context.f3textMuted,
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -526,8 +526,8 @@ class _RoleTile extends StatelessWidget {
                       _roleName(l10n),
                       style: TextStyle(
                         color: selected
-                            ? F3Colors.textPrimary
-                            : F3Colors.textSecondary,
+                            ? context.f3textPrimary
+                            : context.f3textSecondary,
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
                       ),
@@ -535,8 +535,8 @@ class _RoleTile extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       _roleDesc(l10n),
-                      style: const TextStyle(
-                        color: F3Colors.textMuted,
+                      style: TextStyle(
+                        color: context.f3textMuted,
                         fontSize: 12,
                         height: 1.3,
                       ),

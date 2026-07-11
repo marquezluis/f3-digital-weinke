@@ -96,14 +96,14 @@ class ShellScreen extends StatelessWidget {
         ];
 
         return Scaffold(
-          backgroundColor: F3Colors.background,
+          backgroundColor: context.f3bg,
           body: IndexedStack(
             index: index,
             children: _screens,
           ),
           bottomNavigationBar: Container(
-            decoration: const BoxDecoration(
-              border: Border(top: BorderSide(color: F3Colors.divider, width: 0.5)),
+            decoration: BoxDecoration(
+              border: Border(top: BorderSide(color: context.f3divider, width: 0.5)),
             ),
             child: NavigationBar(
               selectedIndex: index,

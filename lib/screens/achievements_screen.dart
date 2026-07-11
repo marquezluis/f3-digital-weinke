@@ -13,10 +13,10 @@ class AchievementsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: F3Colors.background,
+      backgroundColor: context.f3bg,
       appBar: AppBar(
         title: const Text('Achievements'),
-        backgroundColor: F3Colors.background,
+        backgroundColor: context.f3bg,
       ),
       body: Consumer<HistoryService>(
         builder: (context, svc, _) {
@@ -45,10 +45,10 @@ class AchievementsScreen extends StatelessWidget {
                           fontSize: 20,
                           fontWeight: FontWeight.w900),
                     ),
-                    const Text(
+                    Text(
                       'Keep grinding, PAX.',
                       style: TextStyle(
-                          color: F3Colors.textSecondary, fontSize: 13),
+                          color: context.f3textSecondary, fontSize: 13),
                     ),
                   ]),
                 ]),
@@ -73,7 +73,7 @@ class _BadgeTile extends StatelessWidget {
       AchievementTier.silver => const Color(0xFFC0C0C0),
       AchievementTier.gold => const Color(0xFFFFD700),
     };
-    final color = badge.unlocked ? tierColor : F3Colors.textMuted;
+    final color = badge.unlocked ? tierColor : context.f3textMuted;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -82,12 +82,12 @@ class _BadgeTile extends StatelessWidget {
         decoration: BoxDecoration(
           color: badge.unlocked
               ? color.withValues(alpha: 0.08)
-              : F3Colors.card,
+              : context.f3card,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: badge.unlocked
                 ? color.withValues(alpha: 0.4)
-                : F3Colors.divider,
+                : context.f3divider,
           ),
         ),
         child: Row(children: [
@@ -95,7 +95,7 @@ class _BadgeTile extends StatelessWidget {
             badge.emoji,
             style: TextStyle(
               fontSize: 32,
-              color: badge.unlocked ? null : F3Colors.textMuted,
+              color: badge.unlocked ? null : context.f3textMuted,
             ),
           ),
           const SizedBox(width: 14),
@@ -105,8 +105,8 @@ class _BadgeTile extends StatelessWidget {
                 badge.title,
                 style: TextStyle(
                   color: badge.unlocked
-                      ? F3Colors.textPrimary
-                      : F3Colors.textMuted,
+                      ? context.f3textPrimary
+                      : context.f3textMuted,
                   fontWeight: FontWeight.w800,
                   fontSize: 16,
                 ),
@@ -115,8 +115,8 @@ class _BadgeTile extends StatelessWidget {
                 badge.description,
                 style: TextStyle(
                   color: badge.unlocked
-                      ? F3Colors.textSecondary
-                      : F3Colors.textMuted,
+                      ? context.f3textSecondary
+                      : context.f3textMuted,
                   fontSize: 12,
                 ),
               ),

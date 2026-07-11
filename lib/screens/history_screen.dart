@@ -18,10 +18,10 @@ class HistoryScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: F3Colors.background,
+      backgroundColor: context.f3bg,
       appBar: AppBar(
         title: const Text('History'),
-        backgroundColor: F3Colors.background,
+        backgroundColor: context.f3bg,
         actions: [
           Consumer<HistoryService>(
             builder: (context, svc, _) {
@@ -72,13 +72,13 @@ class HistoryScreen extends StatelessWidget {
                   return await showDialog<bool>(
                     context: context,
                     builder: (_) => AlertDialog(
-                      backgroundColor: F3Colors.card,
-                      title: const Text('Delete Session',
-                          style: TextStyle(color: F3Colors.textPrimary)),
+                      backgroundColor: context.f3card,
+                      title: Text('Delete Session',
+                          style: TextStyle(color: context.f3textPrimary)),
                       content: Text(
                         'Remove "${entry.title}"?',
                         style:
-                            const TextStyle(color: F3Colors.textSecondary),
+                            TextStyle(color: context.f3textSecondary),
                       ),
                       actions: [
                         TextButton(
@@ -120,12 +120,12 @@ class HistoryScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        backgroundColor: F3Colors.card,
-        title: const Text('Clear History',
-            style: TextStyle(color: F3Colors.textPrimary)),
-        content: const Text(
+        backgroundColor: context.f3card,
+        title: Text('Clear History',
+            style: TextStyle(color: context.f3textPrimary)),
+        content: Text(
           'Delete all saved sessions? This cannot be undone.',
-          style: TextStyle(color: F3Colors.textSecondary),
+          style: TextStyle(color: context.f3textSecondary),
         ),
         actions: [
           TextButton(
@@ -166,21 +166,21 @@ class _EmptyState extends StatelessWidget {
             Icon(Icons.history_rounded,
                 color: F3Colors.accent.withValues(alpha: 0.5), size: 72),
             const SizedBox(height: 20),
-            const Text(
+            Text(
               'NO BEATDOWNS YET',
               style: TextStyle(
-                color: F3Colors.textPrimary,
+                color: context.f3textPrimary,
                 fontSize: 22,
                 fontWeight: FontWeight.w900,
                 letterSpacing: 1.2,
               ),
             ),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               'Generate a Weinke, run it, then tap\n"Save Session" to log your beatdown here.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                  color: F3Colors.textSecondary, fontSize: 14, height: 1.5),
+                  color: context.f3textSecondary, fontSize: 14, height: 1.5),
             ),
           ],
         ),
@@ -200,7 +200,7 @@ class _HistoryCard extends StatelessWidget {
     return ClipRRect(
       borderRadius: BorderRadius.circular(12),
       child: Material(
-        color: F3Colors.card,
+        color: context.f3card,
         child: InkWell(
           onTap: () {
             HapticFeedback.selectionClick();
@@ -216,7 +216,7 @@ class _HistoryCard extends StatelessWidget {
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: F3Colors.divider),
+              border: Border.all(color: context.f3divider),
             ),
             child: Row(
               children: [
@@ -240,16 +240,16 @@ class _HistoryCard extends StatelessWidget {
                       ),
                       Text(
                         '${entry.date.day}',
-                        style: const TextStyle(
-                            color: F3Colors.textPrimary,
+                        style: TextStyle(
+                            color: context.f3textPrimary,
                             fontSize: 22,
                             fontWeight: FontWeight.w900,
                             height: 1),
                       ),
                       Text(
                         '${entry.date.year}',
-                        style: const TextStyle(
-                            color: F3Colors.textMuted,
+                        style: TextStyle(
+                            color: context.f3textMuted,
                             fontSize: 10,
                             fontWeight: FontWeight.w600),
                       ),
@@ -265,8 +265,8 @@ class _HistoryCard extends StatelessWidget {
                       Text(entry.title,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                              color: F3Colors.textPrimary,
+                          style: TextStyle(
+                              color: context.f3textPrimary,
                               fontSize: 16,
                               fontWeight: FontWeight.w800)),
                       const SizedBox(height: 3),
@@ -274,26 +274,26 @@ class _HistoryCard extends StatelessWidget {
                         Text(entry.ao,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                                color: F3Colors.textSecondary, fontSize: 13)),
+                            style: TextStyle(
+                                color: context.f3textSecondary, fontSize: 13)),
                       const SizedBox(height: 4),
                       Row(children: [
                         if (entry.q.isNotEmpty) ...[
-                          const Icon(Icons.person_rounded,
-                              size: 13, color: F3Colors.textMuted),
+                          Icon(Icons.person_rounded,
+                              size: 13, color: context.f3textMuted),
                           const SizedBox(width: 4),
                           Text(entry.q,
-                              style: const TextStyle(
-                                  color: F3Colors.textMuted, fontSize: 12)),
+                              style: TextStyle(
+                                  color: context.f3textMuted, fontSize: 12)),
                           const SizedBox(width: 10),
                         ],
-                        const Icon(Icons.group_rounded,
-                            size: 13, color: F3Colors.textMuted),
+                        Icon(Icons.group_rounded,
+                            size: 13, color: context.f3textMuted),
                         const SizedBox(width: 4),
                         Text(
                           '${entry.totalCount}',
-                          style: const TextStyle(
-                              color: F3Colors.textMuted, fontSize: 12),
+                          style: TextStyle(
+                              color: context.f3textMuted, fontSize: 12),
                         ),
                         if (entry.fngCount > 0) ...[
                           const SizedBox(width: 8),
@@ -324,15 +324,15 @@ class _HistoryCard extends StatelessWidget {
                             size: 13,
                             color: entry.rating == 1
                                 ? F3Colors.phaseThang
-                                : F3Colors.textMuted,
+                                : context.f3textMuted,
                           ),
                         ],
                       ]),
                     ],
                   ),
                 ),
-                const Icon(Icons.chevron_right_rounded,
-                    color: F3Colors.textMuted, size: 22),
+                Icon(Icons.chevron_right_rounded,
+                    color: context.f3textMuted, size: 22),
               ],
             ),
           ),
@@ -433,12 +433,12 @@ class _BackblastScreenState extends State<BackblastScreen> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        backgroundColor: F3Colors.card,
-        title: const Text('Delete Session',
-            style: TextStyle(color: F3Colors.textPrimary)),
-        content: const Text(
+        backgroundColor: context.f3card,
+        title: Text('Delete Session',
+            style: TextStyle(color: context.f3textPrimary)),
+        content: Text(
           'Remove this beatdown from history?',
-          style: TextStyle(color: F3Colors.textSecondary),
+          style: TextStyle(color: context.f3textSecondary),
         ),
         actions: [
           TextButton(
@@ -472,11 +472,11 @@ class _BackblastScreenState extends State<BackblastScreen> {
         );
 
         return Scaffold(
-          backgroundColor: F3Colors.background,
+          backgroundColor: context.f3bg,
           appBar: AppBar(
             title:
                 Text(entry.title, maxLines: 1, overflow: TextOverflow.ellipsis),
-            backgroundColor: F3Colors.background,
+            backgroundColor: context.f3bg,
             actions: [
               IconButton(
                 icon: const Icon(Icons.share_rounded),
@@ -510,13 +510,13 @@ class _BackblastScreenState extends State<BackblastScreen> {
               ),
 
               // ── Backblast header ──────────────────────────────────────
-              const SliverPadding(
+              SliverPadding(
                 padding: EdgeInsets.fromLTRB(16, 20, 16, 4),
                 sliver: SliverToBoxAdapter(
                   child: Text(
                     'BACKBLAST DRAFT',
                     style: TextStyle(
-                      color: F3Colors.textMuted,
+                      color: context.f3textMuted,
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 1.5,
@@ -524,13 +524,13 @@ class _BackblastScreenState extends State<BackblastScreen> {
                   ),
                 ),
               ),
-              const SliverPadding(
+              SliverPadding(
                 padding: EdgeInsets.fromLTRB(16, 0, 16, 4),
                 sliver: SliverToBoxAdapter(
                   child: Text(
                     'Tap copy or share to send via Slack or email.',
                     style:
-                        TextStyle(color: F3Colors.textSecondary, fontSize: 13),
+                        TextStyle(color: context.f3textSecondary, fontSize: 13),
                   ),
                 ),
               ),
@@ -542,14 +542,14 @@ class _BackblastScreenState extends State<BackblastScreen> {
                   child: Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: F3Colors.card,
+                      color: context.f3card,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: F3Colors.divider),
+                      border: Border.all(color: context.f3divider),
                     ),
                     child: SelectableText(
                       _backblast,
-                      style: const TextStyle(
-                        color: F3Colors.textPrimary,
+                      style: TextStyle(
+                        color: context.f3textPrimary,
                         fontSize: 13,
                         height: 1.6,
                         fontFamily: 'monospace',
@@ -652,16 +652,16 @@ class _RatingRow extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: F3Colors.card,
+        color: context.f3card,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: F3Colors.divider),
+        border: Border.all(color: context.f3divider),
       ),
       child: Row(
         children: [
-          const Text(
+          Text(
             'RATE THIS SESSION',
             style: TextStyle(
-              color: F3Colors.textMuted,
+              color: context.f3textMuted,
               fontSize: 11,
               fontWeight: FontWeight.w700,
               letterSpacing: 1.2,
@@ -678,7 +678,7 @@ class _RatingRow extends StatelessWidget {
           _RatingButton(
             icon: Icons.thumb_down_rounded,
             active: rating == -1,
-            activeColor: F3Colors.textMuted,
+            activeColor: context.f3textMuted,
             onTap: () => onRate(-1),
           ),
         ],
@@ -710,15 +710,15 @@ class _RatingButton extends StatelessWidget {
         decoration: BoxDecoration(
           color: active
               ? activeColor.withValues(alpha: 0.15)
-              : F3Colors.elevated,
+              : context.f3elevated,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: active ? activeColor : F3Colors.divider,
+            color: active ? activeColor : context.f3divider,
             width: active ? 1.5 : 1,
           ),
         ),
         child: Icon(icon,
-            color: active ? activeColor : F3Colors.textMuted, size: 20),
+            color: active ? activeColor : context.f3textMuted, size: 20),
       ),
     );
   }
@@ -735,7 +735,7 @@ class _MetaCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: F3Colors.card,
+        color: context.f3card,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: F3Colors.accent.withValues(alpha: 0.3)),
       ),
@@ -778,15 +778,15 @@ class _Row extends StatelessWidget {
           SizedBox(
             width: 56,
             child: Text(label,
-                style: const TextStyle(
-                    color: F3Colors.textMuted,
+                style: TextStyle(
+                    color: context.f3textMuted,
                     fontSize: 12,
                     fontWeight: FontWeight.w600)),
           ),
           Expanded(
             child: Text(value,
                 style:
-                    const TextStyle(color: F3Colors.textPrimary, fontSize: 13)),
+                    TextStyle(color: context.f3textPrimary, fontSize: 13)),
           ),
         ],
       ),

@@ -1,22 +1,32 @@
 // lib/services/timer_service.dart
-// Phase-aware countdown timer for the F3 50-minute bootcamp.
+// Phase-aware countdown timer for the F3 bootcamp.
 //
-// Phases advance automatically:
-//   Disclaimer (1 min) → Warm-O-Rama (7 min) → The Thang (32 min)
-//   → Mary (6 min) → COT (4 min) → finished
-//
-// Emergency Mary: skip immediately to the Mary phase mid-session.
+// Phase durations default to the standard 50-minute F3 timeline, but The Thang
+// duration is overridden by resetWithPlan() so rounds and extended blocks are
+// reflected in the live countdown.
 
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
+import '../models/exercise.dart';
 import '../models/timer_state.dart';
+import '../models/workout_plan.dart';
 
 class TimerService extends ChangeNotifier {
   TimerState _state = const TimerState();
   Timer? _ticker;
 
+  // Thang duration can be overridden by resetWithPlan().
+  int _thangSeconds = BootcampPhase.thang.durationSeconds;
+
+  // Exposed so timer_screen can compute halfway alert correctly.
+  int _initialTotalSeconds = TimerState.totalBootcampSeconds;
+  int get initialTotalSeconds => _initialTotalSeconds;
+
   TimerState get state => _state;
+
+  int _durationForPhase(BootcampPhase phase) =>
+      phase == BootcampPhase.thang ? _thangSeconds : phase.durationSeconds;
 
   // ── Playback controls ─────────────────────────────────────────────────────
 
@@ -44,7 +54,39 @@ class TimerService extends ChangeNotifier {
 
   void reset() {
     _ticker?.cancel();
+    _thangSeconds = BootcampPhase.thang.durationSeconds;
+    _initialTotalSeconds = TimerState.totalBootcampSeconds;
     _state = const TimerState();
+    _syncWakelock();
+    notifyListeners();
+  }
+
+  /// Initialize the timer with plan-aware phase durations.
+  /// No-op if the timer is already running (don't disrupt a live session).
+  void resetWithPlan(WorkoutPlan plan) {
+    if (_state.isRunning) return;
+    _ticker?.cancel();
+
+    // Sum all Thang blocks (bodyweight + coupon) × rounds.
+    final thangSecs = plan.blocks
+        .where((b) =>
+            b.category == ExerciseCategory.bodyweight ||
+            b.category == ExerciseCategory.coupon)
+        .fold(0, (sum, b) => sum + b.durationMinutes * b.rounds * 60);
+
+    _thangSeconds = thangSecs > 0 ? thangSecs : BootcampPhase.thang.durationSeconds;
+
+    final total = BootcampPhase.values
+        .fold(0, (sum, p) => sum + _durationForPhase(p));
+
+    _initialTotalSeconds = total;
+
+    _state = TimerState(
+      currentPhase: BootcampPhase.disclaimer,
+      phaseRemainingSeconds: _durationForPhase(BootcampPhase.disclaimer),
+      totalRemainingSeconds: total,
+      status: TimerStatus.idle,
+    );
     _syncWakelock();
     notifyListeners();
   }
@@ -53,15 +95,15 @@ class TimerService extends ChangeNotifier {
   void jumpToPhase(BootcampPhase phase) {
     if (_state.isFinished) return;
     _ticker?.cancel();
-    int remaining = phase.durationSeconds;
+    int remaining = _durationForPhase(phase);
     BootcampPhase? next = phase.next;
     while (next != null) {
-      remaining += next.durationSeconds;
+      remaining += _durationForPhase(next);
       next = next.next;
     }
     _state = TimerState(
       currentPhase: phase,
-      phaseRemainingSeconds: phase.durationSeconds,
+      phaseRemainingSeconds: _durationForPhase(phase),
       totalRemainingSeconds: remaining,
       status: _state.isRunning ? TimerStatus.running : TimerStatus.paused,
     );
@@ -85,7 +127,6 @@ class TimerService extends ChangeNotifier {
   /// Skip directly to the Mary phase — Emergency Mary button.
   void jumpToMary() {
     _ticker?.cancel();
-    // Calculate total remaining as Mary + COT only.
     final marySeconds =
         BootcampPhase.mary.durationSeconds + BootcampPhase.cot.durationSeconds;
     _state = TimerState(
@@ -107,13 +148,12 @@ class TimerService extends ChangeNotifier {
       return;
     }
     _ticker?.cancel();
-    // Subtract remaining phase time from total to keep them in sync.
     final newTotal =
         _state.totalRemainingSeconds - _state.phaseRemainingSeconds;
     _state = TimerState(
       currentPhase: next,
-      phaseRemainingSeconds: next.durationSeconds,
-      totalRemainingSeconds: newTotal > 0 ? newTotal : next.durationSeconds,
+      phaseRemainingSeconds: _durationForPhase(next),
+      totalRemainingSeconds: newTotal > 0 ? newTotal : _durationForPhase(next),
       status: _state.isRunning ? TimerStatus.running : TimerStatus.paused,
     );
     if (_state.isRunning) {
@@ -140,13 +180,13 @@ class TimerService extends ChangeNotifier {
         prev = BootcampPhase.mary;
         break;
       default:
-        return; // Already at disclaimer
+        return;
     }
     _ticker?.cancel();
-    final newTotal = _state.totalRemainingSeconds + prev.durationSeconds;
+    final newTotal = _state.totalRemainingSeconds + _durationForPhase(prev);
     _state = TimerState(
       currentPhase: prev,
-      phaseRemainingSeconds: prev.durationSeconds,
+      phaseRemainingSeconds: _durationForPhase(prev),
       totalRemainingSeconds: newTotal,
       status: _state.isRunning ? TimerStatus.running : TimerStatus.paused,
     );
@@ -170,7 +210,6 @@ class TimerService extends ChangeNotifier {
     }
 
     if (newPhase <= 0) {
-      // Phase boundary — auto-advance.
       final next = _state.currentPhase.next;
       if (next == null) {
         _finish();
@@ -178,7 +217,7 @@ class TimerService extends ChangeNotifier {
       }
       _state = TimerState(
         currentPhase: next,
-        phaseRemainingSeconds: next.durationSeconds,
+        phaseRemainingSeconds: _durationForPhase(next),
         totalRemainingSeconds: newTotal,
         status: TimerStatus.running,
       );

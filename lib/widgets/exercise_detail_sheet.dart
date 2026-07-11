@@ -37,8 +37,8 @@ class ExerciseDetailSheet extends StatelessWidget {
       maxChildSize: 0.92,
       minChildSize: 0.4,
       builder: (_, controller) => Container(
-        decoration: const BoxDecoration(
-          color: F3Colors.card,
+        decoration: BoxDecoration(
+          color: context.f3card,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: Column(
@@ -48,7 +48,7 @@ class ExerciseDetailSheet extends StatelessWidget {
               height: 4,
               margin: const EdgeInsets.symmetric(vertical: 12),
               decoration: BoxDecoration(
-                  color: F3Colors.divider,
+                  color: context.f3divider,
                   borderRadius: BorderRadius.circular(2)),
             ),
             Expanded(
@@ -93,24 +93,24 @@ class ExerciseDetailSheet extends StatelessWidget {
                   if (ex.aliases.isNotEmpty) ...[
                     const SizedBox(height: 6),
                     Text('AKA: ${ex.aliases.join(' · ')}',
-                        style: const TextStyle(
-                            color: F3Colors.textMuted,
+                        style: TextStyle(
+                            color: context.f3textMuted,
                             fontSize: 13,
                             fontStyle: FontStyle.italic)),
                   ],
                   if (ex.description.isNotEmpty) ...[
                     const SizedBox(height: 16),
                     Text(ex.description,
-                        style: const TextStyle(
-                            color: F3Colors.textSecondary,
+                        style: TextStyle(
+                            color: context.f3textSecondary,
                             fontSize: 15,
                             height: 1.6)),
                   ],
                   if (draft != null) ...[
                     const SizedBox(height: 24),
-                    const Text('ADD TO WEINKE',
+                    Text('ADD TO WEINKE',
                         style: TextStyle(
-                            color: F3Colors.textMuted,
+                            color: context.f3textMuted,
                             fontSize: 11,
                             fontWeight: FontWeight.w800,
                             letterSpacing: 1.2)),
@@ -150,10 +150,10 @@ class ExerciseDetailSheet extends StatelessWidget {
                           ),
                           style: OutlinedButton.styleFrom(
                             foregroundColor:
-                                alreadyIn ? F3Colors.textMuted : blockColor,
+                                alreadyIn ? context.f3textMuted : blockColor,
                             side: BorderSide(
                                 color: alreadyIn
-                                    ? F3Colors.divider
+                                    ? context.f3divider
                                     : blockColor.withValues(alpha: 0.5)),
                             alignment: Alignment.centerLeft,
                           ),
@@ -162,10 +162,10 @@ class ExerciseDetailSheet extends StatelessWidget {
                     }),
                   ] else ...[
                     const SizedBox(height: 24),
-                    const Text(
+                    Text(
                       'Generate a Weinke on the Weinke tab to add exercises directly.',
                       style: TextStyle(
-                          color: F3Colors.textMuted,
+                          color: context.f3textMuted,
                           fontSize: 13,
                           fontStyle: FontStyle.italic),
                     ),

@@ -45,7 +45,7 @@ class _ExerciseCardState extends State<ExerciseCard> {
     HapticFeedback.mediumImpact();
     showModalBottomSheet(
       context: context,
-      backgroundColor: F3Colors.card,
+      backgroundColor: context.f3card,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -57,7 +57,7 @@ class _ExerciseCardState extends State<ExerciseCard> {
             Container(
               width: 40, height: 4,
               decoration: BoxDecoration(
-                color: F3Colors.divider,
+                color: context.f3divider,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -66,8 +66,8 @@ class _ExerciseCardState extends State<ExerciseCard> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Text(
                 ex.name,
-                style: const TextStyle(
-                  color: F3Colors.textPrimary,
+                style: TextStyle(
+                  color: context.f3textPrimary,
                   fontWeight: FontWeight.w800,
                   fontSize: 18,
                 ),
@@ -76,10 +76,10 @@ class _ExerciseCardState extends State<ExerciseCard> {
             const SizedBox(height: 8),
             if (widget.onDuplicate != null)
               ListTile(
-                leading: const Icon(Icons.copy_rounded,
-                    color: F3Colors.textSecondary),
-                title: const Text('Duplicate in block',
-                    style: TextStyle(color: F3Colors.textPrimary)),
+                leading: Icon(Icons.copy_rounded,
+                    color: context.f3textSecondary),
+                title: Text('Duplicate in block',
+                    style: TextStyle(color: context.f3textPrimary)),
                 onTap: () {
                   Navigator.pop(context);
                   widget.onDuplicate!();
@@ -88,19 +88,19 @@ class _ExerciseCardState extends State<ExerciseCard> {
             ListTile(
               leading: Icon(
                 isBlacklisted ? Icons.block_flipped : Icons.block,
-                color: isBlacklisted ? F3Colors.accent : F3Colors.textSecondary,
+                color: isBlacklisted ? F3Colors.accent : context.f3textSecondary,
               ),
               title: Text(
                 isBlacklisted
                     ? 'Remove from Blacklist'
                     : 'Blacklist — exclude from generation',
-                style: const TextStyle(color: F3Colors.textPrimary),
+                style: TextStyle(color: context.f3textPrimary),
               ),
               subtitle: isBlacklisted
                   ? null
-                  : const Text(
+                  : Text(
                       'This exercise will be skipped when generating plans.',
-                      style: TextStyle(color: F3Colors.textMuted, fontSize: 12),
+                      style: TextStyle(color: context.f3textMuted, fontSize: 12),
                     ),
               onTap: () {
                 Navigator.pop(context);
@@ -135,7 +135,7 @@ class _ExerciseCardState extends State<ExerciseCard> {
         return ClipRRect(
           borderRadius: BorderRadius.circular(14),
           child: Material(
-            color: F3Colors.card,
+            color: context.f3card,
             child: InkWell(
               onTap: () {
                 HapticFeedback.selectionClick();
@@ -153,30 +153,30 @@ class _ExerciseCardState extends State<ExerciseCard> {
                   border: Border(
                     left: BorderSide(
                       color: isBlacklisted
-                          ? F3Colors.textMuted.withValues(alpha: 0.4)
+                          ? context.f3textMuted.withValues(alpha: 0.4)
                           : catColor,
                       width: 4,
                     ),
                     right: BorderSide(
                       color: isBlacklisted
-                          ? F3Colors.textMuted.withValues(alpha: 0.2)
+                          ? context.f3textMuted.withValues(alpha: 0.2)
                           : _expanded
                               ? catColor.withValues(alpha: 0.3)
-                              : F3Colors.divider,
+                              : context.f3divider,
                     ),
                     top: BorderSide(
                       color: isBlacklisted
-                          ? F3Colors.textMuted.withValues(alpha: 0.2)
+                          ? context.f3textMuted.withValues(alpha: 0.2)
                           : _expanded
                               ? catColor.withValues(alpha: 0.3)
-                              : F3Colors.divider,
+                              : context.f3divider,
                     ),
                     bottom: BorderSide(
                       color: isBlacklisted
-                          ? F3Colors.textMuted.withValues(alpha: 0.2)
+                          ? context.f3textMuted.withValues(alpha: 0.2)
                           : _expanded
                               ? catColor.withValues(alpha: 0.3)
-                              : F3Colors.divider,
+                              : context.f3divider,
                     ),
                   ),
                 ),
@@ -198,8 +198,8 @@ class _ExerciseCardState extends State<ExerciseCard> {
                                     ex.name,
                                     style: TextStyle(
                                       color: isBlacklisted
-                                          ? F3Colors.textMuted
-                                          : F3Colors.textPrimary,
+                                          ? context.f3textMuted
+                                          : context.f3textPrimary,
                                       fontWeight: FontWeight.w800,
                                       fontSize: 18,
                                       height: 1.2,
@@ -209,8 +209,8 @@ class _ExerciseCardState extends State<ExerciseCard> {
                                     const SizedBox(height: 3),
                                     Text(
                                       'AKA: ${ex.aliases.join(', ')}',
-                                      style: const TextStyle(
-                                        color: F3Colors.textMuted,
+                                      style: TextStyle(
+                                        color: context.f3textMuted,
                                         fontSize: 12,
                                         fontStyle: FontStyle.italic,
                                       ),
@@ -219,12 +219,12 @@ class _ExerciseCardState extends State<ExerciseCard> {
                                     ),
                                   ],
                                   if (isBlacklisted)
-                                    const Padding(
+                                    Padding(
                                       padding: EdgeInsets.only(top: 3),
                                       child: Text(
                                         'BLACKLISTED',
                                         style: TextStyle(
-                                          color: F3Colors.textMuted,
+                                          color: context.f3textMuted,
                                           fontSize: 10,
                                           fontWeight: FontWeight.w700,
                                           letterSpacing: 1,
@@ -249,7 +249,7 @@ class _ExerciseCardState extends State<ExerciseCard> {
                                       : Icons.favorite_border_rounded,
                                   color: isFav
                                       ? F3Colors.accent
-                                      : F3Colors.textMuted,
+                                      : context.f3textMuted,
                                   size: 20,
                                 ),
                               ),
@@ -263,7 +263,7 @@ class _ExerciseCardState extends State<ExerciseCard> {
                               _expanded
                                   ? Icons.expand_less_rounded
                                   : Icons.expand_more_rounded,
-                              color: F3Colors.textMuted,
+                              color: context.f3textMuted,
                               size: 22,
                             ),
                             const SizedBox(width: 8),
@@ -273,7 +273,7 @@ class _ExerciseCardState extends State<ExerciseCard> {
 
                       // ── Expanded detail ───────────────────────────────────
                       if (_expanded) ...[
-                        const Divider(height: 1, color: F3Colors.divider),
+                        Divider(height: 1, color: context.f3divider),
                         Padding(
                           padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
                           child: Column(
@@ -282,8 +282,8 @@ class _ExerciseCardState extends State<ExerciseCard> {
                               if (ex.description.isNotEmpty)
                                 Text(
                                   ex.description,
-                                  style: const TextStyle(
-                                    color: F3Colors.textSecondary,
+                                  style: TextStyle(
+                                    color: context.f3textSecondary,
                                     fontSize: 14,
                                     height: 1.55,
                                   ),
@@ -318,15 +318,15 @@ class _ExerciseCardState extends State<ExerciseCard> {
                                 ),
                               ],
                               const SizedBox(height: 4),
-                              const Row(
+                              Row(
                                 children: [
                                   Icon(Icons.touch_app_rounded,
-                                      size: 12, color: F3Colors.textMuted),
+                                      size: 12, color: context.f3textMuted),
                                   SizedBox(width: 4),
                                   Text(
                                     'Long-press for more options',
                                     style: TextStyle(
-                                        color: F3Colors.textMuted,
+                                        color: context.f3textMuted,
                                         fontSize: 11,
                                         fontStyle: FontStyle.italic),
                                   ),

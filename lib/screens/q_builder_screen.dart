@@ -27,10 +27,10 @@ class _QBuilderScreenState extends State<QBuilderScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: F3Colors.background,
+      backgroundColor: context.f3bg,
       appBar: AppBar(
         title: const Text('Q Builder'),
-        backgroundColor: F3Colors.background,
+        backgroundColor: context.f3bg,
         elevation: 0,
       ),
       body: SingleChildScrollView(
@@ -50,11 +50,11 @@ class _QBuilderScreenState extends State<QBuilderScreen> {
                       color: F3Colors.accent, size: 32),
                 ),
                 const SizedBox(width: 16),
-                const Expanded(
+                Expanded(
                   child: Text(
                     "Build a clear, runnable Weinke from time, equipment, fitness level, and format.",
                     style: TextStyle(
-                      color: F3Colors.textSecondary,
+                      color: context.f3textSecondary,
                       fontSize: 16,
                       fontStyle: FontStyle.italic,
                       height: 1.4,
@@ -71,7 +71,7 @@ class _QBuilderScreenState extends State<QBuilderScreen> {
               data: SliderTheme.of(context).copyWith(
                 activeTrackColor: F3Colors.accent,
                 thumbColor: F3Colors.accent,
-                inactiveTrackColor: F3Colors.elevated,
+                inactiveTrackColor: context.f3elevated,
               ),
               child: Slider(
                 value: _duration.toDouble(),
@@ -85,8 +85,8 @@ class _QBuilderScreenState extends State<QBuilderScreen> {
             Center(
               child: Text(
                 '$_duration Minutes',
-                style: const TextStyle(
-                    color: F3Colors.textPrimary, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                    color: context.f3textPrimary, fontWeight: FontWeight.bold),
               ),
             ),
 
@@ -159,16 +159,16 @@ class _QBuilderScreenState extends State<QBuilderScreen> {
               onChanged: (val) => setState(() => _simpleQMode = val),
               contentPadding: EdgeInsets.zero,
               activeThumbColor: F3Colors.accent,
-              title: const Text(
+              title: Text(
                 'Simple Q Mode',
                 style: TextStyle(
-                  color: F3Colors.textPrimary,
+                  color: context.f3textPrimary,
                   fontWeight: FontWeight.w800,
                 ),
               ),
-              subtitle: const Text(
+              subtitle: Text(
                 'Fewer movements, easier transitions, clearer cadence.',
-                style: TextStyle(color: F3Colors.textSecondary),
+                style: TextStyle(color: context.f3textSecondary),
               ),
             ),
 
@@ -256,8 +256,8 @@ class _QBuilderScreenState extends State<QBuilderScreen> {
       padding: const EdgeInsets.only(bottom: 8.0, left: 4.0),
       child: Text(
         text,
-        style: const TextStyle(
-          color: F3Colors.textMuted,
+        style: TextStyle(
+          color: context.f3textMuted,
           fontSize: 12,
           fontWeight: FontWeight.bold,
           letterSpacing: 1.5,
@@ -274,18 +274,18 @@ class _QBuilderScreenState extends State<QBuilderScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: F3Colors.card,
+        color: context.f3card,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: F3Colors.divider),
+        border: Border.all(color: context.f3divider),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: value,
           isExpanded: true,
-          dropdownColor: F3Colors.card,
-          style: const TextStyle(color: F3Colors.textPrimary, fontSize: 16),
-          icon: const Icon(Icons.arrow_drop_down_rounded,
-              color: F3Colors.textSecondary),
+          dropdownColor: context.f3card,
+          style: TextStyle(color: context.f3textPrimary, fontSize: 16),
+          icon: Icon(Icons.arrow_drop_down_rounded,
+              color: context.f3textSecondary),
           items: items.map((String item) {
             return DropdownMenuItem<String>(
               value: item,

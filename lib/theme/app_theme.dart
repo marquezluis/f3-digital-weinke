@@ -77,6 +77,19 @@ class F3LightColors {
   static const Color textMuted     = Color(0xFF8A8785);
 }
 
+// BuildContext extension — use these instead of raw F3Colors in build methods
+// so the correct palette is returned for the active theme (dark or light).
+extension F3ThemeX on BuildContext {
+  bool get _isDark => Theme.of(this).brightness == Brightness.dark;
+  Color get f3bg          => _isDark ? F3Colors.background    : F3LightColors.background;
+  Color get f3card        => _isDark ? F3Colors.card          : F3LightColors.card;
+  Color get f3elevated    => _isDark ? F3Colors.elevated      : F3LightColors.elevated;
+  Color get f3divider     => _isDark ? F3Colors.divider       : F3LightColors.divider;
+  Color get f3textPrimary   => _isDark ? F3Colors.textPrimary   : F3LightColors.textPrimary;
+  Color get f3textSecondary => _isDark ? F3Colors.textSecondary : F3LightColors.textSecondary;
+  Color get f3textMuted     => _isDark ? F3Colors.textMuted     : F3LightColors.textMuted;
+}
+
 class AppTheme {
   AppTheme._();
 
