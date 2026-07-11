@@ -286,7 +286,7 @@ class _LibraryScreenState extends State<LibraryScreen>
   List<Exercise> _filteredExercises(
       ExerciseService service, ExerciseCategory? cat, Map<String, int> usageMap) {
     List<Exercise> base =
-        cat == null ? service.all : service.byCategory(cat);
+        List.of(cat == null ? service.all : service.byCategory(cat));
 
     // Equipment filter
     if (_equipmentFilter != null) {
