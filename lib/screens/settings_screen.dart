@@ -1,0 +1,1097 @@
+// lib/screens/settings_screen.dart
+// Workout generation settings: coupon mode, intensity filter.
+
+import 'package:flutter/material.dart';
+import 'package:flutter_tts/flutter_tts.dart';
+import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import '../models/app_version.dart';
+import 'package:share_plus/share_plus.dart';
+import '../models/exercise.dart';
+import '../models/workout_settings.dart';
+import '../services/app_profile_service.dart' hide AppRole;
+import '../services/history_service.dart';
+import '../services/local_backup_service.dart';
+import '../services/music_launcher.dart';
+import '../services/region_service.dart';
+import '../services/settings_service.dart';
+import '../theme/app_theme.dart';
+import 'achievements_screen.dart';
+import 'heatmap_screen.dart';
+
+class SettingsScreen extends StatelessWidget {
+  const SettingsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: F3Colors.background,
+      appBar: AppBar(
+        title: const Text('Settings'),
+        backgroundColor: F3Colors.background,
+      ),
+      body: Consumer<SettingsService>(
+        builder: (context, service, _) {
+          final settings = service.settings;
+          return ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              // ── Profile banner ────────────────────────────────────────────
+              Consumer<AppProfileService>(
+                builder: (context, profile, _) {
+                  final name = profile.displayName.isEmpty
+                      ? 'Unnamed PAX'
+                      : profile.displayName;
+                  return Container(
+                    padding: const EdgeInsets.all(16),
+                    margin: const EdgeInsets.only(bottom: 24),
+                    decoration: BoxDecoration(
+                      color: F3Colors.card,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: F3Colors.accent.withValues(alpha: 0.3)),
+                    ),
+                    child: Row(children: [
+                      Container(
+                        width: 52, height: 52,
+                        decoration: BoxDecoration(
+                          color: F3Colors.accent.withValues(alpha: 0.14),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: F3Colors.accent.withValues(alpha: 0.3)),
+                        ),
+                        child: const Icon(Icons.shield_rounded,
+                            color: F3Colors.accent, size: 30),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(name,
+                                style: const TextStyle(
+                                    color: F3Colors.textPrimary,
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 18)),
+                            if (profile.homeAo.isNotEmpty)
+                              Text(profile.homeAo,
+                                  style: const TextStyle(
+                                      color: F3Colors.textSecondary, fontSize: 13)),
+                            if (profile.region.isNotEmpty)
+                              Text(profile.region,
+                                  style: const TextStyle(
+                                      color: F3Colors.textMuted, fontSize: 12)),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: F3Colors.accent.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          service.appRole == AppRole.q ? 'Q' : 'PAX',
+                          style: const TextStyle(
+                              color: F3Colors.accent,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 13,
+                              letterSpacing: 1),
+                        ),
+                      ),
+                    ]),
+                  );
+                },
+              ),
+
+              // ── Coupon Mode ───────────────────────────────────────────────
+              const _SectionHeader('COUPON / EQUIPMENT'),
+              const SizedBox(height: 8),
+              _SegmentedRow<CouponMode>(
+                options: CouponMode.values,
+                selected: settings.couponMode,
+                label: (m) => m.displayName,
+                onSelect: (m) =>
+                    service.update(settings.copyWith(couponMode: m)),
+              ),
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Text(
+                  'Controls whether coupon (weighted) exercises appear in '
+                  'The Thang. "Mixed" splits it 50/50.',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ),
+
+              const SizedBox(height: 28),
+
+              // ── App Role ──────────────────────────────────────────────────
+              const _SectionHeader('YOUR ROLE'),
+              const SizedBox(height: 8),
+              _SegmentedRow<AppRole>(
+                options: AppRole.values,
+                selected: service.appRole,
+                label: (r) => r == AppRole.q ? 'Q (Leader)' : 'PAX (Member)',
+                onSelect: (r) => service.updateRole(r),
+              ),
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Text(
+                  'Adjusts the app interface. Qs get planning tools; PAX get a simplified view.',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ),
+
+              const SizedBox(height: 12),
+              TextFormField(
+                initialValue: service.myF3Name,
+                decoration: const InputDecoration(
+                  labelText: 'My F3 Name',
+                  hintText: 'Your F3 handle (auto-fills the Q field)',
+                  prefixIcon: Icon(Icons.badge_rounded),
+                ),
+                onChanged: (val) => service.setMyF3Name(val.trim()),
+              ),
+
+              const SizedBox(height: 28),
+
+              // ── Appearance ────────────────────────────────────────────────
+              const _SectionHeader('APPEARANCE'),
+              const SizedBox(height: 8),
+              _ThemePicker(
+                current: service.themeMode,
+                onSelect: (mode) => service.setThemeMode(mode),
+              ),
+              const SizedBox(height: 12),
+              _LanguagePicker(
+                current: service.locale.languageCode,
+                onSelect: (code) => service.setLocale(Locale(code)),
+              ),
+              const SizedBox(height: 28),
+
+              // ── Voice & Accessibility ───────────────────────────────────────
+              const _SectionHeader('VOICE & ACCESSIBILITY'),
+              const SizedBox(height: 8),
+              _SwitchRow(
+                label: 'Enable Voice Callouts',
+                subtitle: 'TTS for phase changes and exercises.',
+                value: service.voiceEnabled,
+                onChanged: (val) => service.updateVoiceEnabled(val),
+              ),
+              if (service.voiceEnabled) ...[
+                const SizedBox(height: 8),
+                _VoiceSelector(
+                  currentVoice: service.ttsVoice,
+                  onVoiceSelected: (v) => service.setTtsVoice(v),
+                ),
+              ],
+              const SizedBox(height: 8),
+              _SwitchRow(
+                label: 'Reduced Motion',
+                subtitle: 'Disables non-essential animations.',
+                value: service.reducedMotion,
+                onChanged: (val) => service.updateReducedMotion(val),
+              ),
+              const SizedBox(height: 28),
+
+              // ── Intensity ─────────────────────────────────────────────────
+              const _SectionHeader('INTENSITY LEVELS'),
+              const SizedBox(height: 8),
+              ...Intensity.values.map((intensity) {
+                final enabled = settings.intensities.contains(intensity);
+                final color = F3Colors.forIntensity(intensity.name);
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: GestureDetector(
+                    onTap: () {
+                      final current = Set<Intensity>.from(settings.intensities);
+                      if (enabled) {
+                        // Don't allow disabling all
+                        if (current.length > 1) current.remove(intensity);
+                      } else {
+                        current.add(intensity);
+                      }
+                      service.update(settings.copyWith(intensities: current));
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 18),
+                      decoration: BoxDecoration(
+                        color: enabled
+                            ? color.withValues(alpha: 0.12)
+                            : F3Colors.card,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: enabled
+                              ? color.withValues(alpha: 0.6)
+                              : F3Colors.divider,
+                          width: enabled ? 1.5 : 1,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 10,
+                            height: 10,
+                            decoration: BoxDecoration(
+                              color: enabled ? color : F3Colors.textMuted,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Text(
+                              intensity.displayName,
+                              style: TextStyle(
+                                color: enabled
+                                    ? F3Colors.textPrimary
+                                    : F3Colors.textSecondary,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 17,
+                              ),
+                            ),
+                          ),
+                          if (enabled)
+                            Icon(Icons.check_rounded,
+                                color: color, size: 20),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Text(
+                  'Select which difficulty levels to include. '
+                  'At least one must remain active.',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ),
+
+              const SizedBox(height: 28),
+
+              const SizedBox(height: 0),
+
+              // -- Slack Integration -------------------------------------------------
+              const _SectionHeader('SLACK INTEGRATION'),
+              const SizedBox(height: 8),
+              TextFormField(
+                initialValue: service.slackWebhookUrl,
+                decoration: const InputDecoration(
+                  labelText: 'Slack Webhook URL',
+                  hintText: 'Paste your Incoming Webhook URL here',
+                  prefixIcon: Icon(Icons.link_rounded),
+                ),
+                onChanged: (val) {
+                  service.updateSlackWebhookUrl(val.trim());
+                },
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                child: Text(
+                  'Enables the "Post to Slack" button on the backblast screen.',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ),
+              const SizedBox(height: 28),
+
+              // ── Music ─────────────────────────────────────────────────────
+              const _SectionHeader('MUSIC'),
+              const SizedBox(height: 8),
+              _SwitchRow(
+                label: 'Launch music on workout start',
+                subtitle: 'Opens your music app when you tap START WORKOUT.',
+                value: service.musicEnabled,
+                onChanged: (val) => service.setMusicEnabled(val),
+              ),
+              if (service.musicEnabled) ...[
+                const SizedBox(height: 12),
+                DropdownButtonFormField<MusicProvider>(
+                  initialValue: service.musicProvider,
+                  dropdownColor: F3Colors.card,
+                  decoration: const InputDecoration(
+                    labelText: 'Music Provider',
+                    prefixIcon: Icon(Icons.music_note_rounded),
+                  ),
+                  items: MusicProvider.values.map((p) => DropdownMenuItem(
+                    value: p,
+                    child: Text('${p.icon}  ${p.displayName}'),
+                  )).toList(),
+                  onChanged: (p) { if (p != null) service.setMusicProvider(p); },
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  initialValue: service.musicPlaylistUrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Playlist URL (optional)',
+                    hintText: 'Paste a Spotify / Apple Music / YouTube link',
+                    prefixIcon: Icon(Icons.link_rounded),
+                  ),
+                  onChanged: (val) => service.setMusicPlaylistUrl(val.trim()),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                  child: Text(
+                    'Leave blank to just open the app. Paste a share link to jump straight to your beatdown playlist.',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 28),
+
+              // ── Explore ───────────────────────────────────────────────────
+              const _SectionHeader('EXPLORE'),
+              const SizedBox(height: 8),
+              _NavTile(
+                icon: Icons.whatshot_rounded,
+                title: 'Activity Heatmap',
+                subtitle: '52-week workout calendar',
+                color: F3Colors.phaseThang,
+                onTap: () => Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => const HeatmapScreen())),
+              ),
+              const SizedBox(height: 8),
+              _NavTile(
+                icon: Icons.emoji_events_rounded,
+                title: 'Achievements',
+                subtitle: 'Badges earned from your history',
+                color: const Color(0xFFFFD700),
+                onTap: () => Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => const AchievementsScreen())),
+              ),
+              const SizedBox(height: 28),
+
+              // ── Data ──────────────────────────────────────────────────────
+              const _SectionHeader('DATA'),
+              const SizedBox(height: 8),
+              _NavTile(
+                icon: Icons.upload_rounded,
+                title: 'Export Backup',
+                subtitle: 'Share all sessions as a JSON file',
+                color: F3Colors.catBodyweight,
+                onTap: () async {
+                  final profile = context.read<AppProfileService>();
+                  final history = context.read<HistoryService>();
+                  final region  = context.read<RegionService>();
+                  final json = LocalBackupService.exportJson(
+                    profile: profile,
+                    history: history,
+                    region: region,
+                  );
+                  await Share.share(json, subject: 'Digital Weinke Backup');
+                },
+              ),
+              const SizedBox(height: 8),
+              _NavTile(
+                icon: Icons.download_rounded,
+                title: 'Import Backup',
+                subtitle: 'Paste backup JSON from clipboard',
+                color: F3Colors.catCoupon,
+                onTap: () async {
+                  final profile   = context.read<AppProfileService>();
+                  final history   = context.read<HistoryService>();
+                  final region    = context.read<RegionService>();
+                  final messenger = ScaffoldMessenger.of(context);
+                  final data = await Clipboard.getData(Clipboard.kTextPlain);
+                  final raw = data?.text ?? '';
+                  if (raw.isEmpty) {
+                    messenger.showSnackBar(
+                      const SnackBar(content: Text('Clipboard is empty.')),
+                    );
+                    return;
+                  }
+                  try {
+                    await LocalBackupService.importJson(
+                      raw: raw,
+                      profile: profile,
+                      history: history,
+                      region: region,
+                    );
+                    messenger.showSnackBar(
+                      const SnackBar(content: Text('Backup imported successfully!')),
+                    );
+                  } catch (e) {
+                    messenger.showSnackBar(
+                      SnackBar(content: Text('Import failed: $e')),
+                    );
+                  }
+                },
+              ),
+              const SizedBox(height: 28),
+
+              // ── About ─────────────────────────────────────────────────────
+              const _SectionHeader('ABOUT'),
+              const SizedBox(height: 8),
+              const _VersionTile(),
+              const _InfoTile(
+                icon: Icons.fitness_center_rounded,
+                title: '907 Exicon exercises',
+                subtitle: 'Full F3 Codex, bundled offline.',
+              ),
+              const _InfoTile(
+                icon: Icons.wifi_off_rounded,
+                title: 'Fully offline',
+                subtitle: 'No account or internet required.',
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+class _NavTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _NavTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        decoration: BoxDecoration(
+          color: F3Colors.card,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: F3Colors.divider),
+        ),
+        child: Row(children: [
+          Container(
+            width: 40, height: 40,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(9),
+            ),
+            child: Icon(icon, color: color, size: 22),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(title,
+                  style: const TextStyle(
+                      color: F3Colors.textPrimary,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15)),
+              Text(subtitle,
+                  style: const TextStyle(
+                      color: F3Colors.textSecondary, fontSize: 12)),
+            ]),
+          ),
+          const Icon(Icons.chevron_right_rounded,
+              color: F3Colors.textMuted, size: 20),
+        ]),
+      ),
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  final String text;
+  const _SectionHeader(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+            color: F3Colors.textMuted,
+            letterSpacing: 1.5,
+          ),
+    );
+  }
+}
+
+class _SegmentedRow<T> extends StatelessWidget {
+  final List<T> options;
+  final T selected;
+  final String Function(T) label;
+  final void Function(T) onSelect;
+
+  const _SegmentedRow({
+    required this.options,
+    required this.selected,
+    required this.label,
+    required this.onSelect,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: options.map((opt) {
+        final isSelected = opt == selected;
+        return Expanded(
+          child: Padding(
+            padding: const EdgeInsets.only(right: 6),
+            child: GestureDetector(
+              onTap: () => onSelect(opt),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? F3Colors.accent.withValues(alpha: 0.15)
+                      : F3Colors.card,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: isSelected ? F3Colors.accent : F3Colors.divider,
+                    width: isSelected ? 1.5 : 1,
+                  ),
+                ),
+                child: Text(
+                  label(opt),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: isSelected ? F3Colors.accent : F3Colors.textSecondary,
+                    fontWeight:
+                        isSelected ? FontWeight.w700 : FontWeight.w500,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+}
+
+class _SwitchRow extends StatelessWidget {
+  final String label;
+  final String subtitle;
+  final bool value;
+  final void Function(bool) onChanged;
+
+  const _SwitchRow({
+    required this.label,
+    required this.subtitle,
+    required this.value,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: F3Colors.card,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: F3Colors.divider),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: const TextStyle(color: F3Colors.textPrimary, fontWeight: FontWeight.w600)),
+                Text(subtitle, style: const TextStyle(color: F3Colors.textMuted, fontSize: 12)),
+              ],
+            ),
+          ),
+          Switch(
+            value: value,
+            onChanged: onChanged,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── TTS Voice Selector ────────────────────────────────────────────────────────
+
+class _VoiceSelector extends StatefulWidget {
+  final String currentVoice;
+  final void Function(String) onVoiceSelected;
+
+  const _VoiceSelector({
+    required this.currentVoice,
+    required this.onVoiceSelected,
+  });
+
+  @override
+  State<_VoiceSelector> createState() => _VoiceSelectorState();
+}
+
+class _VoiceSelectorState extends State<_VoiceSelector> {
+  final FlutterTts _tts = FlutterTts();
+  // (displayName, rawName) pairs
+  List<(String, String)> _voices = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadVoices();
+  }
+
+  Future<void> _loadVoices() async {
+    try {
+      final raw = await _tts.getVoices;
+      if (!mounted) return;
+      final pairs = (raw as List)
+          .map((v) => v is Map ? (v['name'] as String?) ?? '' : '')
+          .where((name) => name.isNotEmpty)
+          .toSet()
+          .map((rawName) => (_beautifyVoiceName(rawName), rawName))
+          .toList()
+        ..sort((a, b) => a.$1.compareTo(b.$1));
+      setState(() {
+        _voices = pairs;
+        _loading = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  static String _beautifyVoiceName(String raw) {
+    if (raw.isEmpty) return 'System Default';
+    final lower = raw.toLowerCase();
+
+    // iOS: com.apple.ttsbundle.Samantha-compact
+    if (lower.startsWith('com.apple.ttsbundle.')) {
+      final part = raw.substring('com.apple.ttsbundle.'.length);
+      final dash = part.lastIndexOf('-');
+      if (dash >= 0) {
+        final name = part.substring(0, dash);
+        final q = part.substring(dash + 1);
+        return '$name — ${q[0].toUpperCase()}${q.substring(1)}';
+      }
+      return part;
+    }
+
+    // Determine quality from suffix
+    String quality = '';
+    if (lower.contains('-network')) {
+      quality = ' — Neural';
+    } else if (lower.contains('-local') || lower.contains('-embedded')) {
+      quality = ' — Standard';
+    }
+
+    // Extract locale from first two dash-separated parts
+    final parts = raw.split('-');
+    if (parts.length >= 2) {
+      final locale = '${parts[0].toUpperCase()}-${parts[1].toUpperCase()}';
+      final name = _localeName(locale);
+      if (name.isNotEmpty) return '$name$quality';
+    }
+
+    // Fallback: humanise raw string
+    return raw
+        .replaceAll('com.apple.ttsbundle.', '')
+        .replaceAll('-x-', ' ')
+        .replaceAll('-', ' ');
+  }
+
+  static String _localeName(String locale) {
+    const map = {
+      'EN-US': 'English (US)', 'EN-GB': 'English (UK)',
+      'EN-AU': 'English (Australia)', 'EN-IN': 'English (India)',
+      'EN-CA': 'English (Canada)', 'EN-IE': 'English (Ireland)',
+      'EN-ZA': 'English (South Africa)',
+      'ES-US': 'Spanish (US)', 'ES-ES': 'Spanish (Spain)',
+      'ES-MX': 'Spanish (Mexico)', 'ES-419': 'Spanish (Latin America)',
+      'FR-FR': 'French', 'FR-CA': 'French (Canada)',
+      'DE-DE': 'German', 'IT-IT': 'Italian',
+      'PT-BR': 'Portuguese (Brazil)', 'PT-PT': 'Portuguese',
+      'JA-JP': 'Japanese', 'KO-KR': 'Korean',
+      'ZH-CN': 'Chinese (Simplified)', 'ZH-TW': 'Chinese (Traditional)',
+      'AR-SA': 'Arabic', 'HI-IN': 'Hindi', 'NL-NL': 'Dutch',
+      'PL-PL': 'Polish', 'RU-RU': 'Russian', 'SV-SE': 'Swedish',
+      'TR-TR': 'Turkish', 'NB-NO': 'Norwegian', 'DA-DK': 'Danish',
+      'FI-FI': 'Finnish', 'CS-CZ': 'Czech', 'HU-HU': 'Hungarian',
+      'RO-RO': 'Romanian', 'EL-GR': 'Greek', 'HE-IL': 'Hebrew',
+      'TH-TH': 'Thai', 'ID-ID': 'Indonesian', 'VI-VN': 'Vietnamese',
+    };
+    return map[locale] ?? '';
+  }
+
+  void _pick(BuildContext context) {
+    if (_voices.isEmpty) return;
+    showDialog<String>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: F3Colors.card,
+        title: const Text('Select TTS Voice',
+            style: TextStyle(color: F3Colors.textPrimary, fontSize: 16)),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: _voices.length,
+            itemBuilder: (ctx, i) {
+              final (displayName, rawName) = _voices[i];
+              final selected = rawName == widget.currentVoice;
+              return ListTile(
+                dense: true,
+                title: Text(displayName,
+                    style: TextStyle(
+                      color: selected ? F3Colors.accent : F3Colors.textPrimary,
+                      fontWeight: selected ? FontWeight.w700 : FontWeight.normal,
+                      fontSize: 13,
+                    )),
+                trailing: selected
+                    ? const Icon(Icons.check_rounded, color: F3Colors.accent, size: 18)
+                    : null,
+                onTap: () => Navigator.pop(ctx, rawName),
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, ''),
+            child: const Text('USE DEFAULT'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('CANCEL'),
+          ),
+        ],
+      ),
+    ).then((picked) {
+      if (picked != null) widget.onVoiceSelected(picked);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final label = widget.currentVoice.isEmpty
+        ? 'System Default'
+        : _beautifyVoiceName(widget.currentVoice);
+    return GestureDetector(
+      onTap: _loading ? null : () => _pick(context),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: F3Colors.card,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: F3Colors.divider),
+        ),
+        child: Row(children: [
+          const Icon(Icons.record_voice_over_rounded, color: F3Colors.textMuted, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Text('TTS Voice',
+                  style: TextStyle(color: F3Colors.textPrimary, fontWeight: FontWeight.w600, fontSize: 14)),
+              Text(
+                _loading ? 'Loading voices…' : label,
+                style: const TextStyle(color: F3Colors.textMuted, fontSize: 12),
+              ),
+            ]),
+          ),
+          if (_loading)
+            const SizedBox(width: 16, height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2, color: F3Colors.textMuted))
+          else
+            const Icon(Icons.chevron_right_rounded, color: F3Colors.textMuted, size: 20),
+        ]),
+      ),
+    );
+  }
+}
+
+// ── Theme picker ──────────────────────────────────────────────────────────────
+
+class _ThemePicker extends StatelessWidget {
+  final ThemeMode current;
+  final void Function(ThemeMode) onSelect;
+
+  const _ThemePicker({required this.current, required this.onSelect});
+
+  static const _options = [
+    (ThemeMode.dark,   Icons.dark_mode_rounded,       'Dark'),
+    (ThemeMode.light,  Icons.light_mode_rounded,      'Light'),
+    (ThemeMode.system, Icons.brightness_auto_rounded, 'System'),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: _options.map((opt) {
+        final (mode, icon, label) = opt;
+        final selected = mode == current;
+        return Expanded(
+          child: Padding(
+            padding: const EdgeInsets.only(right: 6),
+            child: GestureDetector(
+              onTap: () => onSelect(mode),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                decoration: BoxDecoration(
+                  color: selected ? F3Colors.accent.withValues(alpha: 0.14) : F3Colors.card,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: selected ? F3Colors.accent : F3Colors.divider,
+                    width: selected ? 1.5 : 1,
+                  ),
+                ),
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(icon,
+                      color: selected ? F3Colors.accent : F3Colors.textSecondary,
+                      size: 22),
+                  const SizedBox(height: 4),
+                  Text(label,
+                      style: TextStyle(
+                        color: selected ? F3Colors.accent : F3Colors.textSecondary,
+                        fontSize: 11,
+                        fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                      )),
+                ]),
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+}
+
+// ── Info tile + tappable version tile ────────────────────────────────────────
+
+class _InfoTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  const _InfoTile({required this.icon, required this.title, required this.subtitle});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: F3Colors.card,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: F3Colors.divider),
+        ),
+        child: Row(children: [
+          Icon(icon, color: F3Colors.textMuted, size: 20),
+          const SizedBox(width: 12),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(title, style: const TextStyle(color: F3Colors.textPrimary, fontWeight: FontWeight.w600, fontSize: 14)),
+            Text(subtitle, style: const TextStyle(color: F3Colors.textMuted, fontSize: 12)),
+          ])),
+        ]),
+      ),
+    );
+  }
+}
+
+class _VersionTile extends StatelessWidget {
+  const _VersionTile();
+
+  void _showChangelog(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: F3Colors.card,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) => DraggableScrollableSheet(
+        initialChildSize: 0.75,
+        maxChildSize: 0.95,
+        minChildSize: 0.4,
+        expand: false,
+        builder: (_, ctrl) => Column(children: [
+          Container(
+            width: 40, height: 4, margin: const EdgeInsets.symmetric(vertical: 12),
+            decoration: BoxDecoration(color: F3Colors.divider, borderRadius: BorderRadius.circular(2)),
+          ),
+          const Padding(
+            padding: EdgeInsets.fromLTRB(20, 0, 20, 12),
+            child: Row(children: [
+              Icon(Icons.history_rounded, color: F3Colors.accent, size: 22),
+              SizedBox(width: 10),
+              Text('CHANGELOG',
+                  style: TextStyle(color: F3Colors.textPrimary, fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1)),
+            ]),
+          ),
+          const Divider(color: F3Colors.divider, height: 1),
+          Expanded(
+            child: ListView.builder(
+              controller: ctrl,
+              padding: const EdgeInsets.all(20),
+              itemCount: AppVersion.releases.length,
+              itemBuilder: (_, i) => _ReleaseCard(release: AppVersion.releases[i]),
+            ),
+          ),
+        ]),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: GestureDetector(
+        onTap: () => _showChangelog(context),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: F3Colors.card,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: F3Colors.accent.withValues(alpha: 0.35)),
+          ),
+          child: const Row(children: [
+            Icon(Icons.info_outline_rounded, color: F3Colors.accent, size: 20),
+            SizedBox(width: 12),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(AppVersion.displayName,
+                  style: TextStyle(color: F3Colors.textPrimary, fontWeight: FontWeight.w700, fontSize: 14)),
+              Text('Tap to see what\'s new',
+                  style: TextStyle(color: F3Colors.accent, fontSize: 12)),
+            ])),
+            Icon(Icons.chevron_right_rounded, color: F3Colors.accent, size: 20),
+          ]),
+        ),
+      ),
+    );
+  }
+}
+
+class _ReleaseCard extends StatelessWidget {
+  final AppRelease release;
+  const _ReleaseCard({required this.release});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 24),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: F3Colors.accent.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text('v${release.version}',
+                style: const TextStyle(color: F3Colors.accent, fontWeight: FontWeight.w800, fontSize: 12)),
+          ),
+          const SizedBox(width: 10),
+          Expanded(child: Text(release.title,
+              style: const TextStyle(color: F3Colors.textPrimary, fontWeight: FontWeight.w700, fontSize: 14))),
+        ]),
+        const SizedBox(height: 6),
+        Text(release.summary,
+            style: const TextStyle(color: F3Colors.textSecondary, fontSize: 13, height: 1.4)),
+        if (release.newItems.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          _ChangeGroup('NEW', F3Colors.phaseWarmup, release.newItems),
+        ],
+        if (release.enhancements.isNotEmpty) ...[
+          const SizedBox(height: 6),
+          _ChangeGroup('IMPROVED', F3Colors.catBodyweight, release.enhancements),
+        ],
+        if (release.bugFixes.isNotEmpty) ...[
+          const SizedBox(height: 6),
+          _ChangeGroup('FIXED', F3Colors.phaseMary, release.bugFixes),
+        ],
+      ]),
+    );
+  }
+}
+
+// ── Language picker ───────────────────────────────────────────────────────────
+
+class _LanguagePicker extends StatelessWidget {
+  final String current;
+  final void Function(String) onSelect;
+
+  const _LanguagePicker({required this.current, required this.onSelect});
+
+  static const _options = [
+    ('en', '🇺🇸', 'English'),
+    ('es', '🇲🇽', 'Español'),
+    ('fr', '🇫🇷', 'Français'),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: _options.map((opt) {
+        final (code, flag, label) = opt;
+        final selected = code == current;
+        return Expanded(
+          child: Padding(
+            padding: const EdgeInsets.only(right: 6),
+            child: GestureDetector(
+              onTap: () => onSelect(code),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                decoration: BoxDecoration(
+                  color: selected
+                      ? F3Colors.accent.withValues(alpha: 0.14)
+                      : F3Colors.card,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: selected ? F3Colors.accent : F3Colors.divider,
+                    width: selected ? 1.5 : 1,
+                  ),
+                ),
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  Text(flag, style: const TextStyle(fontSize: 20)),
+                  const SizedBox(height: 4),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      color: selected
+                          ? F3Colors.accent
+                          : F3Colors.textSecondary,
+                      fontSize: 11,
+                      fontWeight:
+                          selected ? FontWeight.w700 : FontWeight.w500,
+                    ),
+                  ),
+                ]),
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+}
+
+class _ChangeGroup extends StatelessWidget {
+  final String label;
+  final Color color;
+  final List<String> items;
+  const _ChangeGroup(this.label, this.color, this.items);
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(label,
+          style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 1.5)),
+      const SizedBox(height: 4),
+      ...items.map((item) => Padding(
+        padding: const EdgeInsets.only(bottom: 3),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('· ', style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w700)),
+          Expanded(child: Text(item, style: const TextStyle(color: F3Colors.textSecondary, fontSize: 13, height: 1.4))),
+        ]),
+      )),
+    ]);
+  }
+}

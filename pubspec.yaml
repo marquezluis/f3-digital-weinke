@@ -1,0 +1,66 @@
+name: f3_nation_app
+description: Digital Weinke — local-first F3 bootcamp planner, live phase timer, and Exicon library.
+publish_to: 'none'
+version: 2.1.0+5
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+  flutter: '>=3.27.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # State management
+  provider: ^6.1.1
+  # Local storage (persist custom workouts / prefs)
+  shared_preferences: ^2.2.2
+  # UUID for workout plan IDs
+  uuid: ^4.3.3
+  # Wakelock to keep screen on during workouts
+  wakelock_plus: ^1.1.4
+  # Open official Exicon links from the offline Sherpa builder
+  url_launcher: ^6.2.5
+  # Share text/content via system share sheet
+  share_plus: ^10.0.0
+  # HTTP client for Slack webhook posts
+  http: ^1.2.0
+  # Local push notifications + scheduled Q-day reminders
+  flutter_local_notifications: ^17.2.2
+  timezone: ^0.9.4
+  # Confetti burst on session completion
+  confetti: ^0.7.0
+  # QR code for Weinke sharing
+  qr_flutter: ^4.1.0
+  # Voice callouts during live session
+  flutter_tts: ^4.0.2
+  # Google Gemini API for the Spartan AI Assistant
+  google_generative_ai: ^0.4.3
+  # Device-backed local app unlock: Face ID, Touch ID, fingerprint, or PIN
+  local_auth: ^2.3.0
+  # Localization
+  flutter_localizations:
+    sdk: flutter
+  intl: ^0.20.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+  flutter_launcher_icons: ^0.14.1
+
+flutter:
+  generate: true
+  uses-material-design: true
+
+  assets:
+    - assets/data/exercises.json
+    - assets/icon/
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/app_icon.png"
+  min_sdk_android: 21
+  remove_alpha_ios: true
+  web:
+    generate: false
