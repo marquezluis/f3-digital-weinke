@@ -29,6 +29,28 @@ class AppVersion {
   static const List<AppRelease> releases = [
     AppRelease(
       version: '2.2.0',
+      title: 'The F3 Nation Connect Update',
+      summary: 'F3 Nation API integration, full light theme, Exicon crash fix, and app icon.',
+      newItems: [
+        'F3 Nation API integration — connect your regional API key in Settings.',
+        'Test your connection and pull your F3 profile (name, region) directly from F3 Nation.',
+        'Full light theme — all screens, cards, and text respond correctly to Dark/Light/System.',
+        'App icon — custom F3 shield, applied to Android and iOS.',
+        'Language picker now shows Venezuelan flag for Español.',
+      ],
+      enhancements: [
+        'Theme selector: Dark, Light, or System in Settings → Appearance.',
+        'TTS voice names are now human-readable.',
+        'Settings → F3 NATION section for API key management.',
+        'Version is now synced between pubspec and in-app display.',
+      ],
+      bugFixes: [
+        'Exicon library gray screen fixed — unmodifiable list sort crash resolved.',
+        'Exicon filters and sort now work correctly after the fix.',
+      ],
+    ),
+    AppRelease(
+      version: '2.1.1',
       title: 'The Polish & Spartan Fix Update',
       summary: 'Spartan AI connection restored, new artwork, theme picker, and UI improvements across the board.',
       newItems: [
@@ -51,7 +73,6 @@ class AppVersion {
       ],
       bugFixes: [
         'Q Field Guide now opens correctly.',
-        'Exicon library no longer shows a gray background.',
         'Rest timer clears properly when tapping Next.',
         'Welcome screen no longer auto-prompts biometric on open.',
         'App launch stays dark during entire startup sequence.',

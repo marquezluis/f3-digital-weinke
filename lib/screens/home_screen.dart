@@ -13,6 +13,8 @@ import '../services/current_workout_service.dart';
 import '../services/exercise_service.dart';
 import '../services/history_service.dart';
 import '../services/settings_service.dart';
+import '../services/f3_api_service.dart';
+import '../models/f3_api_models.dart';
 import '../widgets/exercise_detail_sheet.dart';
 import '../theme/app_theme.dart';
 import 'history_screen.dart';
@@ -33,7 +35,7 @@ class HomeScreen extends StatelessWidget {
     final isGloom = now.hour < 9;
 
     return Scaffold(
-      backgroundColor: F3Colors.background,
+      backgroundColor: context.f3bg,
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
@@ -46,11 +48,11 @@ class HomeScreen extends StatelessWidget {
                   children: [
                     // Wordmark row with settings gear
                     RichText(
-                      text: const TextSpan(children: [
+                      text: TextSpan(children: [
                         TextSpan(
                           text: 'DIGITAL ',
                           style: TextStyle(
-                            color: F3Colors.textPrimary,
+                            color: context.f3textPrimary,
                             fontSize: 32,
                             fontWeight: FontWeight.w900,
                             letterSpacing: 2,
@@ -73,8 +75,8 @@ class HomeScreen extends StatelessWidget {
                     if (myF3Name.isNotEmpty) ...[
                       Text(
                         'Hey, $myF3Name!',
-                        style: const TextStyle(
-                          color: F3Colors.textPrimary,
+                        style: TextStyle(
+                          color: context.f3textPrimary,
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
                         ),
@@ -83,8 +85,8 @@ class HomeScreen extends StatelessWidget {
                     ],
                     Text(
                       _formatDate(now),
-                      style: const TextStyle(
-                        color: F3Colors.textMuted,
+                      style: TextStyle(
+                        color: context.f3textMuted,
                         fontSize: 12,
                       ),
                     ),
@@ -93,13 +95,24 @@ class HomeScreen extends StatelessWidget {
                       isGloom
                           ? 'SYITG — See You in the Gloom.'
                           : _dailyMotto(now),
-                      style: const TextStyle(
-                        color: F3Colors.textSecondary,
+                      style: TextStyle(
+                        color: context.f3textSecondary,
                         fontSize: 13,
                         fontStyle: FontStyle.italic,
                       ),
                     ),
                   ],
+                ),
+              ),
+            ),
+
+            // ── Upcoming beatdowns (F3 Nation API) ───────────────────────
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(0, 16, 0, 0),
+              sliver: SliverToBoxAdapter(
+                child: Consumer<F3ApiService>(
+                  builder: (context, api, _) =>
+                      api.isConfigured ? const _UpcomingBeatdownsSection() : const SizedBox.shrink(),
                 ),
               ),
             ),
@@ -205,9 +218,9 @@ class HomeScreen extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 14, vertical: 12),
                           decoration: BoxDecoration(
-                            color: F3Colors.elevated,
+                            color: context.f3elevated,
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: F3Colors.divider),
+                            border: Border.all(color: context.f3divider),
                           ),
                           child: Row(children: [
                             const Icon(Icons.fitness_center_rounded,
@@ -228,8 +241,8 @@ class HomeScreen extends StatelessWidget {
                                   const SizedBox(height: 2),
                                   Text(
                                     '$names$more',
-                                    style: const TextStyle(
-                                        color: F3Colors.textSecondary,
+                                    style: TextStyle(
+                                        color: context.f3textSecondary,
                                         fontSize: 12),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
@@ -237,8 +250,8 @@ class HomeScreen extends StatelessWidget {
                                 ],
                               ),
                             ),
-                            const Icon(Icons.chevron_right_rounded,
-                                size: 18, color: F3Colors.textMuted),
+                            Icon(Icons.chevron_right_rounded,
+                                size: 18, color: context.f3textMuted),
                           ]),
                         ),
                       );
@@ -262,11 +275,11 @@ class HomeScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Padding(
+                    Padding(
                       padding: EdgeInsets.only(bottom: 12),
                       child: Text('QUICK ACTIONS',
                           style: TextStyle(
-                              color: F3Colors.textMuted,
+                              color: context.f3textMuted,
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
                               letterSpacing: 1.5)),
@@ -448,16 +461,16 @@ class _TimelineCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: F3Colors.card,
+        color: context.f3card,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: F3Colors.divider),
+        border: Border.all(color: context.f3divider),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('50-MINUTE TIMELINE',
+          Text('50-MINUTE TIMELINE',
               style: TextStyle(
-                  color: F3Colors.textMuted,
+                  color: context.f3textMuted,
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 1.5)),
@@ -510,17 +523,17 @@ class _StatsRow extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: F3Colors.card,
+        color: context.f3card,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: F3Colors.divider),
+        border: Border.all(color: context.f3divider),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(children: [
-            const Text('EXICON LOADED',
+            Text('EXICON LOADED',
                 style: TextStyle(
-                    color: F3Colors.textMuted,
+                    color: context.f3textMuted,
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 1.5)),
@@ -543,8 +556,8 @@ class _StatsRow extends StatelessWidget {
                           fontSize: 24,
                           fontWeight: FontWeight.w900)),
                   Text(cat.shortName,
-                      style: const TextStyle(
-                          color: F3Colors.textMuted, fontSize: 10),
+                      style: TextStyle(
+                          color: context.f3textMuted, fontSize: 10),
                       overflow: TextOverflow.ellipsis),
                 ]),
               );
@@ -580,9 +593,9 @@ class _QuickCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
         decoration: BoxDecoration(
-          color: F3Colors.card,
+          color: context.f3card,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: F3Colors.divider),
+          border: Border.all(color: context.f3divider),
         ),
         child: Row(children: [
           Container(
@@ -597,17 +610,17 @@ class _QuickCard extends StatelessWidget {
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(title,
-                  style: const TextStyle(
-                      color: F3Colors.textPrimary,
+                  style: TextStyle(
+                      color: context.f3textPrimary,
                       fontWeight: FontWeight.w800,
                       fontSize: 16)),
               Text(subtitle,
-                  style: const TextStyle(
-                      color: F3Colors.textSecondary, fontSize: 13)),
+                  style: TextStyle(
+                      color: context.f3textSecondary, fontSize: 13)),
             ]),
           ),
-          const Icon(Icons.chevron_right_rounded,
-              color: F3Colors.textMuted, size: 22),
+          Icon(Icons.chevron_right_rounded,
+              color: context.f3textMuted, size: 22),
         ]),
       ),
     );
@@ -630,55 +643,55 @@ class _LastBeatdownCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: F3Colors.card,
+        color: context.f3card,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: F3Colors.divider),
+        border: Border.all(color: context.f3divider),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          const Text('LAST BEATDOWN',
+          Text('LAST BEATDOWN',
               style: TextStyle(
-                  color: F3Colors.textMuted,
+                  color: context.f3textMuted,
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 1.5)),
           const Spacer(),
           Text(session.shortDate,
-              style: const TextStyle(
-                  color: F3Colors.textSecondary, fontSize: 12)),
+              style: TextStyle(
+                  color: context.f3textSecondary, fontSize: 12)),
         ]),
         const SizedBox(height: 8),
         Text(
           session.title.isEmpty ? 'Beatdown' : session.title,
-          style: const TextStyle(
-              color: F3Colors.textPrimary,
+          style: TextStyle(
+              color: context.f3textPrimary,
               fontWeight: FontWeight.w800,
               fontSize: 17),
         ),
         const SizedBox(height: 6),
         Row(children: [
           if (session.ao.isNotEmpty) ...[
-            const Icon(Icons.location_on_rounded,
-                color: F3Colors.textMuted, size: 14),
+            Icon(Icons.location_on_rounded,
+                color: context.f3textMuted, size: 14),
             const SizedBox(width: 3),
             Text(session.ao,
-                style: const TextStyle(
-                    color: F3Colors.textSecondary, fontSize: 13)),
+                style: TextStyle(
+                    color: context.f3textSecondary, fontSize: 13)),
             const SizedBox(width: 12),
           ],
-          const Icon(Icons.fitness_center_rounded,
-              color: F3Colors.textMuted, size: 14),
+          Icon(Icons.fitness_center_rounded,
+              color: context.f3textMuted, size: 14),
           const SizedBox(width: 3),
           Text('$exerciseCount exercises',
-              style: const TextStyle(
-                  color: F3Colors.textSecondary, fontSize: 13)),
+              style: TextStyle(
+                  color: context.f3textSecondary, fontSize: 13)),
           const SizedBox(width: 12),
-          const Icon(Icons.people_rounded,
-              color: F3Colors.textMuted, size: 14),
+          Icon(Icons.people_rounded,
+              color: context.f3textMuted, size: 14),
           const SizedBox(width: 3),
           Text(paxLabel,
-              style: const TextStyle(
-                  color: F3Colors.textSecondary, fontSize: 13)),
+              style: TextStyle(
+                  color: context.f3textSecondary, fontSize: 13)),
         ]),
       ]),
     );
@@ -714,8 +727,8 @@ class _FeaturedExerciseCard extends StatelessWidget {
                       letterSpacing: 1.5)),
               const SizedBox(height: 6),
               Text(exercise.name,
-                  style: const TextStyle(
-                      color: F3Colors.textPrimary,
+                  style: TextStyle(
+                      color: context.f3textPrimary,
                       fontWeight: FontWeight.w800,
                       fontSize: 17)),
               const SizedBox(height: 4),
@@ -741,9 +754,9 @@ class _StreakCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: F3Colors.card,
+        color: context.f3card,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: F3Colors.divider),
+        border: Border.all(color: context.f3divider),
       ),
       child: Row(children: [
         const Icon(Icons.local_fire_department_rounded,
@@ -759,17 +772,17 @@ class _StreakCard extends StatelessWidget {
                     fontSize: 22,
                     fontWeight: FontWeight.w900),
               ),
-              const TextSpan(
+              TextSpan(
                 text: 'WEEK STREAK',
                 style: TextStyle(
-                    color: F3Colors.textPrimary,
+                    color: context.f3textPrimary,
                     fontSize: 16,
                     fontWeight: FontWeight.w800),
               ),
             ]),
           ),
-          const Text('Consecutive weeks with a completed beatdown',
-              style: TextStyle(color: F3Colors.textSecondary, fontSize: 12)),
+          Text('Consecutive weeks with a completed beatdown',
+              style: TextStyle(color: context.f3textSecondary, fontSize: 12)),
         ]),
       ]),
     );
@@ -794,9 +807,9 @@ class _StatsCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: F3Colors.card,
+        color: context.f3card,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: F3Colors.divider),
+        border: Border.all(color: context.f3divider),
       ),
       child: Row(children: [
         const Icon(Icons.bar_chart_rounded,
@@ -805,10 +818,10 @@ class _StatsCard extends StatelessWidget {
         Expanded(
           child: RichText(
             text: TextSpan(children: [
-              const TextSpan(
+              TextSpan(
                 text: "You've led ",
                 style: TextStyle(
-                    color: F3Colors.textSecondary, fontSize: 13),
+                    color: context.f3textSecondary, fontSize: 13),
               ),
               TextSpan(
                 text: '$totalPaxLed PAX',
@@ -817,10 +830,10 @@ class _StatsCard extends StatelessWidget {
                     fontSize: 13,
                     fontWeight: FontWeight.w800),
               ),
-              const TextSpan(
+              TextSpan(
                 text: ' across ',
                 style: TextStyle(
-                    color: F3Colors.textSecondary, fontSize: 13),
+                    color: context.f3textSecondary, fontSize: 13),
               ),
               TextSpan(
                 text: '$totalBeatdowns beatdown${totalBeatdowns == 1 ? "" : "s"}',
@@ -832,8 +845,8 @@ class _StatsCard extends StatelessWidget {
               if (uniquePax > 0)
                 TextSpan(
                   text: ' · $uniquePax unique PAX',
-                  style: const TextStyle(
-                      color: F3Colors.textMuted, fontSize: 12),
+                  style: TextStyle(
+                      color: context.f3textMuted, fontSize: 12),
                 ),
             ]),
           ),
@@ -893,9 +906,9 @@ class _QuickStartRow extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('QUICK START',
+        Text('QUICK START',
             style: TextStyle(
-                color: F3Colors.textMuted,
+                color: context.f3textMuted,
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 1.5)),
@@ -1022,8 +1035,8 @@ class _F extends StatelessWidget {
                   fontWeight: FontWeight.w800,
                   fontSize: 13)),
           TextSpan(text: desc,
-              style: const TextStyle(
-                  color: F3Colors.textSecondary, fontSize: 13)),
+              style: TextStyle(
+                  color: context.f3textSecondary, fontSize: 13)),
         ]),
       ),
     );
@@ -1069,12 +1082,12 @@ class _RecentExercisesCarousel extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
+        Padding(
           padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
           child: Text(
             'RECENTLY USED',
             style: TextStyle(
-              color: F3Colors.textMuted,
+              color: context.f3textMuted,
               fontSize: 11,
               fontWeight: FontWeight.w700,
               letterSpacing: 1.5,
@@ -1116,5 +1129,174 @@ class _RecentExercisesCarousel extends StatelessWidget {
         ),
       ],
     );
+  }
+}
+
+// ── Upcoming Beatdowns (F3 Nation API) ───────────────────────────────────────
+
+class _UpcomingBeatdownsSection extends StatefulWidget {
+  const _UpcomingBeatdownsSection();
+
+  @override
+  State<_UpcomingBeatdownsSection> createState() => _UpcomingBeatdownsSectionState();
+}
+
+class _UpcomingBeatdownsSectionState extends State<_UpcomingBeatdownsSection> {
+  List<F3EventInstance>? _events;
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetch();
+  }
+
+  Future<void> _fetch() async {
+    final api = context.read<F3ApiService>();
+    final events = await api.getUpcomingBeatdowns();
+    if (!mounted) return;
+    setState(() {
+      _events = events.take(7).toList();
+      _loading = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) {
+      return const SizedBox(
+        height: 96,
+        child: Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))),
+      );
+    }
+    final events = _events ?? [];
+    if (events.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+          child: Row(
+            children: [
+              Icon(Icons.calendar_month_rounded, size: 13, color: F3Colors.accent),
+              const SizedBox(width: 6),
+              Text(
+                'UPCOMING BEATDOWNS',
+                style: TextStyle(
+                  color: context.f3textMuted,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.5,
+                ),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(
+          height: 108,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+            itemCount: events.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 10),
+            itemBuilder: (context, i) => _BeatdownChip(event: events[i]),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _BeatdownChip extends StatelessWidget {
+  final F3EventInstance event;
+  const _BeatdownChip({required this.event});
+
+  @override
+  Widget build(BuildContext context) {
+    final isToday = _isToday(event.date);
+    final isTomorrow = _isTomorrow(event.date);
+    final dayLabel = isToday
+        ? 'TODAY'
+        : isTomorrow
+            ? 'TOMORROW'
+            : _shortDate(event.date);
+
+    return Container(
+      width: 140,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isToday
+            ? F3Colors.accent.withValues(alpha: 0.12)
+            : context.f3card,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isToday ? F3Colors.accent.withValues(alpha: 0.5) : context.f3divider,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            dayLabel,
+            style: TextStyle(
+              color: isToday ? F3Colors.accent : context.f3textMuted,
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1.2,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            event.locationName ?? 'AO',
+            style: TextStyle(
+              color: context.f3textPrimary,
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+              height: 1.2,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const Spacer(),
+          if (event.hasQ)
+            Text(
+              'Q: ${event.qF3Name ?? '—'}',
+              style: TextStyle(
+                color: context.f3textSecondary,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            )
+          else
+            Text(
+              'Q OPEN',
+              style: TextStyle(
+                color: F3Colors.accent,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  bool _isToday(DateTime d) {
+    final now = DateTime.now();
+    return d.year == now.year && d.month == now.month && d.day == now.day;
+  }
+
+  bool _isTomorrow(DateTime d) {
+    final tom = DateTime.now().add(const Duration(days: 1));
+    return d.year == tom.year && d.month == tom.month && d.day == tom.day;
+  }
+
+  String _shortDate(DateTime d) {
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return '${days[d.weekday - 1]} ${months[d.month - 1]} ${d.day}';
   }
 }

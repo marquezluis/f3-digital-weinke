@@ -81,7 +81,7 @@ class PhaseSegmentBar extends StatelessWidget {
                             : '${phase.durationMinutes}m',
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          color: isCurrent ? phase.color : F3Colors.textMuted,
+                          color: isCurrent ? phase.color : context.f3textMuted,
                           fontSize: 9,
                           fontWeight: isCurrent
                               ? FontWeight.w800

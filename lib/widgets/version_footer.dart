@@ -15,15 +15,15 @@ class VersionFooter extends StatelessWidget {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        backgroundColor: F3Colors.card,
+        backgroundColor: context.f3card,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Column(
+        title: Column(
           children: [
             Icon(Icons.history_edu_rounded, color: F3Colors.accent, size: 32),
             SizedBox(height: 8),
             Text('Release Log',
                 style: TextStyle(
-                    color: F3Colors.textPrimary, fontWeight: FontWeight.bold)),
+                    color: context.f3textPrimary, fontWeight: FontWeight.bold)),
           ],
         ),
         content: SizedBox(
@@ -37,20 +37,20 @@ class VersionFooter extends StatelessWidget {
                   margin: const EdgeInsets.only(top: 16),
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: F3Colors.elevated,
+                    color: context.f3elevated,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: F3Colors.divider),
+                    border: Border.all(color: context.f3divider),
                   ),
-                  child: const Column(
+                  child: Column(
                     children: [
                       Text('Created by: PermVac',
                           style: TextStyle(
-                              color: F3Colors.textPrimary,
+                              color: context.f3textPrimary,
                               fontWeight: FontWeight.bold)),
                       SizedBox(height: 4),
                       Text('Contact via Slack: @PermVac (F3 Nation)',
                           style: TextStyle(
-                              color: F3Colors.textSecondary, fontSize: 12)),
+                              color: context.f3textSecondary, fontSize: 12)),
                     ],
                   ),
                 );
@@ -76,13 +76,13 @@ class VersionFooter extends StatelessWidget {
                               child: Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text('• ',
+                                  Text('• ',
                                       style:
-                                          TextStyle(color: F3Colors.textMuted)),
+                                          TextStyle(color: context.f3textMuted)),
                                   Expanded(
                                       child: Text(change,
-                                          style: const TextStyle(
-                                              color: F3Colors.textSecondary,
+                                          style: TextStyle(
+                                              color: context.f3textSecondary,
                                               fontSize: 13,
                                               height: 1.3))),
                                 ],
@@ -110,7 +110,7 @@ class VersionFooter extends StatelessWidget {
     return GestureDetector(
       onTap: () => _showReleaseLog(context),
       behavior: HitTestBehavior.opaque,
-      child: const Padding(
+      child: Padding(
         padding: EdgeInsets.symmetric(vertical: 24.0, horizontal: 16.0),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -118,7 +118,7 @@ class VersionFooter extends StatelessWidget {
             Text(
               'Digital Weinke v${AppVersion.current}',
               style: TextStyle(
-                color: F3Colors.textSecondary,
+                color: context.f3textSecondary,
                 fontWeight: FontWeight.w700,
                 fontSize: 13,
                 letterSpacing: 0.5,
@@ -128,7 +128,7 @@ class VersionFooter extends StatelessWidget {
             Text(
               'Created by: PermVac',
               style: TextStyle(
-                color: F3Colors.textMuted,
+                color: context.f3textMuted,
                 fontSize: 11,
                 letterSpacing: 0.3,
               ),
@@ -137,7 +137,7 @@ class VersionFooter extends StatelessWidget {
             Text(
               'Contact via Slack: @PermVac (F3 Nation)',
               style: TextStyle(
-                color: F3Colors.textMuted,
+                color: context.f3textMuted,
                 fontSize: 11,
                 letterSpacing: 0.3,
               ),

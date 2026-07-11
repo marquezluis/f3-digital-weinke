@@ -57,7 +57,7 @@ class _LocalLoginScreenState extends State<LocalLoginScreen> {
     final name = profile.displayName.isEmpty ? 'PAX' : profile.displayName;
 
     return Scaffold(
-      backgroundColor: F3Colors.background,
+      backgroundColor: context.f3bg,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -84,11 +84,11 @@ class _LocalLoginScreenState extends State<LocalLoginScreen> {
                 const SizedBox(height: 24),
                 RichText(
                   textAlign: TextAlign.center,
-                  text: const TextSpan(children: [
+                  text: TextSpan(children: [
                     TextSpan(
                       text: 'DIGITAL ',
                       style: TextStyle(
-                        color: F3Colors.textPrimary,
+                        color: context.f3textPrimary,
                         fontSize: 28,
                         fontWeight: FontWeight.w900,
                         letterSpacing: 2,
@@ -108,10 +108,10 @@ class _LocalLoginScreenState extends State<LocalLoginScreen> {
                   ]),
                 ),
                 const SizedBox(height: 4),
-                const Text(
+                Text(
                   'F3 NATION · SPARTAN UP',
                   style: TextStyle(
-                    color: F3Colors.textMuted,
+                    color: context.f3textMuted,
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 2.5,
@@ -121,8 +121,8 @@ class _LocalLoginScreenState extends State<LocalLoginScreen> {
                 Text(
                   'Welcome back, $name.',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: F3Colors.textSecondary,
+                  style: TextStyle(
+                    color: context.f3textSecondary,
                     fontSize: 16,
                   ),
                 ),
@@ -130,21 +130,21 @@ class _LocalLoginScreenState extends State<LocalLoginScreen> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: F3Colors.card,
+                    color: context.f3card,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: F3Colors.divider),
+                    border: Border.all(color: context.f3divider),
                   ),
-                  child: const Row(
+                  child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Icon(Icons.lock_rounded,
-                          color: F3Colors.textSecondary, size: 20),
+                          color: context.f3textSecondary, size: 20),
                       SizedBox(width: 12),
                       Expanded(
                         child: Text(
                           'This is local device protection, not an online account. OAuth can be added later without changing this screen.',
                           style: TextStyle(
-                            color: F3Colors.textSecondary,
+                            color: context.f3textSecondary,
                             fontSize: 13,
                             height: 1.4,
                           ),

@@ -95,13 +95,13 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     final name = await showDialog<String>(
       context: context,
       builder: (_) => AlertDialog(
-        backgroundColor: F3Colors.card,
-        title: const Text('Save as Template',
-            style: TextStyle(color: F3Colors.textPrimary)),
+        backgroundColor: context.f3card,
+        title: Text('Save as Template',
+            style: TextStyle(color: context.f3textPrimary)),
         content: TextField(
           controller: ctrl,
           autofocus: true,
-          style: const TextStyle(color: F3Colors.textPrimary),
+          style: TextStyle(color: context.f3textPrimary),
           decoration: const InputDecoration(hintText: 'Template name'),
           onSubmitted: (v) => Navigator.pop(context, v.trim()),
         ),
@@ -157,7 +157,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     }
     showModalBottomSheet(
       context: context,
-      backgroundColor: F3Colors.card,
+      backgroundColor: context.f3card,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) {
@@ -175,13 +175,13 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                   leading: const Icon(Icons.bookmark_rounded,
                       color: F3Colors.accent),
                   title: Text(t.title,
-                      style: const TextStyle(
-                          color: F3Colors.textPrimary,
+                      style: TextStyle(
+                          color: context.f3textPrimary,
                           fontWeight: FontWeight.w700)),
                   subtitle: Text(
                       '${t.blocks.fold(0, (s, b) => s + b.exerciseNames.length)} exercises',
-                      style: const TextStyle(
-                          color: F3Colors.textSecondary, fontSize: 12)),
+                      style: TextStyle(
+                          color: context.f3textSecondary, fontSize: 12)),
                   onTap: () {
                     Navigator.pop(ctx);
                     _loadTemplate(t);
@@ -233,16 +233,16 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        backgroundColor: F3Colors.card,
-        title: const Text('Share as Preblast',
-            style: TextStyle(color: F3Colors.textPrimary)),
+        backgroundColor: context.f3card,
+        title: Text('Share as Preblast',
+            style: TextStyle(color: context.f3textPrimary)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
               controller: aoCtrl,
               autofocus: true,
-              style: const TextStyle(color: F3Colors.textPrimary),
+              style: TextStyle(color: context.f3textPrimary),
               decoration: const InputDecoration(
                 labelText: 'AO Name',
                 hintText: 'e.g. Agoge',
@@ -252,7 +252,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
             const SizedBox(height: 12),
             TextField(
               controller: timeCtrl,
-              style: const TextStyle(color: F3Colors.textPrimary),
+              style: TextStyle(color: context.f3textPrimary),
               decoration: const InputDecoration(
                 labelText: 'Start Time',
                 hintText: '0530',
@@ -289,9 +289,9 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (_) => const AlertDialog(
-        backgroundColor: F3Colors.card,
-        title: Text('Spartan is reviewing...', style: TextStyle(color: F3Colors.textPrimary)),
+      builder: (_) => AlertDialog(
+        backgroundColor: context.f3card,
+        title: Text('Spartan is reviewing...', style: TextStyle(color: context.f3textPrimary)),
         content: SizedBox(height: 50, child: Center(child: CircularProgressIndicator(color: F3Colors.accent))),
       ),
     );
@@ -304,9 +304,9 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
       showDialog(
         context: context,
         builder: (_) => AlertDialog(
-          backgroundColor: F3Colors.card,
-          title: const Text('Spartan Audit', style: TextStyle(color: F3Colors.textPrimary)),
-          content: Text(feedback, style: const TextStyle(color: F3Colors.textSecondary, height: 1.4)),
+          backgroundColor: context.f3card,
+          title: Text('Spartan Audit', style: TextStyle(color: context.f3textPrimary)),
+          content: Text(feedback, style: TextStyle(color: context.f3textSecondary, height: 1.4)),
           actions: [
             TextButton(onPressed: () => Navigator.pop(context), child: const Text('GOT IT')),
           ],
@@ -363,16 +363,16 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
       final confirm = await showDialog<bool>(
         context: context,
         builder: (_) => AlertDialog(
-          backgroundColor: F3Colors.card,
+          backgroundColor: context.f3card,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Row(children: [
+          title: Row(children: [
             Icon(Icons.music_note_rounded, color: F3Colors.accent, size: 22),
             SizedBox(width: 10),
-            Text('Launch music?', style: TextStyle(color: F3Colors.textPrimary, fontSize: 17)),
+            Text('Launch music?', style: TextStyle(color: context.f3textPrimary, fontSize: 17)),
           ]),
-          content: const Text(
+          content: Text(
             'Open your music app now. Press the back button to return to your workout when you\'re ready.',
-            style: TextStyle(color: F3Colors.textSecondary, height: 1.45, fontSize: 14),
+            style: TextStyle(color: context.f3textSecondary, height: 1.45, fontSize: 14),
           ),
           actions: [
             TextButton(
@@ -406,10 +406,10 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
       builder: (context, workoutSvc, _) {
         final plan = workoutSvc.draftPlan;
         return Scaffold(
-          backgroundColor: F3Colors.background,
+          backgroundColor: context.f3bg,
           appBar: AppBar(
             title: const Text('Your Weinke'),
-            backgroundColor: F3Colors.background,
+            backgroundColor: context.f3bg,
             actions: [
               IconButton(
                 icon: const Icon(Icons.bookmark_border_rounded),
@@ -515,15 +515,15 @@ class _ExerciseSwapSheetState extends State<_ExerciseSwapSheet> {
       maxChildSize: 0.95,
       minChildSize: 0.5,
       builder: (_, controller) => Container(
-        decoration: const BoxDecoration(
-          color: F3Colors.background,
+        decoration: BoxDecoration(
+          color: context.f3bg,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: Column(
           children: [
             Container(
               width: 40, height: 4, margin: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(color: F3Colors.divider, borderRadius: BorderRadius.circular(2)),
+              decoration: BoxDecoration(color: context.f3divider, borderRadius: BorderRadius.circular(2)),
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -554,7 +554,7 @@ class _ExerciseSwapSheetState extends State<_ExerciseSwapSheet> {
                 }).toList(),
               ),
             ),
-            const Divider(color: F3Colors.divider),
+            Divider(color: context.f3divider),
             Expanded(
               child: ListView.builder(
                 controller: controller,
@@ -621,11 +621,11 @@ class _SwipableExerciseCard extends StatelessWidget {
         return await showDialog<bool>(
           context: context,
           builder: (_) => AlertDialog(
-            backgroundColor: F3Colors.card,
-            title: const Text('Remove exercise?',
-                style: TextStyle(color: F3Colors.textPrimary)),
+            backgroundColor: context.f3card,
+            title: Text('Remove exercise?',
+                style: TextStyle(color: context.f3textPrimary)),
             content: Text(exercise.name,
-                style: const TextStyle(color: F3Colors.textSecondary)),
+                style: TextStyle(color: context.f3textSecondary)),
             actions: [
               TextButton(
                   onPressed: () => Navigator.pop(context, false),
@@ -676,7 +676,7 @@ class _SwipableExerciseCard extends StatelessWidget {
                       : Icons.sticky_note_2_rounded,
                   size: 13,
                   color: note.isEmpty
-                      ? F3Colors.textMuted
+                      ? context.f3textMuted
                       : F3Colors.accent,
                 ),
                 const SizedBox(width: 4),
@@ -685,7 +685,7 @@ class _SwipableExerciseCard extends StatelessWidget {
                     note.isEmpty ? 'Add Q note…' : note,
                     style: TextStyle(
                       color: note.isEmpty
-                          ? F3Colors.textMuted
+                          ? context.f3textMuted
                           : F3Colors.accent,
                       fontSize: 11,
                       fontStyle: note.isEmpty
@@ -712,22 +712,22 @@ class _SwipableExerciseCard extends StatelessWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: F3Colors.card,
+        backgroundColor: context.f3card,
         title: Text(exercise.name,
-            style: const TextStyle(
-                color: F3Colors.textPrimary,
+            style: TextStyle(
+                color: context.f3textPrimary,
                 fontWeight: FontWeight.w800,
                 fontSize: 16)),
         content: TextField(
           controller: ctrl,
           autofocus: true,
           maxLines: 2,
-          style: const TextStyle(color: F3Colors.textPrimary),
-          decoration: const InputDecoration(
+          style: TextStyle(color: context.f3textPrimary),
+          decoration: InputDecoration(
             hintText: 'e.g. OYO · do in cadence · flapjack halfway',
-            hintStyle: TextStyle(color: F3Colors.textMuted),
+            hintStyle: TextStyle(color: context.f3textMuted),
             labelText: 'Q Note',
-            labelStyle: TextStyle(color: F3Colors.textSecondary),
+            labelStyle: TextStyle(color: context.f3textSecondary),
           ),
         ),
         actions: [
@@ -738,8 +738,8 @@ class _SwipableExerciseCard extends StatelessWidget {
                     blockIndex, exercise.id, '');
                 Navigator.pop(ctx);
               },
-              child: const Text('CLEAR',
-                  style: TextStyle(color: F3Colors.textMuted)),
+              child: Text('CLEAR',
+                  style: TextStyle(color: context.f3textMuted)),
             ),
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -787,7 +787,7 @@ class _BottomActions extends StatelessWidget {
   Widget build(BuildContext context) {
     return SafeArea(
       child: Container(
-        color: F3Colors.card,
+        color: context.f3card,
         padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -799,8 +799,8 @@ class _BottomActions extends StatelessWidget {
                 child: OutlinedButton.icon(
                   onPressed: onNewBeatdown,
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: F3Colors.textSecondary,
-                    side: const BorderSide(color: F3Colors.divider),
+                    foregroundColor: context.f3textSecondary,
+                    side: BorderSide(color: context.f3divider),
                     padding: _kButtonPadding,
                     minimumSize: _kButtonMinSize,
                     shape: _kButtonShape,
@@ -861,20 +861,20 @@ class _EmptyState extends StatelessWidget {
           children: [
             const Icon(Icons.bolt_rounded, color: F3Colors.accent, size: 72),
             const SizedBox(height: 20),
-            const Text('GENERATE YOUR WEINKE',
+            Text('GENERATE YOUR WEINKE',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                    color: F3Colors.textPrimary,
+                    color: context.f3textPrimary,
                     fontSize: 24,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 1)),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               '50 minutes. Disclaimer → Warm-O-Rama → The Thang → Mary → COT.\n'
               'Exercises drawn from the full F3 Exicon.',
               textAlign: TextAlign.center,
               style:
-                  TextStyle(color: F3Colors.textSecondary, fontSize: 15, height: 1.5),
+                  TextStyle(color: context.f3textSecondary, fontSize: 15, height: 1.5),
             ),
             const SizedBox(height: 32),
             ElevatedButton.icon(
@@ -1032,7 +1032,7 @@ class _PlanHeader extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: F3Colors.card,
+            color: context.f3card,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: F3Colors.accent.withValues(alpha: 0.35)),
           ),
@@ -1049,14 +1049,14 @@ class _PlanHeader extends StatelessWidget {
                         letterSpacing: 1.5)),
                 Text(
                     '${plan.allExercises.length} exercises · ${plan.blocks.length} blocks',
-                    style: const TextStyle(
-                        color: F3Colors.textSecondary, fontSize: 12)),
+                    style: TextStyle(
+                        color: context.f3textSecondary, fontSize: 12)),
                 const SizedBox(height: 6),
                 _TimeBudgetBar(plan: plan),
               ]),
             ),
             Text(_fmt(plan.generatedAt),
-                style: const TextStyle(color: F3Colors.textMuted, fontSize: 11)),
+                style: TextStyle(color: context.f3textMuted, fontSize: 11)),
           ]),
         ),
         if (warnings.isNotEmpty) ...[
@@ -1129,7 +1129,7 @@ class _TimeBudgetBar extends StatelessWidget {
             borderRadius: BorderRadius.circular(3),
             child: LinearProgressIndicator(
               value: ratio.clamp(0.0, 1.0),
-              backgroundColor: F3Colors.divider,
+              backgroundColor: context.f3divider,
               valueColor: AlwaysStoppedAnimation(color),
               minHeight: 5,
             ),
@@ -1191,8 +1191,8 @@ class _PhaseCard extends StatelessWidget {
                         color: color, fontSize: 11, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 4),
                 Text(body,
-                    style: const TextStyle(
-                        color: F3Colors.textSecondary, fontSize: 13,
+                    style: TextStyle(
+                        color: context.f3textSecondary, fontSize: 13,
                         height: 1.4)),
               ],
             ),
@@ -1243,13 +1243,13 @@ class _BlockSection extends StatelessWidget {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        backgroundColor: F3Colors.card,
-        title: const Text('Rename Block',
-            style: TextStyle(color: F3Colors.textPrimary)),
+        backgroundColor: context.f3card,
+        title: Text('Rename Block',
+            style: TextStyle(color: context.f3textPrimary)),
         content: TextField(
           controller: ctrl,
           autofocus: true,
-          style: const TextStyle(color: F3Colors.textPrimary),
+          style: TextStyle(color: context.f3textPrimary),
           decoration: const InputDecoration(
             hintText: 'e.g. Coupon Strength',
           ),
@@ -1290,30 +1290,30 @@ class _BlockSection extends StatelessWidget {
       context: context,
       builder: (_) => StatefulBuilder(
         builder: (ctx, setState) => AlertDialog(
-          backgroundColor: F3Colors.card,
-          title: const Text('Set Rounds',
-              style: TextStyle(color: F3Colors.textPrimary)),
+          backgroundColor: context.f3card,
+          title: Text('Set Rounds',
+              style: TextStyle(color: context.f3textPrimary)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(block.label,
-                  style: const TextStyle(
-                      color: F3Colors.textSecondary, fontSize: 13)),
+                  style: TextStyle(
+                      color: context.f3textSecondary, fontSize: 13)),
               const SizedBox(height: 20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.remove_circle_outline,
-                        color: F3Colors.textSecondary, size: 32),
+                    icon: Icon(Icons.remove_circle_outline,
+                        color: context.f3textSecondary, size: 32),
                     onPressed: tempRounds > 1
                         ? () => setState(() => tempRounds--)
                         : null,
                   ),
                   const SizedBox(width: 12),
                   Text('$tempRounds',
-                      style: const TextStyle(
-                          color: F3Colors.textPrimary,
+                      style: TextStyle(
+                          color: context.f3textPrimary,
                           fontSize: 40,
                           fontWeight: FontWeight.w900)),
                   const SizedBox(width: 12),
@@ -1327,8 +1327,8 @@ class _BlockSection extends StatelessWidget {
                 ],
               ),
               Text(tempRounds == 1 ? 'round' : 'rounds',
-                  style: const TextStyle(
-                      color: F3Colors.textMuted, fontSize: 13)),
+                  style: TextStyle(
+                      color: context.f3textMuted, fontSize: 13)),
             ],
           ),
           actions: [
@@ -1386,7 +1386,10 @@ class _BlockSection extends StatelessWidget {
               decoration: BoxDecoration(
                   color: color.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(4)),
-              child: Text('${block.durationMinutes} min',
+              child: Text(
+                  block.rounds > 1
+                      ? '${block.durationMinutes * block.rounds} min'
+                      : '${block.durationMinutes} min',
                   style: TextStyle(
                       color: color, fontSize: 11, fontWeight: FontWeight.w600)),
             ),
@@ -1398,7 +1401,7 @@ class _BlockSection extends StatelessWidget {
                 decoration: BoxDecoration(
                     color: block.rounds > 1
                         ? F3Colors.accent.withValues(alpha: 0.18)
-                        : F3Colors.divider.withValues(alpha: 0.3),
+                        : context.f3divider.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(4),
                     border: Border.all(
                         color: block.rounds > 1
@@ -1411,7 +1414,7 @@ class _BlockSection extends StatelessWidget {
                         size: 10,
                         color: block.rounds > 1
                             ? F3Colors.accent
-                            : F3Colors.textMuted),
+                            : context.f3textMuted),
                     const SizedBox(width: 3),
                     Text(
                         block.rounds > 1
@@ -1420,7 +1423,7 @@ class _BlockSection extends StatelessWidget {
                         style: TextStyle(
                             color: block.rounds > 1
                                 ? F3Colors.accent
-                                : F3Colors.textMuted,
+                                : context.f3textMuted,
                             fontSize: 11,
                             fontWeight: FontWeight.w700)),
                   ],
@@ -1453,8 +1456,8 @@ class _BlockSection extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
             child: Text(block.notes,
-                style: const TextStyle(
-                    color: F3Colors.textMuted, fontSize: 12,
+                style: TextStyle(
+                    color: context.f3textMuted, fontSize: 12,
                     fontStyle: FontStyle.italic)),
           ),
         ReorderableListView.builder(
@@ -1477,10 +1480,10 @@ class _BlockSection extends StatelessWidget {
                 children: [
                   ReorderableDragStartListener(
                     index: ei,
-                    child: const Padding(
+                    child: Padding(
                       padding: EdgeInsets.fromLTRB(0, 4, 6, 4),
                       child: Icon(Icons.drag_handle_rounded,
-                          color: F3Colors.textMuted, size: 22),
+                          color: context.f3textMuted, size: 22),
                     ),
                   ),
                   Expanded(

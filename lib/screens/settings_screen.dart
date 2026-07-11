@@ -13,8 +13,6 @@ import '../services/app_profile_service.dart' hide AppRole;
 import '../services/history_service.dart';
 import '../services/local_backup_service.dart';
 import '../services/music_launcher.dart';
-import '../models/f3_api_models.dart';
-import '../services/f3_api_service.dart';
 import '../services/region_service.dart';
 import '../services/settings_service.dart';
 import '../theme/app_theme.dart';
@@ -27,10 +25,10 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: F3Colors.background,
+      backgroundColor: context.f3bg,
       appBar: AppBar(
         title: const Text('Settings'),
-        backgroundColor: F3Colors.background,
+        backgroundColor: context.f3bg,
       ),
       body: Consumer<SettingsService>(
         builder: (context, service, _) {
@@ -48,7 +46,7 @@ class SettingsScreen extends StatelessWidget {
                     padding: const EdgeInsets.all(16),
                     margin: const EdgeInsets.only(bottom: 24),
                     decoration: BoxDecoration(
-                      color: F3Colors.card,
+                      color: context.f3card,
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(color: F3Colors.accent.withValues(alpha: 0.3)),
                     ),
@@ -69,18 +67,18 @@ class SettingsScreen extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(name,
-                                style: const TextStyle(
-                                    color: F3Colors.textPrimary,
+                                style: TextStyle(
+                                    color: context.f3textPrimary,
                                     fontWeight: FontWeight.w900,
                                     fontSize: 18)),
                             if (profile.homeAo.isNotEmpty)
                               Text(profile.homeAo,
-                                  style: const TextStyle(
-                                      color: F3Colors.textSecondary, fontSize: 13)),
+                                  style: TextStyle(
+                                      color: context.f3textSecondary, fontSize: 13)),
                             if (profile.region.isNotEmpty)
                               Text(profile.region,
-                                  style: const TextStyle(
-                                      color: F3Colors.textMuted, fontSize: 12)),
+                                  style: TextStyle(
+                                      color: context.f3textMuted, fontSize: 12)),
                           ],
                         ),
                       ),
@@ -221,12 +219,12 @@ class SettingsScreen extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: enabled
                             ? color.withValues(alpha: 0.12)
-                            : F3Colors.card,
+                            : context.f3card,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: enabled
                               ? color.withValues(alpha: 0.6)
-                              : F3Colors.divider,
+                              : context.f3divider,
                           width: enabled ? 1.5 : 1,
                         ),
                       ),
@@ -236,7 +234,7 @@ class SettingsScreen extends StatelessWidget {
                             width: 10,
                             height: 10,
                             decoration: BoxDecoration(
-                              color: enabled ? color : F3Colors.textMuted,
+                              color: enabled ? color : context.f3textMuted,
                               shape: BoxShape.circle,
                             ),
                           ),
@@ -246,8 +244,8 @@ class SettingsScreen extends StatelessWidget {
                               intensity.displayName,
                               style: TextStyle(
                                 color: enabled
-                                    ? F3Colors.textPrimary
-                                    : F3Colors.textSecondary,
+                                    ? context.f3textPrimary
+                                    : context.f3textSecondary,
                                 fontWeight: FontWeight.w700,
                                 fontSize: 17,
                               ),
@@ -311,7 +309,7 @@ class SettingsScreen extends StatelessWidget {
                 const SizedBox(height: 12),
                 DropdownButtonFormField<MusicProvider>(
                   initialValue: service.musicProvider,
-                  dropdownColor: F3Colors.card,
+                  dropdownColor: context.f3card,
                   decoration: const InputDecoration(
                     labelText: 'Music Provider',
                     prefixIcon: Icon(Icons.music_note_rounded),
@@ -422,12 +420,6 @@ class SettingsScreen extends StatelessWidget {
               ),
               const SizedBox(height: 28),
 
-              // ── F3 Nation Connect ──────────────────────────────────────────
-              const _SectionHeader('F3 NATION'),
-              const SizedBox(height: 8),
-              const _F3ConnectSection(),
-              const SizedBox(height: 28),
-
               // ── About ─────────────────────────────────────────────────────
               const _SectionHeader('ABOUT'),
               const SizedBox(height: 8),
@@ -474,9 +466,9 @@ class _NavTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         decoration: BoxDecoration(
-          color: F3Colors.card,
+          color: context.f3card,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: F3Colors.divider),
+          border: Border.all(color: context.f3divider),
         ),
         child: Row(children: [
           Container(
@@ -491,17 +483,17 @@ class _NavTile extends StatelessWidget {
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(title,
-                  style: const TextStyle(
-                      color: F3Colors.textPrimary,
+                  style: TextStyle(
+                      color: context.f3textPrimary,
                       fontWeight: FontWeight.w700,
                       fontSize: 15)),
               Text(subtitle,
-                  style: const TextStyle(
-                      color: F3Colors.textSecondary, fontSize: 12)),
+                  style: TextStyle(
+                      color: context.f3textSecondary, fontSize: 12)),
             ]),
           ),
-          const Icon(Icons.chevron_right_rounded,
-              color: F3Colors.textMuted, size: 20),
+          Icon(Icons.chevron_right_rounded,
+              color: context.f3textMuted, size: 20),
         ]),
       ),
     );
@@ -517,7 +509,7 @@ class _SectionHeader extends StatelessWidget {
     return Text(
       text,
       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-            color: F3Colors.textMuted,
+            color: context.f3textMuted,
             letterSpacing: 1.5,
           ),
     );
@@ -552,10 +544,10 @@ class _SegmentedRow<T> extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: isSelected
                       ? F3Colors.accent.withValues(alpha: 0.15)
-                      : F3Colors.card,
+                      : context.f3card,
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: isSelected ? F3Colors.accent : F3Colors.divider,
+                    color: isSelected ? F3Colors.accent : context.f3divider,
                     width: isSelected ? 1.5 : 1,
                   ),
                 ),
@@ -563,7 +555,7 @@ class _SegmentedRow<T> extends StatelessWidget {
                   label(opt),
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: isSelected ? F3Colors.accent : F3Colors.textSecondary,
+                    color: isSelected ? F3Colors.accent : context.f3textSecondary,
                     fontWeight:
                         isSelected ? FontWeight.w700 : FontWeight.w500,
                     fontSize: 12,
@@ -596,9 +588,9 @@ class _SwitchRow extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: F3Colors.card,
+        color: context.f3card,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: F3Colors.divider),
+        border: Border.all(color: context.f3divider),
       ),
       child: Row(
         children: [
@@ -606,8 +598,8 @@ class _SwitchRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: const TextStyle(color: F3Colors.textPrimary, fontWeight: FontWeight.w600)),
-                Text(subtitle, style: const TextStyle(color: F3Colors.textMuted, fontSize: 12)),
+                Text(label, style: TextStyle(color: context.f3textPrimary, fontWeight: FontWeight.w600)),
+                Text(subtitle, style: TextStyle(color: context.f3textMuted, fontSize: 12)),
               ],
             ),
           ),
@@ -735,9 +727,9 @@ class _VoiceSelectorState extends State<_VoiceSelector> {
     showDialog<String>(
       context: context,
       builder: (_) => AlertDialog(
-        backgroundColor: F3Colors.card,
-        title: const Text('Select TTS Voice',
-            style: TextStyle(color: F3Colors.textPrimary, fontSize: 16)),
+        backgroundColor: context.f3card,
+        title: Text('Select TTS Voice',
+            style: TextStyle(color: context.f3textPrimary, fontSize: 16)),
         content: SizedBox(
           width: double.maxFinite,
           child: ListView.builder(
@@ -750,7 +742,7 @@ class _VoiceSelectorState extends State<_VoiceSelector> {
                 dense: true,
                 title: Text(displayName,
                     style: TextStyle(
-                      color: selected ? F3Colors.accent : F3Colors.textPrimary,
+                      color: selected ? F3Colors.accent : context.f3textPrimary,
                       fontWeight: selected ? FontWeight.w700 : FontWeight.normal,
                       fontSize: 13,
                     )),
@@ -788,28 +780,28 @@ class _VoiceSelectorState extends State<_VoiceSelector> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: F3Colors.card,
+          color: context.f3card,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: F3Colors.divider),
+          border: Border.all(color: context.f3divider),
         ),
         child: Row(children: [
-          const Icon(Icons.record_voice_over_rounded, color: F3Colors.textMuted, size: 20),
+          Icon(Icons.record_voice_over_rounded, color: context.f3textMuted, size: 20),
           const SizedBox(width: 12),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Text('TTS Voice',
-                  style: TextStyle(color: F3Colors.textPrimary, fontWeight: FontWeight.w600, fontSize: 14)),
+              Text('TTS Voice',
+                  style: TextStyle(color: context.f3textPrimary, fontWeight: FontWeight.w600, fontSize: 14)),
               Text(
                 _loading ? 'Loading voices…' : label,
-                style: const TextStyle(color: F3Colors.textMuted, fontSize: 12),
+                style: TextStyle(color: context.f3textMuted, fontSize: 12),
               ),
             ]),
           ),
           if (_loading)
-            const SizedBox(width: 16, height: 16,
-                child: CircularProgressIndicator(strokeWidth: 2, color: F3Colors.textMuted))
+            SizedBox(width: 16, height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2, color: context.f3textMuted))
           else
-            const Icon(Icons.chevron_right_rounded, color: F3Colors.textMuted, size: 20),
+            Icon(Icons.chevron_right_rounded, color: context.f3textMuted, size: 20),
         ]),
       ),
     );
@@ -844,21 +836,21 @@ class _ThemePicker extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 decoration: BoxDecoration(
-                  color: selected ? F3Colors.accent.withValues(alpha: 0.14) : F3Colors.card,
+                  color: selected ? F3Colors.accent.withValues(alpha: 0.14) : context.f3card,
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: selected ? F3Colors.accent : F3Colors.divider,
+                    color: selected ? F3Colors.accent : context.f3divider,
                     width: selected ? 1.5 : 1,
                   ),
                 ),
                 child: Column(mainAxisSize: MainAxisSize.min, children: [
                   Icon(icon,
-                      color: selected ? F3Colors.accent : F3Colors.textSecondary,
+                      color: selected ? F3Colors.accent : context.f3textSecondary,
                       size: 22),
                   const SizedBox(height: 4),
                   Text(label,
                       style: TextStyle(
-                        color: selected ? F3Colors.accent : F3Colors.textSecondary,
+                        color: selected ? F3Colors.accent : context.f3textSecondary,
                         fontSize: 11,
                         fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                       )),
@@ -887,16 +879,16 @@ class _InfoTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: F3Colors.card,
+          color: context.f3card,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: F3Colors.divider),
+          border: Border.all(color: context.f3divider),
         ),
         child: Row(children: [
-          Icon(icon, color: F3Colors.textMuted, size: 20),
+          Icon(icon, color: context.f3textMuted, size: 20),
           const SizedBox(width: 12),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(title, style: const TextStyle(color: F3Colors.textPrimary, fontWeight: FontWeight.w600, fontSize: 14)),
-            Text(subtitle, style: const TextStyle(color: F3Colors.textMuted, fontSize: 12)),
+            Text(title, style: TextStyle(color: context.f3textPrimary, fontWeight: FontWeight.w600, fontSize: 14)),
+            Text(subtitle, style: TextStyle(color: context.f3textMuted, fontSize: 12)),
           ])),
         ]),
       ),
@@ -910,7 +902,7 @@ class _VersionTile extends StatelessWidget {
   void _showChangelog(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: F3Colors.card,
+      backgroundColor: context.f3card,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
@@ -922,18 +914,18 @@ class _VersionTile extends StatelessWidget {
         builder: (_, ctrl) => Column(children: [
           Container(
             width: 40, height: 4, margin: const EdgeInsets.symmetric(vertical: 12),
-            decoration: BoxDecoration(color: F3Colors.divider, borderRadius: BorderRadius.circular(2)),
+            decoration: BoxDecoration(color: context.f3divider, borderRadius: BorderRadius.circular(2)),
           ),
-          const Padding(
+          Padding(
             padding: EdgeInsets.fromLTRB(20, 0, 20, 12),
             child: Row(children: [
               Icon(Icons.history_rounded, color: F3Colors.accent, size: 22),
               SizedBox(width: 10),
               Text('CHANGELOG',
-                  style: TextStyle(color: F3Colors.textPrimary, fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                  style: TextStyle(color: context.f3textPrimary, fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1)),
             ]),
           ),
-          const Divider(color: F3Colors.divider, height: 1),
+          Divider(color: context.f3divider, height: 1),
           Expanded(
             child: ListView.builder(
               controller: ctrl,
@@ -956,16 +948,16 @@ class _VersionTile extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: F3Colors.card,
+            color: context.f3card,
             borderRadius: BorderRadius.circular(10),
             border: Border.all(color: F3Colors.accent.withValues(alpha: 0.35)),
           ),
-          child: const Row(children: [
+          child: Row(children: [
             Icon(Icons.info_outline_rounded, color: F3Colors.accent, size: 20),
             SizedBox(width: 12),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(AppVersion.displayName,
-                  style: TextStyle(color: F3Colors.textPrimary, fontWeight: FontWeight.w700, fontSize: 14)),
+                  style: TextStyle(color: context.f3textPrimary, fontWeight: FontWeight.w700, fontSize: 14)),
               Text('Tap to see what\'s new',
                   style: TextStyle(color: F3Colors.accent, fontSize: 12)),
             ])),
@@ -998,11 +990,11 @@ class _ReleaseCard extends StatelessWidget {
           ),
           const SizedBox(width: 10),
           Expanded(child: Text(release.title,
-              style: const TextStyle(color: F3Colors.textPrimary, fontWeight: FontWeight.w700, fontSize: 14))),
+              style: TextStyle(color: context.f3textPrimary, fontWeight: FontWeight.w700, fontSize: 14))),
         ]),
         const SizedBox(height: 6),
         Text(release.summary,
-            style: const TextStyle(color: F3Colors.textSecondary, fontSize: 13, height: 1.4)),
+            style: TextStyle(color: context.f3textSecondary, fontSize: 13, height: 1.4)),
         if (release.newItems.isNotEmpty) ...[
           const SizedBox(height: 10),
           _ChangeGroup('NEW', F3Colors.phaseWarmup, release.newItems),
@@ -1050,10 +1042,10 @@ class _LanguagePicker extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: selected
                       ? F3Colors.accent.withValues(alpha: 0.14)
-                      : F3Colors.card,
+                      : context.f3card,
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: selected ? F3Colors.accent : F3Colors.divider,
+                    color: selected ? F3Colors.accent : context.f3divider,
                     width: selected ? 1.5 : 1,
                   ),
                 ),
@@ -1065,7 +1057,7 @@ class _LanguagePicker extends StatelessWidget {
                     style: TextStyle(
                       color: selected
                           ? F3Colors.accent
-                          : F3Colors.textSecondary,
+                          : context.f3textSecondary,
                       fontSize: 11,
                       fontWeight:
                           selected ? FontWeight.w700 : FontWeight.w500,
@@ -1077,174 +1069,6 @@ class _LanguagePicker extends StatelessWidget {
           ),
         );
       }).toList(),
-    );
-  }
-}
-
-// ── F3 Nation Connect ─────────────────────────────────────────────────────────
-
-class _F3ConnectSection extends StatefulWidget {
-  const _F3ConnectSection();
-
-  @override
-  State<_F3ConnectSection> createState() => _F3ConnectSectionState();
-}
-
-class _F3ConnectSectionState extends State<_F3ConnectSection> {
-  final _ctrl = TextEditingController();
-  bool _obscure = true;
-  bool _testing = false;
-  F3UserProfile? _profile;
-  String? _error;
-
-  @override
-  void initState() {
-    super.initState();
-    final svc = context.read<F3ApiService>();
-    // Populate field if key already saved — show masked placeholder only
-    if (svc.isConfigured) _ctrl.text = '••••••••••••••••';
-    _profile = svc.myProfile;
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  Future<void> _save() async {
-    final svc = context.read<F3ApiService>();
-    final key = _ctrl.text.trim();
-    if (key.isEmpty || key.startsWith('•')) return;
-    await svc.setApiKey(key);
-    setState(() { _error = null; _profile = null; });
-  }
-
-  Future<void> _test() async {
-    final svc = context.read<F3ApiService>();
-    if (!svc.isConfigured) {
-      setState(() => _error = 'Save an API key first.');
-      return;
-    }
-    setState(() { _testing = true; _error = null; });
-    final profile = await svc.getMyProfile();
-    if (!mounted) return;
-    setState(() {
-      _testing = false;
-      if (profile != null) {
-        _profile = profile;
-        _error = null;
-      } else {
-        _profile = null;
-        _error = 'Could not connect. Check your key.';
-      }
-    });
-  }
-
-  Future<void> _clear() async {
-    final svc = context.read<F3ApiService>();
-    await svc.setApiKey('');
-    setState(() { _ctrl.clear(); _profile = null; _error = null; });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final svc = context.watch<F3ApiService>();
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: F3Colors.card,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: _profile != null
-              ? F3Colors.accent.withValues(alpha: 0.5)
-              : F3Colors.divider,
-        ),
-      ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        // Status row
-        Row(children: [
-          Container(
-            width: 8, height: 8,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: _profile != null
-                  ? F3Colors.accent
-                  : svc.isConfigured
-                      ? F3Colors.textMuted
-                      : F3Colors.divider,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            _profile != null
-                ? 'Connected as ${_profile!.f3Name}'
-                : svc.isConfigured
-                    ? 'Key saved — tap Test to verify'
-                    : 'Not connected',
-            style: TextStyle(
-              color: _profile != null ? F3Colors.accent : F3Colors.textSecondary,
-              fontSize: 13,
-              fontWeight: _profile != null ? FontWeight.w700 : FontWeight.w500,
-            ),
-          ),
-          if (svc.isConfigured) ...[
-            const Spacer(),
-            GestureDetector(
-              onTap: _clear,
-              child: const Text('Clear',
-                  style: TextStyle(color: F3Colors.textMuted, fontSize: 12)),
-            ),
-          ],
-        ]),
-        const SizedBox(height: 12),
-
-        // API key field
-        TextField(
-          controller: _ctrl,
-          obscureText: _obscure,
-          style: const TextStyle(color: F3Colors.textPrimary, fontSize: 14, fontFamily: 'monospace'),
-          decoration: InputDecoration(
-            hintText: 'Paste API key…',
-            hintStyle: const TextStyle(color: F3Colors.textMuted),
-            suffixIcon: IconButton(
-              icon: Icon(_obscure ? Icons.visibility_rounded : Icons.visibility_off_rounded,
-                  color: F3Colors.textMuted, size: 18),
-              onPressed: () => setState(() => _obscure = !_obscure),
-            ),
-          ),
-          onChanged: (_) => setState(() {}),
-        ),
-        if (_error != null) ...[
-          const SizedBox(height: 6),
-          Text(_error!, style: const TextStyle(color: Colors.redAccent, fontSize: 12)),
-        ],
-        const SizedBox(height: 12),
-
-        // Buttons
-        Row(children: [
-          Expanded(
-            child: OutlinedButton(
-              onPressed: _testing ? null : _test,
-              child: _testing
-                  ? const SizedBox(width: 16, height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: F3Colors.accent))
-                  : const Text('Test'),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: FilledButton(
-              style: FilledButton.styleFrom(backgroundColor: F3Colors.accent),
-              onPressed: (_ctrl.text.trim().isEmpty || _ctrl.text.startsWith('•'))
-                  ? null
-                  : _save,
-              child: const Text('Save'),
-            ),
-          ),
-        ]),
-      ]),
     );
   }
 }
@@ -1265,7 +1089,7 @@ class _ChangeGroup extends StatelessWidget {
         padding: const EdgeInsets.only(bottom: 3),
         child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text('· ', style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w700)),
-          Expanded(child: Text(item, style: const TextStyle(color: F3Colors.textSecondary, fontSize: 13, height: 1.4))),
+          Expanded(child: Text(item, style: TextStyle(color: context.f3textSecondary, fontSize: 13, height: 1.4))),
         ]),
       )),
     ]);

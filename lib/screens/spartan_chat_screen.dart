@@ -91,24 +91,24 @@ class _SpartanChatScreenState extends State<SpartanChatScreen> {
     final showPrompts = _messages.length <= 1 && !_isLoading;
 
     return Scaffold(
-      backgroundColor: F3Colors.background,
+      backgroundColor: context.f3bg,
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        backgroundColor: F3Colors.background,
-        title: const Row(children: [
-          _SpartanAvatar(size: 30),
-          SizedBox(width: 10),
+        backgroundColor: context.f3bg,
+        title: Row(children: [
+          const _SpartanAvatar(size: 30),
+          const SizedBox(width: 10),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('Spartan Co-Q',
                   style: TextStyle(
-                      color: F3Colors.textPrimary,
+                      color: context.f3textPrimary,
                       fontSize: 16,
                       fontWeight: FontWeight.w900)),
               Text('Powered by Gemini',
                   style: TextStyle(
-                      color: F3Colors.textMuted,
+                      color: context.f3textMuted,
                       fontSize: 10,
                       letterSpacing: 0.5)),
             ],
@@ -124,27 +124,21 @@ class _SpartanChatScreenState extends State<SpartanChatScreen> {
       ),
       body: Column(
         children: [
-          // ── Message list ───────────────────────────────────────────────────
+          // ── Message list / Hero section ────────────────────────────────────
           Expanded(
-            child: ListView.builder(
-              controller: _scrollCtrl,
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-              itemCount: _messages.length + (_isLoading ? 1 : 0),
-              itemBuilder: (context, i) {
-                if (i == _messages.length) return const _TypingBubble();
-                return _MessageBubble(msg: _messages[i]);
-              },
-            ),
+            child: showPrompts
+                ? _SpartanHeroSection(prompts: _quickPrompts, onPromptTap: _send)
+                : ListView.builder(
+                    controller: _scrollCtrl,
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                    itemCount: _messages.length + (_isLoading ? 1 : 0),
+                    itemBuilder: (context, i) {
+                      if (i == _messages.length) return const _TypingBubble();
+                      return _MessageBubble(msg: _messages[i]);
+                    },
+                  ),
           ),
 
-          // ── Quick prompts ──────────────────────────────────────────────────
-          AnimatedSize(
-            duration: const Duration(milliseconds: 250),
-            curve: Curves.easeInOut,
-            child: showPrompts
-                ? _QuickPromptsBar(prompts: _quickPrompts, onTap: _send)
-                : const SizedBox.shrink(),
-          ),
 
           // ── Input bar ─────────────────────────────────────────────────────
           _InputBar(
@@ -288,7 +282,7 @@ class _MessageBubble extends StatelessWidget {
               constraints: BoxConstraints(
                   maxWidth: MediaQuery.of(context).size.width * 0.78),
               decoration: BoxDecoration(
-                color: isUser ? F3Colors.accent : F3Colors.elevated,
+                color: isUser ? F3Colors.accent : context.f3elevated,
                 borderRadius: BorderRadius.only(
                   topLeft: const Radius.circular(16),
                   topRight: const Radius.circular(16),
@@ -299,7 +293,7 @@ class _MessageBubble extends StatelessWidget {
               child: Text(
                 msg.text,
                 style: TextStyle(
-                  color: isUser ? Colors.white : F3Colors.textPrimary,
+                  color: isUser ? Colors.white : context.f3textPrimary,
                   fontSize: 14.5,
                   height: 1.45,
                 ),
@@ -329,9 +323,9 @@ class _TypingBubble extends StatelessWidget {
           const SizedBox(width: 8),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: const BoxDecoration(
-              color: F3Colors.elevated,
-              borderRadius: BorderRadius.only(
+            decoration: BoxDecoration(
+              color: context.f3elevated,
+              borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(16),
                 topRight: Radius.circular(16),
                 bottomRight: Radius.circular(16),
@@ -386,8 +380,8 @@ class _DotIndicatorState extends State<_DotIndicator>
             final opacity = ((_ctrl.value * 3 - i) % 1.0).clamp(0.2, 1.0);
             return Opacity(
               opacity: opacity,
-              child: const CircleAvatar(
-                  radius: 4, backgroundColor: F3Colors.textSecondary),
+              child: CircleAvatar(
+                  radius: 4, backgroundColor: context.f3textSecondary),
             );
           }),
         );
@@ -396,77 +390,186 @@ class _DotIndicatorState extends State<_DotIndicator>
   }
 }
 
-// ── Quick prompts bar ─────────────────────────────────────────────────────────
+// ── Spartan hero section (empty state) ───────────────────────────────────────
 
-class _QuickPromptsBar extends StatelessWidget {
+class _SpartanHeroSection extends StatelessWidget {
   final List<(String, IconData)> prompts;
-  final void Function(String) onTap;
+  final void Function(String) onPromptTap;
 
-  const _QuickPromptsBar({required this.prompts, required this.onTap});
+  const _SpartanHeroSection({required this.prompts, required this.onPromptTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 32, 24, 16),
+        child: Column(
+          children: [
+            // Big shield
+            Container(
+              width: 96,
+              height: 96,
+              decoration: BoxDecoration(
+                color: F3Colors.accent,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: F3Colors.accent.withValues(alpha: 0.45),
+                    blurRadius: 28,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: const Padding(
+                padding: EdgeInsets.all(14),
+                child: CustomPaint(painter: _SpartanHelmPainter()),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'SPARTAN CO-Q',
+              style: TextStyle(
+                color: context.f3textPrimary,
+                fontSize: 24,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 2,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Your AI beatdown partner — powered by Gemini',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: context.f3textMuted,
+                fontSize: 13,
+                letterSpacing: 0.2,
+              ),
+            ),
+            const SizedBox(height: 28),
+            // Capability pills
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              alignment: WrapAlignment.center,
+              children: const [
+                _CapabilityChip(icon: Icons.bolt_rounded, label: 'Audibles'),
+                _CapabilityChip(icon: Icons.fitness_center_rounded, label: 'Beatdown Plans'),
+                _CapabilityChip(icon: Icons.people_rounded, label: 'COT'),
+                _CapabilityChip(icon: Icons.person_add_alt_1_rounded, label: 'FNG Names'),
+                _CapabilityChip(icon: Icons.self_improvement_rounded, label: 'Mary'),
+                _CapabilityChip(icon: Icons.wb_cloudy_rounded, label: 'Weather Prep'),
+              ],
+            ),
+            const SizedBox(height: 28),
+            Divider(color: context.f3divider),
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.only(left: 2, bottom: 10),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'QUICK PROMPTS',
+                  style: TextStyle(
+                    color: context.f3textMuted,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+              ),
+            ),
+            // Inline quick prompts grid (2 per row)
+            ...List.generate((prompts.length / 2).ceil(), (row) {
+              final left = prompts[row * 2];
+              final right = row * 2 + 1 < prompts.length ? prompts[row * 2 + 1] : null;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  children: [
+                    Expanded(child: _HeroPromptTile(prompt: left, onTap: onPromptTap)),
+                    const SizedBox(width: 8),
+                    right != null
+                        ? Expanded(child: _HeroPromptTile(prompt: right, onTap: onPromptTap))
+                        : const Expanded(child: SizedBox.shrink()),
+                  ],
+                ),
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CapabilityChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _CapabilityChip({required this.icon, required this.label});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: F3Colors.card,
-        border: Border(top: BorderSide(color: F3Colors.divider, width: 0.5)),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: F3Colors.accent.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: F3Colors.accent.withValues(alpha: 0.25)),
       ),
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          const Padding(
-            padding: EdgeInsets.only(left: 2, bottom: 8),
-            child: Text(
-              'QUICK PROMPTS',
-              style: TextStyle(
-                color: F3Colors.textMuted,
-                fontSize: 10,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 1.5,
-              ),
-            ),
-          ),
-          SizedBox(
-            height: 38,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: prompts.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 8),
-              itemBuilder: (context, i) {
-                final (label, icon) = prompts[i];
-                return GestureDetector(
-                  onTap: () => onTap(label),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: F3Colors.elevated,
-                      borderRadius: BorderRadius.circular(22),
-                      border: Border.all(
-                          color: F3Colors.accent.withValues(alpha: 0.30)),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(icon, size: 13, color: F3Colors.accent),
-                        const SizedBox(width: 6),
-                        Text(
-                          label,
-                          style: const TextStyle(
-                            color: F3Colors.textPrimary,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
+          Icon(icon, size: 13, color: F3Colors.accent),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: TextStyle(
+              color: F3Colors.accent,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _HeroPromptTile extends StatelessWidget {
+  final (String, IconData) prompt;
+  final void Function(String) onTap;
+
+  const _HeroPromptTile({required this.prompt, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final (label, icon) = prompt;
+    return GestureDetector(
+      onTap: () => onTap(label),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: context.f3elevated,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: context.f3divider),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 14, color: F3Colors.accent),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(
+                  color: context.f3textPrimary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -488,20 +591,20 @@ class _InputBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: F3Colors.card,
+      color: context.f3card,
       padding: const EdgeInsets.fromLTRB(16, 10, 12, 16),
       child: Row(
         children: [
           Expanded(
             child: TextField(
               controller: controller,
-              style: const TextStyle(
-                  color: F3Colors.textPrimary, fontSize: 15),
+              style: TextStyle(
+                  color: context.f3textPrimary, fontSize: 15),
               decoration: InputDecoration(
                 hintText: 'Ask Spartan anything…',
-                hintStyle: const TextStyle(color: F3Colors.textMuted),
+                hintStyle: TextStyle(color: context.f3textMuted),
                 filled: true,
-                fillColor: F3Colors.elevated,
+                fillColor: context.f3elevated,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(24),
                   borderSide: BorderSide.none,
@@ -524,7 +627,7 @@ class _InputBar extends StatelessWidget {
               height: 44,
               decoration: BoxDecoration(
                 color: isLoading
-                    ? F3Colors.textMuted
+                    ? context.f3textMuted
                     : F3Colors.accent,
                 shape: BoxShape.circle,
               ),

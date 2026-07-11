@@ -31,7 +31,7 @@ class SaveSessionSheet extends StatefulWidget {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: F3Colors.card,
+      backgroundColor: context.f3card,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -244,7 +244,7 @@ class _SaveSessionSheetState extends State<SaveSessionSheet> {
                   height: 4,
                   margin: const EdgeInsets.only(bottom: 16),
                   decoration: BoxDecoration(
-                    color: F3Colors.divider,
+                    color: context.f3divider,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -274,9 +274,9 @@ class _SaveSessionSheetState extends State<SaveSessionSheet> {
                 ],
               ),
               const SizedBox(height: 4),
-              const Text(
+              Text(
                 'Record this session to your local history.',
-                style: TextStyle(color: F3Colors.textSecondary, fontSize: 13),
+                style: TextStyle(color: context.f3textSecondary, fontSize: 13),
               ),
               const SizedBox(height: 20),
 
@@ -306,12 +306,12 @@ class _SaveSessionSheetState extends State<SaveSessionSheet> {
                       label: Text(ao, style: const TextStyle(fontSize: 11)),
                       selected: selected,
                       onSelected: (_) => setState(() => _aoCtrl.text = ao),
-                      backgroundColor: F3Colors.elevated,
+                      backgroundColor: context.f3elevated,
                       selectedColor: F3Colors.accent.withValues(alpha: 0.18),
                       labelStyle: TextStyle(
-                          color: selected ? F3Colors.accent : F3Colors.textSecondary),
+                          color: selected ? F3Colors.accent : context.f3textSecondary),
                       side: BorderSide(
-                          color: selected ? F3Colors.accent : F3Colors.divider),
+                          color: selected ? F3Colors.accent : context.f3divider),
                     );
                   }).toList(),
                 ),
@@ -342,13 +342,13 @@ class _SaveSessionSheetState extends State<SaveSessionSheet> {
                       label: Text(name, style: const TextStyle(fontSize: 11)),
                       selected: selected,
                       onSelected: (_) => _togglePax(name),
-                      backgroundColor: F3Colors.elevated,
+                      backgroundColor: context.f3elevated,
                       selectedColor: F3Colors.accent.withValues(alpha: 0.18),
                       checkmarkColor: F3Colors.accent,
                       labelStyle: TextStyle(
-                          color: selected ? F3Colors.accent : F3Colors.textSecondary),
+                          color: selected ? F3Colors.accent : context.f3textSecondary),
                       side: BorderSide(
-                          color: selected ? F3Colors.accent : F3Colors.divider),
+                          color: selected ? F3Colors.accent : context.f3divider),
                     );
                   }).toList(),
                 ),
@@ -443,10 +443,10 @@ class _Field extends StatelessWidget {
       controller: controller,
       maxLines: maxLines,
       keyboardType: keyboard,
-      style: const TextStyle(color: F3Colors.textPrimary),
+      style: TextStyle(color: context.f3textPrimary),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: F3Colors.textSecondary, fontSize: 13),
+        labelStyle: TextStyle(color: context.f3textSecondary, fontSize: 13),
         hintText: hint,
         prefixIcon: Icon(icon, size: 20),
       ),

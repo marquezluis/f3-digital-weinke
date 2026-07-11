@@ -35,7 +35,7 @@ class _QSourceScreenState extends State<QSourceScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: F3Colors.background,
+      backgroundColor: context.f3bg,
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
@@ -47,11 +47,11 @@ class _QSourceScreenState extends State<QSourceScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     RichText(
-                      text: const TextSpan(children: [
+                      text: TextSpan(children: [
                         TextSpan(
                           text: 'Q ',
                           style: TextStyle(
-                            color: F3Colors.textPrimary,
+                            color: context.f3textPrimary,
                             fontSize: 32,
                             fontWeight: FontWeight.w900,
                             letterSpacing: 2,
@@ -71,10 +71,10 @@ class _QSourceScreenState extends State<QSourceScreen> {
                       ]),
                     ),
                     const SizedBox(height: 6),
-                    const Text(
+                    Text(
                       'Prep, cadence, COT, backblast & QSource',
                       style: TextStyle(
-                        color: F3Colors.textSecondary,
+                        color: context.f3textSecondary,
                         fontSize: 14,
                       ),
                     ),
@@ -96,7 +96,7 @@ class _QSourceScreenState extends State<QSourceScreen> {
                     border: Border.all(
                         color: F3Colors.accent.withValues(alpha: 0.25)),
                   ),
-                  child: const Row(
+                  child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Icon(Icons.info_outline_rounded,
@@ -107,7 +107,7 @@ class _QSourceScreenState extends State<QSourceScreen> {
                           'Unofficial condensed guide — PAX-built for PAX. '
                           'Verify with F3 leadership before wide distribution.',
                           style: TextStyle(
-                            color: F3Colors.textSecondary,
+                            color: context.f3textSecondary,
                             fontSize: 12,
                             height: 1.4,
                           ),
@@ -148,7 +148,7 @@ class _QSourceScreenState extends State<QSourceScreen> {
                         style: const TextStyle(fontSize: 13),
                       ),
                       style: TextButton.styleFrom(
-                        foregroundColor: F3Colors.textSecondary,
+                        foregroundColor: context.f3textSecondary,
                         minimumSize: const Size(0, 40),
                         padding: const EdgeInsets.symmetric(
                             horizontal: 10, vertical: 6),
@@ -204,12 +204,12 @@ class _SectionCard extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 8),
       child: Container(
         decoration: BoxDecoration(
-          color: F3Colors.card,
+          color: context.f3card,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isExpanded
                 ? F3Colors.accent.withValues(alpha: 0.35)
-                : F3Colors.divider,
+                : context.f3divider,
           ),
         ),
         child: Column(
@@ -236,7 +236,7 @@ class _SectionCard extends StatelessWidget {
                               style: TextStyle(
                                 color: isExpanded
                                     ? F3Colors.accent
-                                    : F3Colors.textPrimary,
+                                    : context.f3textPrimary,
                                 fontSize: 14,
                                 fontWeight: FontWeight.w800,
                                 letterSpacing: 1.0,
@@ -246,8 +246,8 @@ class _SectionCard extends StatelessWidget {
                               const SizedBox(height: 3),
                               Text(
                                 section.subtitle!,
-                                style: const TextStyle(
-                                  color: F3Colors.textMuted,
+                                style: TextStyle(
+                                  color: context.f3textMuted,
                                   fontSize: 12,
                                   height: 1.3,
                                 ),
@@ -260,9 +260,9 @@ class _SectionCard extends StatelessWidget {
                       AnimatedRotation(
                         turns: isExpanded ? 0.5 : 0,
                         duration: const Duration(milliseconds: 200),
-                        child: const Icon(
+                        child: Icon(
                           Icons.keyboard_arrow_down_rounded,
-                          color: F3Colors.textSecondary,
+                          color: context.f3textSecondary,
                           size: 24,
                         ),
                       ),
@@ -281,8 +281,8 @@ class _SectionCard extends StatelessWidget {
               firstChild: const SizedBox.shrink(),
               secondChild: Column(
                 children: [
-                  const Divider(
-                      height: 1, thickness: 1, color: F3Colors.divider),
+                  Divider(
+                      height: 1, thickness: 1, color: context.f3divider),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
                     child: Column(
@@ -325,8 +325,8 @@ class _EntryRow extends StatelessWidget {
                   entry.label,
                   style: TextStyle(
                     color: entry.style == QEntryStyle.note
-                        ? F3Colors.textSecondary
-                        : F3Colors.textPrimary,
+                        ? context.f3textSecondary
+                        : context.f3textPrimary,
                     fontSize: 15,
                     fontWeight: entry.style == QEntryStyle.heading
                         ? FontWeight.w800
@@ -341,8 +341,8 @@ class _EntryRow extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     entry.detail!,
-                    style: const TextStyle(
-                      color: F3Colors.textSecondary,
+                    style: TextStyle(
+                      color: context.f3textSecondary,
                       fontSize: 13,
                       height: 1.4,
                     ),
@@ -389,10 +389,10 @@ class _LeadingIcon extends StatelessWidget {
               color: F3Colors.phaseCOT, size: 18),
         );
       case QEntryStyle.bullet:
-        return const Padding(
+        return Padding(
           padding: EdgeInsets.only(top: 6),
           child: CircleAvatar(
-            backgroundColor: F3Colors.textSecondary,
+            backgroundColor: context.f3textSecondary,
             radius: 3,
           ),
         );

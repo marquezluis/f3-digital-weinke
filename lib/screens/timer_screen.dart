@@ -36,6 +36,7 @@ class _TimerScreenState extends State<TimerScreen> {
   int? _lastExIdx;
   bool _completedHandled = false;
   bool _halfwayAlerted = false;
+  String? _lastPlanId; // tracks plan changes to re-seed the timer
 
   // Confetti
   late final ConfettiController _confettiCtrl;
@@ -201,10 +202,10 @@ class _TimerScreenState extends State<TimerScreen> {
 
         if (plan == null) {
           return Scaffold(
-            backgroundColor: F3Colors.background,
+            backgroundColor: context.f3bg,
             appBar: AppBar(
               title: const Text('Q Mode'),
-              backgroundColor: F3Colors.background,
+              backgroundColor: context.f3bg,
             ),
             body: _EmptyState(
               onGoToWeinke: () => context.read<ValueNotifier<int>>().value = 1,
@@ -213,6 +214,15 @@ class _TimerScreenState extends State<TimerScreen> {
         }
 
         final state = timerService.state;
+
+        // Seed timer with plan-aware durations when plan changes and timer is idle.
+        if (plan.id != _lastPlanId && !state.isRunning) {
+          _lastPlanId = plan.id;
+          _halfwayAlerted = false;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) context.read<TimerService>().resetWithPlan(plan);
+          });
+        }
 
         // Phase change detection — reset exercise, haptic, TTS.
         if (_lastPhase != null && _lastPhase != state.currentPhase) {
@@ -230,7 +240,7 @@ class _TimerScreenState extends State<TimerScreen> {
 
         // Halfway alert — fires once at the midpoint of the total session.
         if (!_halfwayAlerted && !state.isFinished) {
-          const totalSecs = TimerState.totalBootcampSeconds;
+          final totalSecs = timerService.initialTotalSeconds;
           final elapsedSecs = totalSecs - state.totalRemainingSeconds;
           if (elapsedSecs >= totalSecs ~/ 2) {
             _halfwayAlerted = true;
@@ -303,10 +313,10 @@ class _TimerScreenState extends State<TimerScreen> {
         }
 
         return Scaffold(
-          backgroundColor: F3Colors.background,
+          backgroundColor: context.f3bg,
           appBar: AppBar(
             title: const Text('Q Mode'),
-            backgroundColor: F3Colors.background,
+            backgroundColor: context.f3bg,
             actions: [
               // EMOM/Tabata toggle
               IconButton(
@@ -349,7 +359,7 @@ class _TimerScreenState extends State<TimerScreen> {
                 IconButton(
                   icon: Icon(
                     _ttsMuted ? Icons.mic_off_rounded : Icons.mic_rounded,
-                    color: _ttsMuted ? F3Colors.textMuted : null,
+                    color: _ttsMuted ? context.f3textMuted : null,
                   ),
                   tooltip: _ttsMuted ? 'Unmute voice' : 'Mute voice',
                   onPressed: () {
@@ -416,7 +426,7 @@ class _TimerScreenState extends State<TimerScreen> {
                       end: Alignment.bottomCenter,
                       colors: [
                         state.currentPhase.color.withValues(alpha: 0.07),
-                        F3Colors.background,
+                        context.f3bg,
                       ],
                       stops: const [0.0, 0.45],
                     ),
@@ -435,14 +445,14 @@ class _TimerScreenState extends State<TimerScreen> {
                           showDialog(
                             context: context,
                             builder: (_) => AlertDialog(
-                              backgroundColor: F3Colors.card,
+                              backgroundColor: context.f3card,
                               title: Text('Jump to ${phase.displayName}?',
-                                  style: const TextStyle(
-                                      color: F3Colors.textPrimary)),
+                                  style: TextStyle(
+                                      color: context.f3textPrimary)),
                               content: Text(
                                 'Skip to ${phase.displayName} now?',
-                                style: const TextStyle(
-                                    color: F3Colors.textSecondary),
+                                style: TextStyle(
+                                    color: context.f3textSecondary),
                               ),
                               actions: [
                                 TextButton(
@@ -685,7 +695,7 @@ class _RepCounterBar extends StatelessWidget {
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        color: F3Colors.elevated,
+        color: context.f3elevated,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: F3Colors.accent.withValues(alpha: 0.4)),
       ),
@@ -701,17 +711,17 @@ class _RepCounterBar extends StatelessWidget {
         const SizedBox(width: 12),
         Text(
           '$count',
-          style: const TextStyle(
-              color: F3Colors.textPrimary,
+          style: TextStyle(
+              color: context.f3textPrimary,
               fontSize: 28,
               fontWeight: FontWeight.w900),
         ),
         const Spacer(),
         TextButton(
           onPressed: onReset,
-          child: const Text('RESET',
+          child: Text('RESET',
               style: TextStyle(
-                  color: F3Colors.textSecondary,
+                  color: context.f3textSecondary,
                   fontSize: 11,
                   fontWeight: FontWeight.w700)),
         ),
@@ -777,11 +787,11 @@ class _IntervalPanel extends StatelessWidget {
       ),
       child: Column(children: [
         Row(children: [
-          const Icon(Icons.timer_rounded, size: 16, color: F3Colors.textMuted),
+          Icon(Icons.timer_rounded, size: 16, color: context.f3textMuted),
           const SizedBox(width: 6),
-          const Text('EMOM / TABATA',
+          Text('EMOM / TABATA',
               style: TextStyle(
-                  color: F3Colors.textMuted,
+                  color: context.f3textMuted,
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 1.2)),
@@ -849,8 +859,8 @@ class _IntervalPanel extends StatelessWidget {
                 icon: const Icon(Icons.refresh_rounded, size: 16),
                 label: const Text('Reset'),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: F3Colors.textSecondary,
-                  side: const BorderSide(color: F3Colors.divider),
+                  foregroundColor: context.f3textSecondary,
+                  side: BorderSide(color: context.f3divider),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8)),
                 ),
@@ -909,8 +919,8 @@ class _SpinBox extends StatelessWidget {
     return Expanded(
       child: Column(children: [
         Text(label,
-            style: const TextStyle(
-                color: F3Colors.textMuted,
+            style: TextStyle(
+                color: context.f3textMuted,
                 fontSize: 9,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 1)),
@@ -919,21 +929,21 @@ class _SpinBox extends StatelessWidget {
           InkWell(
             onTap: value > min ? () => onChanged(value - step) : null,
             borderRadius: BorderRadius.circular(4),
-            child: const Icon(Icons.remove_rounded,
-                size: 18, color: F3Colors.textSecondary),
+            child: Icon(Icons.remove_rounded,
+                size: 18, color: context.f3textSecondary),
           ),
           const SizedBox(width: 4),
           Text('$value',
-              style: const TextStyle(
-                  color: F3Colors.textPrimary,
+              style: TextStyle(
+                  color: context.f3textPrimary,
                   fontSize: 15,
                   fontWeight: FontWeight.w700)),
           const SizedBox(width: 4),
           InkWell(
             onTap: value < max ? () => onChanged(value + step) : null,
             borderRadius: BorderRadius.circular(4),
-            child: const Icon(Icons.add_rounded,
-                size: 18, color: F3Colors.textSecondary),
+            child: Icon(Icons.add_rounded,
+                size: 18, color: context.f3textSecondary),
           ),
         ]),
       ]),
@@ -955,26 +965,26 @@ class _EmptyState extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.timer_outlined,
-                color: F3Colors.textMuted, size: 72),
+            Icon(Icons.timer_outlined,
+                color: context.f3textMuted, size: 72),
             const SizedBox(height: 20),
-            const Text(
+            Text(
               'BUILD A WEINKE FIRST',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: F3Colors.textPrimary,
+                color: context.f3textPrimary,
                 fontSize: 22,
                 fontWeight: FontWeight.w900,
                 letterSpacing: 1,
               ),
             ),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               'Draft your beatdown on the Weinke tab, then tap\n'
               '"START WORKOUT" to load it here.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: F3Colors.textSecondary,
+                color: context.f3textSecondary,
                 fontSize: 15,
                 height: 1.5,
               ),
@@ -1038,8 +1048,8 @@ class _PhaseHeader extends StatelessWidget {
               ),
               Text(
                 phase.subtitle,
-                style: const TextStyle(
-                  color: F3Colors.textMuted,
+                style: TextStyle(
+                  color: context.f3textMuted,
                   fontSize: 12,
                 ),
               ),
@@ -1099,8 +1109,8 @@ class _PhaseTimer extends StatelessWidget {
           isFinished
               ? 'SESSION COMPLETE'
               : 'total: ${state.formattedTotalRemaining}',
-          style: const TextStyle(
-            color: F3Colors.textMuted,
+          style: TextStyle(
+            color: context.f3textMuted,
             fontSize: 12,
             letterSpacing: 1,
           ),
@@ -1192,10 +1202,10 @@ class _ExerciseDisplayState extends State<_ExerciseDisplay> {
         ),
         const SizedBox(height: 4),
         if (exercises.length > 1)
-          const Text(
+          Text(
             'Swipe to browse exercises',
             style: TextStyle(
-              color: F3Colors.textMuted,
+              color: context.f3textMuted,
               fontSize: 11,
               fontStyle: FontStyle.italic,
             ),
@@ -1365,17 +1375,17 @@ class _ExerciseDisplayState extends State<_ExerciseDisplay> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             decoration: BoxDecoration(
-              color: F3Colors.elevated,
+              color: context.f3elevated,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: F3Colors.divider),
+              border: Border.all(color: context.f3divider),
             ),
             child: Row(children: [
-              const Icon(Icons.arrow_forward_rounded,
-                  size: 14, color: F3Colors.textMuted),
+              Icon(Icons.arrow_forward_rounded,
+                  size: 14, color: context.f3textMuted),
               const SizedBox(width: 8),
-              const Text('NEXT',
+              Text('NEXT',
                   style: TextStyle(
-                      color: F3Colors.textMuted,
+                      color: context.f3textMuted,
                       fontSize: 10,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 1.2)),
@@ -1383,8 +1393,8 @@ class _ExerciseDisplayState extends State<_ExerciseDisplay> {
               Expanded(
                 child: Text(
                   widget.nextExercise!.name,
-                  style: const TextStyle(
-                      color: F3Colors.textSecondary,
+                  style: TextStyle(
+                      color: context.f3textSecondary,
                       fontSize: 14,
                       fontWeight: FontWeight.w700),
                   overflow: TextOverflow.ellipsis,
@@ -1471,7 +1481,7 @@ class _ExerciseDemoState extends State<_ExerciseDemo>
                   height: 140,
                   margin: const EdgeInsets.only(top: 8),
                   decoration: BoxDecoration(
-                    color: F3Colors.elevated.withValues(alpha: 0.5),
+                    color: context.f3elevated.withValues(alpha: 0.5),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                         color: F3Colors.accent.withValues(alpha: 0.3)),
@@ -1483,17 +1493,17 @@ class _ExerciseDemoState extends State<_ExerciseDemo>
                         scale: _scaleAnimation.value,
                         child: child,
                       ),
-                      child: const Column(
+                      child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(Icons.fitness_center_rounded,
-                              size: 42, color: F3Colors.textSecondary),
+                              size: 42, color: context.f3textSecondary),
                           SizedBox(height: 12),
                           Text(
                             'Animation Placeholder\n(Ready for local GIFs)',
                             textAlign: TextAlign.center,
                             style: TextStyle(
-                              color: F3Colors.textMuted,
+                              color: context.f3textMuted,
                               fontSize: 12,
                               fontStyle: FontStyle.italic,
                             ),
@@ -1542,8 +1552,8 @@ class _SessionCompleteCard extends StatelessWidget {
         Text(
           msg,
           textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: F3Colors.textPrimary,
+          style: TextStyle(
+            color: context.f3textPrimary,
             fontSize: 16,
             fontWeight: FontWeight.w900,
             letterSpacing: 1,
@@ -1616,7 +1626,7 @@ class _DisclaimerCard extends StatelessWidget {
         border: Border.all(
             color: F3Colors.phaseDisclaimer.withValues(alpha: 0.4), width: 1.5),
       ),
-      child: const SingleChildScrollView(
+      child: SingleChildScrollView(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -1626,7 +1636,7 @@ class _DisclaimerCard extends StatelessWidget {
             Text(
               'DISCLAIMER',
               style: TextStyle(
-                color: F3Colors.textPrimary,
+                color: context.f3textPrimary,
                 fontSize: 24,
                 fontWeight: FontWeight.w900,
                 letterSpacing: 2,
@@ -1640,7 +1650,7 @@ class _DisclaimerCard extends StatelessWidget {
               'participation is voluntary."',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: F3Colors.textSecondary,
+                color: context.f3textSecondary,
                 fontSize: 15,
                 height: 1.45,
                 fontStyle: FontStyle.italic,
@@ -1649,7 +1659,7 @@ class _DisclaimerCard extends StatelessWidget {
             SizedBox(height: 12),
             Text(
               'Read this aloud before the warm-up begins.',
-              style: TextStyle(color: F3Colors.textMuted, fontSize: 13),
+              style: TextStyle(color: context.f3textMuted, fontSize: 13),
             ),
           ],
         ),
@@ -1682,10 +1692,10 @@ class _COTCard extends StatelessWidget {
             const Icon(Icons.people_rounded,
                 color: F3Colors.phaseCOT, size: 34),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               'CIRCLE OF TRUST',
               style: TextStyle(
-                color: F3Colors.textPrimary,
+                color: context.f3textPrimary,
                 fontSize: 24,
                 fontWeight: FontWeight.w900,
                 letterSpacing: 2,
@@ -1708,8 +1718,8 @@ class _COTCard extends StatelessWidget {
                     Expanded(
                       child: Text(
                         step,
-                        style: const TextStyle(
-                          color: F3Colors.textSecondary,
+                        style: TextStyle(
+                          color: context.f3textSecondary,
                           fontSize: 14,
                           height: 1.3,
                         ),
@@ -1772,7 +1782,7 @@ class _ControlBar extends StatelessWidget {
     final bool canExtend = !state.isFinished && (state.isRunning || state.isPaused);
 
     return Container(
-      color: F3Colors.card,
+      color: context.f3card,
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -1794,12 +1804,12 @@ class _ControlBar extends StatelessWidget {
                     showDialog(
                       context: context,
                       builder: (_) => AlertDialog(
-                        backgroundColor: F3Colors.card,
-                        title: const Text('Emergency Mary',
-                            style: TextStyle(color: F3Colors.textPrimary)),
-                        content: const Text(
+                        backgroundColor: context.f3card,
+                        title: Text('Emergency Mary',
+                            style: TextStyle(color: context.f3textPrimary)),
+                        content: Text(
                           'Skip to Mary now? This cannot be undone.',
-                          style: TextStyle(color: F3Colors.textSecondary),
+                          style: TextStyle(color: context.f3textSecondary),
                         ),
                         actions: [
                           TextButton(
@@ -1837,8 +1847,8 @@ class _ControlBar extends StatelessWidget {
                 height: 36,
                 child: OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: F3Colors.textSecondary,
-                    side: const BorderSide(color: F3Colors.divider),
+                    foregroundColor: context.f3textSecondary,
+                    side: BorderSide(color: context.f3divider),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8)),
                     padding: EdgeInsets.zero,
@@ -1860,7 +1870,7 @@ class _ControlBar extends StatelessWidget {
                 child: _ControlButton(
                   icon: Icons.skip_previous_rounded,
                   label: 'Previous',
-                  color: canPrevious ? F3Colors.textSecondary : F3Colors.textMuted,
+                  color: canPrevious ? context.f3textSecondary : context.f3textMuted,
                   onTap: canPrevious ? () {
                     if (!workoutSvc.previousExercise()) {
                       timerService.previousPhase();
@@ -1882,8 +1892,8 @@ class _ControlBar extends StatelessWidget {
                   icon: Icons.skip_next_rounded,
                   label: 'Next',
                   color: canNextPhase
-                      ? F3Colors.textSecondary
-                      : F3Colors.textMuted,
+                      ? context.f3textSecondary
+                      : context.f3textMuted,
                   onTap: canNextPhase
                       ? () {
                           onCancelRest();
@@ -1924,7 +1934,7 @@ class _PrimaryPlayButton extends StatelessWidget {
       borderRadius: BorderRadius.circular(12),
       child: Material(
         color: disabled
-            ? F3Colors.textMuted.withValues(alpha: 0.2)
+            ? context.f3textMuted.withValues(alpha: 0.2)
             : F3Colors.accent,
         child: InkWell(
           onTap: action == null
@@ -1955,7 +1965,7 @@ class _PrimaryPlayButton extends StatelessWidget {
                 children: [
                   Icon(
                     isRunning ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                    color: disabled ? F3Colors.textMuted : Colors.white,
+                    color: disabled ? context.f3textMuted : Colors.white,
                     size: 28,
                   ),
                   const SizedBox(width: 6),
@@ -1968,7 +1978,7 @@ class _PrimaryPlayButton extends StatelessWidget {
                                 ? 'RESUME'
                                 : 'START',
                     style: TextStyle(
-                      color: disabled ? F3Colors.textMuted : Colors.white,
+                      color: disabled ? context.f3textMuted : Colors.white,
                       fontWeight: FontWeight.w900,
                       fontSize: 17,
                       letterSpacing: 1,
@@ -2002,7 +2012,7 @@ class _ControlButton extends StatelessWidget {
     return ClipRRect(
       borderRadius: BorderRadius.circular(12),
       child: Material(
-        color: F3Colors.elevated,
+        color: context.f3elevated,
         child: InkWell(
           onTap: onTap == null
               ? null
@@ -2014,7 +2024,7 @@ class _ControlButton extends StatelessWidget {
             height: 64,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: F3Colors.divider),
+              border: Border.all(color: context.f3divider),
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -2065,22 +2075,22 @@ class _WorkoutSummarySheetState extends State<_WorkoutSummarySheet> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: F3Colors.card,
-        title: const Text('NAME-O-RAMA',
+        backgroundColor: context.f3card,
+        title: Text('NAME-O-RAMA',
             style: TextStyle(
-                color: F3Colors.textPrimary,
+                color: context.f3textPrimary,
                 fontWeight: FontWeight.w900,
                 letterSpacing: 1.2)),
         content: TextField(
           controller: ctrl,
           autofocus: true,
           maxLines: 3,
-          style: const TextStyle(color: F3Colors.textPrimary),
-          decoration: const InputDecoration(
+          style: TextStyle(color: context.f3textPrimary),
+          decoration: InputDecoration(
             hintText: 'Dredd, Mayhem, Roscoe…',
-            hintStyle: TextStyle(color: F3Colors.textMuted),
+            hintStyle: TextStyle(color: context.f3textMuted),
             labelText: 'PAX Names (comma-separated)',
-            labelStyle: TextStyle(color: F3Colors.textSecondary),
+            labelStyle: TextStyle(color: context.f3textSecondary),
           ),
         ),
         actions: [
@@ -2111,8 +2121,8 @@ class _WorkoutSummarySheetState extends State<_WorkoutSummarySheet> {
         : _rolledPax.split(',').where((s) => s.trim().isNotEmpty).length;
 
     return Container(
-      decoration: const BoxDecoration(
-        color: F3Colors.background,
+      decoration: BoxDecoration(
+        color: context.f3bg,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
@@ -2124,21 +2134,21 @@ class _WorkoutSummarySheetState extends State<_WorkoutSummarySheet> {
             height: 4,
             margin: const EdgeInsets.only(bottom: 20),
             decoration: BoxDecoration(
-                color: F3Colors.divider,
+                color: context.f3divider,
                 borderRadius: BorderRadius.circular(2)),
           ),
           const Icon(Icons.emoji_events_rounded,
               color: F3Colors.accent, size: 40),
           const SizedBox(height: 10),
-          const Text('BEATDOWN COMPLETE',
+          Text('BEATDOWN COMPLETE',
               style: TextStyle(
-                  color: F3Colors.textPrimary,
+                  color: context.f3textPrimary,
                   fontSize: 20,
                   fontWeight: FontWeight.w900,
                   letterSpacing: 1.2)),
           const SizedBox(height: 4),
-          const Text('Nice work out there, PAX.',
-              style: TextStyle(color: F3Colors.textSecondary, fontSize: 14)),
+          Text('Nice work out there, PAX.',
+              style: TextStyle(color: context.f3textSecondary, fontSize: 14)),
           const SizedBox(height: 20),
           Row(children: [
             _SummaryStat(
@@ -2166,9 +2176,9 @@ class _WorkoutSummarySheetState extends State<_WorkoutSummarySheet> {
             onPressed: _showRollCall,
             style: OutlinedButton.styleFrom(
               foregroundColor:
-                  paxCount > 0 ? F3Colors.accent : F3Colors.textSecondary,
+                  paxCount > 0 ? F3Colors.accent : context.f3textSecondary,
               side: BorderSide(
-                  color: paxCount > 0 ? F3Colors.accent : F3Colors.divider),
+                  color: paxCount > 0 ? F3Colors.accent : context.f3divider),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10)),
               minimumSize: const Size(double.infinity, 44),
@@ -2198,14 +2208,14 @@ class _WorkoutSummarySheetState extends State<_WorkoutSummarySheet> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(b.label,
-                      style: const TextStyle(
-                          color: F3Colors.textPrimary,
+                      style: TextStyle(
+                          color: context.f3textPrimary,
                           fontWeight: FontWeight.w600)),
                 ),
                 Text(
-                  '${b.exercises.length} ex · ${b.durationMinutes} min',
-                  style: const TextStyle(
-                      color: F3Colors.textMuted, fontSize: 12),
+                  '${b.exercises.length} ex · ${b.durationMinutes * b.rounds} min${b.rounds > 1 ? ' (${b.rounds}×)' : ''}',
+                  style: TextStyle(
+                      color: context.f3textMuted, fontSize: 12),
                 ),
               ]),
             );
@@ -2216,8 +2226,8 @@ class _WorkoutSummarySheetState extends State<_WorkoutSummarySheet> {
               child: OutlinedButton(
                 onPressed: () => Navigator.pop(context),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: F3Colors.textSecondary,
-                  side: const BorderSide(color: F3Colors.divider),
+                  foregroundColor: context.f3textSecondary,
+                  side: BorderSide(color: context.f3divider),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
                   minimumSize: const Size(0, 48),
@@ -2275,8 +2285,8 @@ class _SummaryStat extends StatelessWidget {
             style: TextStyle(
                 color: color, fontSize: 24, fontWeight: FontWeight.w900)),
         Text(label,
-            style: const TextStyle(
-                color: F3Colors.textMuted,
+            style: TextStyle(
+                color: context.f3textMuted,
                 fontSize: 10,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 1)),
