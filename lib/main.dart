@@ -11,6 +11,7 @@ import 'services/current_workout_service.dart';
 import 'services/exercise_service.dart';
 import 'services/history_service.dart';
 import 'services/notification_service.dart';
+import 'services/f3_api_service.dart';
 import 'services/region_service.dart';
 import 'services/settings_service.dart';
 import 'services/timer_service.dart';
@@ -61,6 +62,9 @@ void main() async {
   final regionService = RegionService();
   await regionService.load();
 
+  final f3ApiService = F3ApiService();
+  await f3ApiService.load();
+
   runApp(DigitalWeinke(
     exerciseService: exerciseService,
     appProfileService: appProfileService,
@@ -68,6 +72,7 @@ void main() async {
     settingsService: settingsService,
     historyService: historyService,
     regionService: regionService,
+    f3ApiService: f3ApiService,
   ));
 }
 
@@ -78,6 +83,7 @@ class DigitalWeinke extends StatelessWidget {
   final SettingsService settingsService;
   final HistoryService historyService;
   final RegionService regionService;
+  final F3ApiService f3ApiService;
 
   const DigitalWeinke({
     super.key,
@@ -87,6 +93,7 @@ class DigitalWeinke extends StatelessWidget {
     required this.settingsService,
     required this.historyService,
     required this.regionService,
+    required this.f3ApiService,
   });
 
   @override
@@ -101,6 +108,7 @@ class DigitalWeinke extends StatelessWidget {
         ChangeNotifierProvider<SettingsService>.value(value: settingsService),
         ChangeNotifierProvider<HistoryService>.value(value: historyService),
         ChangeNotifierProvider<RegionService>.value(value: regionService),
+        ChangeNotifierProvider<F3ApiService>.value(value: f3ApiService),
         ChangeNotifierProvider<TimerService>(create: (_) => TimerService()),
         ChangeNotifierProvider<CurrentWorkoutService>(
           create: (_) => CurrentWorkoutService(),

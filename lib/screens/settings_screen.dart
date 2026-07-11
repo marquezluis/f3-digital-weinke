@@ -13,6 +13,8 @@ import '../services/app_profile_service.dart' hide AppRole;
 import '../services/history_service.dart';
 import '../services/local_backup_service.dart';
 import '../services/music_launcher.dart';
+import '../models/f3_api_models.dart';
+import '../services/f3_api_service.dart';
 import '../services/region_service.dart';
 import '../services/settings_service.dart';
 import '../theme/app_theme.dart';
@@ -418,6 +420,12 @@ class SettingsScreen extends StatelessWidget {
                   }
                 },
               ),
+              const SizedBox(height: 28),
+
+              // ── F3 Nation Connect ──────────────────────────────────────────
+              const _SectionHeader('F3 NATION'),
+              const SizedBox(height: 8),
+              const _F3ConnectSection(),
               const SizedBox(height: 28),
 
               // ── About ─────────────────────────────────────────────────────
@@ -1069,6 +1077,174 @@ class _LanguagePicker extends StatelessWidget {
           ),
         );
       }).toList(),
+    );
+  }
+}
+
+// ── F3 Nation Connect ─────────────────────────────────────────────────────────
+
+class _F3ConnectSection extends StatefulWidget {
+  const _F3ConnectSection();
+
+  @override
+  State<_F3ConnectSection> createState() => _F3ConnectSectionState();
+}
+
+class _F3ConnectSectionState extends State<_F3ConnectSection> {
+  final _ctrl = TextEditingController();
+  bool _obscure = true;
+  bool _testing = false;
+  F3UserProfile? _profile;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    final svc = context.read<F3ApiService>();
+    // Populate field if key already saved — show masked placeholder only
+    if (svc.isConfigured) _ctrl.text = '••••••••••••••••';
+    _profile = svc.myProfile;
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final svc = context.read<F3ApiService>();
+    final key = _ctrl.text.trim();
+    if (key.isEmpty || key.startsWith('•')) return;
+    await svc.setApiKey(key);
+    setState(() { _error = null; _profile = null; });
+  }
+
+  Future<void> _test() async {
+    final svc = context.read<F3ApiService>();
+    if (!svc.isConfigured) {
+      setState(() => _error = 'Save an API key first.');
+      return;
+    }
+    setState(() { _testing = true; _error = null; });
+    final profile = await svc.getMyProfile();
+    if (!mounted) return;
+    setState(() {
+      _testing = false;
+      if (profile != null) {
+        _profile = profile;
+        _error = null;
+      } else {
+        _profile = null;
+        _error = 'Could not connect. Check your key.';
+      }
+    });
+  }
+
+  Future<void> _clear() async {
+    final svc = context.read<F3ApiService>();
+    await svc.setApiKey('');
+    setState(() { _ctrl.clear(); _profile = null; _error = null; });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final svc = context.watch<F3ApiService>();
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: F3Colors.card,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: _profile != null
+              ? F3Colors.accent.withValues(alpha: 0.5)
+              : F3Colors.divider,
+        ),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        // Status row
+        Row(children: [
+          Container(
+            width: 8, height: 8,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: _profile != null
+                  ? F3Colors.accent
+                  : svc.isConfigured
+                      ? F3Colors.textMuted
+                      : F3Colors.divider,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            _profile != null
+                ? 'Connected as ${_profile!.f3Name}'
+                : svc.isConfigured
+                    ? 'Key saved — tap Test to verify'
+                    : 'Not connected',
+            style: TextStyle(
+              color: _profile != null ? F3Colors.accent : F3Colors.textSecondary,
+              fontSize: 13,
+              fontWeight: _profile != null ? FontWeight.w700 : FontWeight.w500,
+            ),
+          ),
+          if (svc.isConfigured) ...[
+            const Spacer(),
+            GestureDetector(
+              onTap: _clear,
+              child: const Text('Clear',
+                  style: TextStyle(color: F3Colors.textMuted, fontSize: 12)),
+            ),
+          ],
+        ]),
+        const SizedBox(height: 12),
+
+        // API key field
+        TextField(
+          controller: _ctrl,
+          obscureText: _obscure,
+          style: const TextStyle(color: F3Colors.textPrimary, fontSize: 14, fontFamily: 'monospace'),
+          decoration: InputDecoration(
+            hintText: 'Paste API key…',
+            hintStyle: const TextStyle(color: F3Colors.textMuted),
+            suffixIcon: IconButton(
+              icon: Icon(_obscure ? Icons.visibility_rounded : Icons.visibility_off_rounded,
+                  color: F3Colors.textMuted, size: 18),
+              onPressed: () => setState(() => _obscure = !_obscure),
+            ),
+          ),
+          onChanged: (_) => setState(() {}),
+        ),
+        if (_error != null) ...[
+          const SizedBox(height: 6),
+          Text(_error!, style: const TextStyle(color: Colors.redAccent, fontSize: 12)),
+        ],
+        const SizedBox(height: 12),
+
+        // Buttons
+        Row(children: [
+          Expanded(
+            child: OutlinedButton(
+              onPressed: _testing ? null : _test,
+              child: _testing
+                  ? const SizedBox(width: 16, height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: F3Colors.accent))
+                  : const Text('Test'),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: F3Colors.accent),
+              onPressed: (_ctrl.text.trim().isEmpty || _ctrl.text.startsWith('•'))
+                  ? null
+                  : _save,
+              child: const Text('Save'),
+            ),
+          ),
+        ]),
+      ]),
     );
   }
 }
