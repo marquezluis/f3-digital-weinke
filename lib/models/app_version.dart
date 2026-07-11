@@ -20,19 +20,39 @@ class AppRelease {
 }
 
 class AppVersion {
-  static const String current = '2.2.0';
-  static const String versionName = '2.2.0';
-  static const String buildNumber = '6';
-  static const String displayName = 'Digital Weinke v2.2.0';
-  static const String fullDisplayName = 'Digital Weinke v2.2.0+6';
+  static const String current = '2.2.1';
+  static const String versionName = '2.2.1';
+  static const String buildNumber = '7';
+  static const String displayName = 'Digital Weinke v2.2.1';
+  static const String fullDisplayName = 'Digital Weinke v2.2.1+7';
 
   static const List<AppRelease> releases = [
+    AppRelease(
+      version: '2.2.1',
+      title: 'The Rounds & Timer Fix Update',
+      summary: 'Rounds now scale total workout time and the live timer. API key secured at build time.',
+      bugFixes: [
+        'Rounds correctly scale plan total time in the budget bar and per-block label.',
+        'Live timer phase durations now reflect rounds — no longer hardcoded at 50 minutes.',
+        'Halfway alert fires at the true session midpoint, not always at 25 minutes.',
+        'API key removed from Settings UI — secured as a build-time constant.',
+      ],
+      newItems: [
+        'Spartan Co-Q hero screen — shield, capability chips, and 2-column prompt grid on empty state.',
+        'Home screen upcoming beatdowns carousel from F3 Nation API.',
+        'Brotherhood Add PAX sheet: look up any PAX by F3 name from the F3 Nation directory.',
+        'Venezuelan flag in language picker.',
+      ],
+      enhancements: [
+        'Full light/dark theme across all screens via F3ThemeX context extension.',
+      ],
+    ),
     AppRelease(
       version: '2.2.0',
       title: 'The F3 Nation Connect Update',
       summary: 'F3 Nation API integration, full light theme, Exicon crash fix, and app icon.',
       newItems: [
-        'F3 Nation API integration — connect your regional API key in Settings.',
+        'F3 Nation API integration — API key secured at build time.',
         'Test your connection and pull your F3 profile (name, region) directly from F3 Nation.',
         'Full light theme — all screens, cards, and text respond correctly to Dark/Light/System.',
         'App icon — custom F3 shield, applied to Android and iOS.',
