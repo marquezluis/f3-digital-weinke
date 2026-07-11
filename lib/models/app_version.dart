@@ -20,13 +20,23 @@ class AppRelease {
 }
 
 class AppVersion {
-  static const String current = '2.2.1';
-  static const String versionName = '2.2.1';
-  static const String buildNumber = '7';
-  static const String displayName = 'Digital Weinke v2.2.1';
-  static const String fullDisplayName = 'Digital Weinke v2.2.1+7';
+  static const String current = '2.2.2';
+  static const String versionName = '2.2.2';
+  static const String buildNumber = '8';
+  static const String displayName = 'Digital Weinke v2.2.2';
+  static const String fullDisplayName = 'Digital Weinke v2.2.2+8';
 
   static const List<AppRelease> releases = [
+    AppRelease(
+      version: '2.2.2',
+      title: 'The Polish Update',
+      summary: 'Venezuelan flag, cleaner TTS voice picker, and branded music provider icons.',
+      bugFixes: [
+        'Venezuelan flag (🇻🇪) now shows correctly for Español in the language picker.',
+        'TTS voice picker now shows only English voices with friendly numbered labels (e.g. "English (US) — Voice 1").',
+        'Music provider dropdown now shows real brand-colored icons for Spotify, Apple Music, YouTube Music, and Amazon Music.',
+      ],
+    ),
     AppRelease(
       version: '2.2.1',
       title: 'The Rounds & Timer Fix Update',
