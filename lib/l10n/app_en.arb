@@ -1,0 +1,90 @@
+{
+  "@@locale": "en",
+
+  "appTitle": "Digital Weinke",
+  "@appTitle": { "description": "The app name." },
+
+  "appTagline": "The digital Q sheet for the modern PAX.\nBuild Weinkes, run Q Mode, track your crew — all offline, all yours.",
+  "@appTagline": { "description": "Welcome screen tagline shown below the logo." },
+
+  "welcomeSetupProfile": "SET UP YOUR PROFILE",
+  "@welcomeSetupProfile": { "description": "Section label for the profile fields on the welcome screen." },
+
+  "welcomeF3Name": "F3 Name (optional)",
+  "@welcomeF3Name": { "description": "Label for the F3 name text field." },
+
+  "welcomeF3NameHint": "e.g. Dredd, Mayhem, Roscoe",
+  "@welcomeF3NameHint": { "description": "Hint text for the F3 name text field." },
+
+  "welcomeHomeAo": "Home AO (optional)",
+  "@welcomeHomeAo": { "description": "Label for the Home AO text field." },
+
+  "welcomeHomeAoHint": "e.g. The Patriot",
+  "@welcomeHomeAoHint": { "description": "Hint text for the Home AO text field." },
+
+  "welcomeRegion": "Region (optional)",
+  "@welcomeRegion": { "description": "Label for the Region text field." },
+
+  "welcomeRegionHint": "e.g. F3 Kansas City",
+  "@welcomeRegionHint": { "description": "Hint text for the Region text field." },
+
+  "welcomeYourRole": "YOUR ROLE",
+  "@welcomeYourRole": { "description": "Section label for the role picker on the welcome screen." },
+
+  "welcomePrivacy": "Your profile stays on this device. Nothing is sent anywhere unless you choose to share it.",
+  "@welcomePrivacy": { "description": "Privacy notice on the welcome screen." },
+
+  "welcomeProtectApp": "Protect This App",
+  "@welcomeProtectApp": { "description": "Switch label for enabling app lock on the welcome screen." },
+
+  "welcomeProtectAppDesc": "Use Face ID, fingerprint, or device PIN on open.",
+  "@welcomeProtectAppDesc": { "description": "Description for the app lock switch when the device supports biometrics." },
+
+  "welcomeProtectNotAvailable": "Device lock is not available on this device.",
+  "@welcomeProtectNotAvailable": { "description": "Subtitle shown when app lock is not available on the device." },
+
+  "welcomeCta": "LOCK IN — LET'S GO",
+  "@welcomeCta": { "description": "Call-to-action button label on the welcome screen." },
+
+  "welcomeCtaLoading": "LOADING...",
+  "@welcomeCtaLoading": { "description": "Button label shown while the welcome screen is saving." },
+
+  "welcomeSubtext": "EH · MODIFY · MOSEY",
+  "@welcomeSubtext": { "description": "Small decorative subtext at the bottom of the welcome screen." },
+
+  "roleQName": "Q (Workout Leader)",
+  "@roleQName": { "description": "Display name for the Q role." },
+
+  "roleQDesc": "I plan and lead beatdowns. I need full Weinke-building tools.",
+  "@roleQDesc": { "description": "Description for the Q role." },
+
+  "rolePaxName": "PAX",
+  "@rolePaxName": { "description": "Display name for the PAX role." },
+
+  "rolePaxDesc": "I show up and sweat. Give me the timer and the library.",
+  "@rolePaxDesc": { "description": "Description for the PAX role." },
+
+  "settingsTitle": "SETTINGS",
+  "@settingsTitle": { "description": "Title for the settings screen." },
+
+  "settingsAppearance": "APPEARANCE",
+  "@settingsAppearance": { "description": "Section header for the appearance settings." },
+
+  "settingsThemeDark": "Dark",
+  "@settingsThemeDark": { "description": "Dark theme option label." },
+
+  "settingsThemeLight": "Light",
+  "@settingsThemeLight": { "description": "Light theme option label." },
+
+  "settingsThemeSystem": "System",
+  "@settingsThemeSystem": { "description": "System theme option label." },
+
+  "settingsLanguage": "Language",
+  "@settingsLanguage": { "description": "Language picker label in settings." },
+
+  "settingsAbout": "ABOUT",
+  "@settingsAbout": { "description": "Section header for the About section in settings." },
+
+  "changelogTitle": "CHANGELOG",
+  "@changelogTitle": { "description": "Title for the changelog bottom sheet." }
+}
