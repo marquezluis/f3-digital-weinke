@@ -14,6 +14,7 @@ import '../services/history_service.dart';
 import '../services/local_backup_service.dart';
 import '../services/music_launcher.dart';
 import '../services/region_service.dart';
+import '../services/f3_api_service.dart';
 import '../services/settings_service.dart';
 import '../theme/app_theme.dart';
 import 'achievements_screen.dart';
@@ -276,23 +277,49 @@ class SettingsScreen extends StatelessWidget {
               // -- Slack Integration -------------------------------------------------
               const _SectionHeader('SLACK INTEGRATION'),
               const SizedBox(height: 8),
-              TextFormField(
-                initialValue: service.slackWebhookUrl,
-                decoration: const InputDecoration(
-                  labelText: 'Slack Webhook URL',
-                  hintText: 'Paste your Incoming Webhook URL here',
-                  prefixIcon: Icon(Icons.link_rounded),
-                ),
-                onChanged: (val) {
-                  service.updateSlackWebhookUrl(val.trim());
+              Consumer<F3ApiService>(
+                builder: (context, api, _) {
+                  if (api.isConfigured) {
+                    // API path: user pastes channel ID once; F3 Nation app delivers.
+                    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      TextFormField(
+                        initialValue: service.slackChannelId,
+                        decoration: const InputDecoration(
+                          labelText: 'Slack Channel ID',
+                          hintText: 'C0XXXXXXXX  (right-click channel → Copy link)',
+                          prefixIcon: Icon(Icons.tag_rounded),
+                        ),
+                        onChanged: (val) => service.updateSlackChannelId(val.trim()),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                        child: Text(
+                          'Posts directly to your region\'s Slack via the F3 Nation app — no webhook setup needed.',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ),
+                    ]);
+                  }
+                  // Fallback: manual webhook URL.
+                  return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    TextFormField(
+                      initialValue: service.slackWebhookUrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Slack Webhook URL',
+                        hintText: 'Paste your Incoming Webhook URL here',
+                        prefixIcon: Icon(Icons.link_rounded),
+                      ),
+                      onChanged: (val) => service.updateSlackWebhookUrl(val.trim()),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                      child: Text(
+                        'Enables the "Post to Slack" button on the backblast screen.',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ),
+                  ]);
                 },
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-                child: Text(
-                  'Enables the "Post to Slack" button on the backblast screen.',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
               ),
               const SizedBox(height: 28),
 

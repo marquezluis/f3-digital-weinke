@@ -134,6 +134,39 @@ class F3ApiService extends ChangeNotifier {
         .toList();
   }
 
+  // ── Slack messaging ───────────────────────────────────────────────────────
+
+  /// Posts a message to a region's Slack channel via the F3 Nation Slack app.
+  /// [regionOrgId] is the org ID for the region (from F3_API_ORG_ID dart-define).
+  /// [channelId]   is the Slack channel ID (e.g. C0XXXXXXXX), user-configured.
+  /// Returns null on success, or an error string on failure.
+  Future<String?> postSlackMessage({
+    required String regionOrgId,
+    required String channelId,
+    required String text,
+  }) async {
+    if (!isConfigured) return 'F3 Nation API key not configured.';
+    try {
+      final res = await http
+          .post(
+            Uri.parse('$_base/v1/slack/message'),
+            headers: _headers,
+            body: json.encode({
+              'regionOrgId': regionOrgId,
+              'slackChannelId': channelId,
+              'text': text,
+              'mrkdwn': true,
+              'username': 'Digital Weinke',
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
+      if (res.statusCode == 200 || res.statusCode == 201) return null;
+      return 'API error ${res.statusCode}: ${res.body}';
+    } catch (e) {
+      return 'Network error: $e';
+    }
+  }
+
   // ── Health check ─────────────────────────────────────────────────────────
 
   Future<bool> ping() async {

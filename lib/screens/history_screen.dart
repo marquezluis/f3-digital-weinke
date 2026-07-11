@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 import '../models/workout_history.dart';
 import '../services/history_service.dart';
 import '../services/backblast_formatter.dart';
+import '../services/f3_api_service.dart';
 import '../services/settings_service.dart';
 import '../services/slack_service.dart';
 import '../theme/app_theme.dart';
@@ -374,27 +375,34 @@ class _BackblastScreenState extends State<BackblastScreen> {
   }
 
   Future<void> _postToSlack(WorkoutHistory entry) async {
-    final webhookUrl =
-        context.read<SettingsService>().slackWebhookUrl;
-    if (webhookUrl.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-              'No Slack webhook configured. Add one in Settings → Slack Integration.'),
-          duration: Duration(seconds: 3),
-        ),
-      );
-      return;
-    }
+    final settings = context.read<SettingsService>();
+    final api = context.read<F3ApiService>();
+    String? error;
+
     setState(() => _posting = true);
-    final error = await SlackService.postBackblast(webhookUrl, entry);
+
+    if (api.isConfigured && settings.slackChannelId.isNotEmpty) {
+      final orgId = api.orgId ?? '';
+      if (orgId.isEmpty) {
+        error = 'F3_API_ORG_ID not set — contact your app admin.';
+      } else {
+        error = await api.postSlackMessage(
+          regionOrgId: orgId,
+          channelId: settings.slackChannelId,
+          text: _backblast,
+        );
+      }
+    } else if (settings.slackWebhookUrl.isNotEmpty) {
+      error = await SlackService.postBackblast(settings.slackWebhookUrl, entry);
+    } else {
+      error = 'No Slack channel configured. Add one in Settings → Slack Integration.';
+    }
+
     if (!mounted) return;
     setState(() => _posting = false);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(error == null
-            ? 'Posted to Slack!'
-            : 'Slack error: $error'),
+        content: Text(error ?? 'Posted to Slack!'),
         duration: const Duration(seconds: 3),
       ),
     );
@@ -596,11 +604,12 @@ class _BackblastScreenState extends State<BackblastScreen> {
                         ],
                       ),
                       const SizedBox(height: 10),
-                      Consumer<SettingsService>(
-                        builder: (_, svc, __) {
-                          if (svc.slackWebhookUrl.isEmpty) {
-                            return const SizedBox.shrink();
-                          }
+                      Consumer2<SettingsService, F3ApiService>(
+                        builder: (_, svc, api, __) {
+                          final canPost = (api.isConfigured && svc.slackChannelId.isNotEmpty)
+                              || svc.slackWebhookUrl.isNotEmpty;
+                          if (!canPost) return const SizedBox.shrink();
+
                           return SizedBox(
                             width: double.infinity,
                             height: 48,

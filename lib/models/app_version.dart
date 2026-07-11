@@ -20,13 +20,22 @@ class AppRelease {
 }
 
 class AppVersion {
-  static const String current = '2.2.2';
-  static const String versionName = '2.2.2';
-  static const String buildNumber = '8';
-  static const String displayName = 'Digital Weinke v2.2.2';
-  static const String fullDisplayName = 'Digital Weinke v2.2.2+8';
+  static const String current = '2.2.3';
+  static const String versionName = '2.2.3';
+  static const String buildNumber = '9';
+  static const String displayName = 'Digital Weinke v2.2.3';
+  static const String fullDisplayName = 'Digital Weinke v2.2.3+9';
 
   static const List<AppRelease> releases = [
+    AppRelease(
+      version: '2.2.3',
+      title: 'F3 Nation Slack Integration',
+      summary: 'Post backblasts directly to your region\'s Slack via the F3 Nation API — no webhook setup needed.',
+      newItems: [
+        'Post backblasts to Slack via the F3 Nation app (Settings → Slack Integration → Channel ID).',
+        'Falls back to Incoming Webhook URL if API key is not configured.',
+      ],
+    ),
     AppRelease(
       version: '2.2.2',
       title: 'The Polish Update',
