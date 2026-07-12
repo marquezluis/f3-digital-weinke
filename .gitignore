@@ -49,3 +49,10 @@ graphify-out/
 
 # Build reports
 android/build/
+
+# Local secrets — never commit these
+.env
+.env.*
+*.env
+dart-defines.json
+dart_defines.json
