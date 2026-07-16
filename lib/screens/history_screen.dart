@@ -279,6 +279,8 @@ class _HistoryCard extends StatelessWidget {
                                 color: context.f3textSecondary, fontSize: 13)),
                       const SizedBox(height: 4),
                       Row(children: [
+                        _BeatdownTypeBadge(entry.beatdownType),
+                        const SizedBox(width: 8),
                         if (entry.q.isNotEmpty) ...[
                           Icon(Icons.person_rounded,
                               size: 13, color: context.f3textMuted),
@@ -752,6 +754,7 @@ class _MetaCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _Row(Icons.calendar_today_rounded, 'Date', entry.shortDate),
+          _Row(Icons.category_rounded, 'Type', entry.beatdownType.displayName),
           if (entry.ao.isNotEmpty) _Row(Icons.place_rounded, 'AO', entry.ao),
           if (entry.q.isNotEmpty) _Row(Icons.person_rounded, 'Q', entry.q),
           if (entry.pax.isNotEmpty)
@@ -763,6 +766,49 @@ class _MetaCard extends StatelessWidget {
                   '${entry.fngCount > 0 ? " (${entry.fngCount} FNG)" : ""}'),
           if (entry.notes.isNotEmpty)
             _Row(Icons.notes_rounded, 'Notes', entry.notes),
+        ],
+      ),
+    );
+  }
+}
+
+class _BeatdownTypeBadge extends StatelessWidget {
+  final BeatdownType type;
+  const _BeatdownTypeBadge(this.type);
+
+  @override
+  Widget build(BuildContext context) {
+    final (color, icon) = switch (type) {
+      BeatdownType.bootCamp => (F3Colors.accent,          Icons.fitness_center_rounded),
+      BeatdownType.ruck     => (const Color(0xFF8B6914),  Icons.backpack_rounded),
+      BeatdownType.run      => (const Color(0xFF2196F3),  Icons.directions_run_rounded),
+      BeatdownType.bike     => (const Color(0xFFE65100),  Icons.directions_bike_rounded),
+      BeatdownType.swim     => (const Color(0xFF00838F),  Icons.pool_rounded),
+      BeatdownType.other    => (const Color(0xFF78909C),  Icons.more_horiz_rounded),
+      BeatdownType.qsource  => (const Color(0xFF6D4C41),  Icons.menu_book_rounded),
+      BeatdownType.mobility => (const Color(0xFF7CB342),  Icons.self_improvement_rounded),
+      BeatdownType.gear     => (const Color(0xFF546E7A),  Icons.fitness_center_rounded),
+      BeatdownType.wildCard => (const Color(0xFF9C27B0),  Icons.casino_rounded),
+      BeatdownType.sports   => (const Color(0xFFFFB300),  Icons.sports_basketball_rounded),
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: color.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 10, color: color),
+          const SizedBox(width: 3),
+          Text(type.displayName,
+              style: TextStyle(
+                  color: color,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.3)),
         ],
       ),
     );

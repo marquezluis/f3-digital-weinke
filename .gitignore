@@ -56,3 +56,7 @@ android/build/
 *.env
 dart-defines.json
 dart_defines.json
+
+# Personal working files — not app source
+f3-nation-public-clients.patch
+docs/meeting-brief-*.md

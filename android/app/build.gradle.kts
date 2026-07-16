@@ -29,6 +29,10 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        // flutter_appauth: scheme that the F3 Nation auth server redirects back to
+        // after login (registered OAuth client redirect_uri is
+        // "com.digitalweinke.f3nationapp:/oauth2redirect").
+        manifestPlaceholders["appAuthRedirectScheme"] = "com.digitalweinke.f3nationapp"
     }
 
     buildTypes {

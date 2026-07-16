@@ -4,6 +4,114 @@
 
 import 'dart:convert';
 
+/// Beatdown types shown in the app. [storageValue] is our own local JSON
+/// format (stable — do not change existing entries' strings, or previously
+/// saved history silently falls back to bootCamp on load). [f3EventType] is
+/// the real F3 Nation API `event_type` value, confirmed against
+/// packages/shared/src/app/enums.ts (EventTypes) in the F3-Nation/f3-nation
+/// monorepo — used only when actually calling their API, e.g. publishing a
+/// backblast. [other] has no F3 Nation equivalent (f3EventType is null); a
+/// real category must be picked before publishing to F3 Nation.
+enum BeatdownType {
+  bootCamp,
+  ruck,
+  run,
+  bike,
+  swim,
+  other,
+  qsource,
+  mobility,
+  gear,
+  wildCard,
+  sports;
+
+  String get displayName => switch (this) {
+    BeatdownType.bootCamp => 'Boot Camp',
+    BeatdownType.ruck     => 'Ruck',
+    BeatdownType.run      => 'Run',
+    BeatdownType.bike     => 'Bike',
+    BeatdownType.swim     => 'Swim',
+    BeatdownType.other    => 'Other',
+    BeatdownType.qsource  => 'QSource',
+    BeatdownType.mobility => 'Mobility',
+    BeatdownType.gear     => 'Gear',
+    BeatdownType.wildCard => 'Wild Card',
+    BeatdownType.sports   => 'Sports',
+  };
+
+  String get storageValue => switch (this) {
+    BeatdownType.bootCamp => 'Boot Camp',
+    BeatdownType.ruck     => 'Ruck',
+    BeatdownType.run      => 'Run',
+    BeatdownType.bike     => 'Bike',
+    BeatdownType.swim     => 'Swim',
+    BeatdownType.other    => 'Other',
+    BeatdownType.qsource  => 'QSource',
+    BeatdownType.mobility => 'Mobility',
+    BeatdownType.gear     => 'Gear',
+    BeatdownType.wildCard => 'Wild Card',
+    BeatdownType.sports   => 'Sports',
+  };
+
+  /// The real F3 Nation `event_type` string, or null for [other] (which has
+  /// no F3 Nation equivalent).
+  String? get f3EventType => switch (this) {
+    BeatdownType.bootCamp => 'Bootcamp',
+    BeatdownType.ruck     => 'Ruck',
+    BeatdownType.run      => 'Run',
+    BeatdownType.bike     => 'Bike',
+    BeatdownType.swim     => 'Swimming',
+    BeatdownType.other    => null,
+    BeatdownType.qsource  => 'QSource',
+    BeatdownType.mobility => 'Mobility',
+    BeatdownType.gear     => 'Gear',
+    BeatdownType.wildCard => 'Wild Card',
+    BeatdownType.sports   => 'Sports',
+  };
+
+  static BeatdownType fromString(String? value) => switch (value) {
+    'Boot Camp' => BeatdownType.bootCamp,
+    'Ruck'      => BeatdownType.ruck,
+    'Run'       => BeatdownType.run,
+    'Bike'      => BeatdownType.bike,
+    'Swim'      => BeatdownType.swim,
+    'QSource'   => BeatdownType.qsource,
+    'Mobility'  => BeatdownType.mobility,
+    'Gear'      => BeatdownType.gear,
+    'Wild Card' => BeatdownType.wildCard,
+    'Sports'    => BeatdownType.sports,
+    _           => BeatdownType.bootCamp,
+  };
+}
+
+/// F3 Nation event tags — confirmed against the EVENT_TAGS seed data in
+/// packages/db/src/local-seed-lib/data.ts in the F3-Nation/f3-nation
+/// monorepo. Optional; most events have none.
+enum EventTag {
+  vq,
+  convergence,
+  f3versary,
+  preWorkout,
+  offTheBooks;
+
+  String get displayName => switch (this) {
+    EventTag.vq          => 'VQ',
+    EventTag.convergence => 'Convergence',
+    EventTag.f3versary   => 'F3versary',
+    EventTag.preWorkout  => 'Pre-Workout',
+    EventTag.offTheBooks => 'Off-The-Books',
+  };
+
+  static EventTag? fromString(String? value) => switch (value) {
+    'VQ'            => EventTag.vq,
+    'Convergence'   => EventTag.convergence,
+    'F3versary'     => EventTag.f3versary,
+    'Pre-Workout'   => EventTag.preWorkout,
+    'Off-The-Books' => EventTag.offTheBooks,
+    _               => null,
+  };
+}
+
 /// Snapshot of a workout block sufficient for backblast rendering.
 /// We store just label + exercise names so we don't drag in the full
 /// Exercise graph (and can serialise cleanly).
@@ -61,6 +169,10 @@ class WorkoutHistory {
   final int rating;
   // When true, this entry is a saved template (reusable plan, not a past session)
   final bool isTemplate;
+  /// F3 Nation event type — matches the API's event_type values.
+  final BeatdownType beatdownType;
+  /// Optional F3 Nation event tag (VQ, Convergence, etc.). Null = no tag.
+  final EventTag? eventTag;
 
   const WorkoutHistory({
     required this.id,
@@ -78,6 +190,8 @@ class WorkoutHistory {
     this.photoPath,
     this.rating = 0,
     this.isTemplate = false,
+    this.beatdownType = BeatdownType.bootCamp,
+    this.eventTag,
   });
 
   // ── Serialization ──────────────────────────────────────────────────────────
@@ -105,6 +219,8 @@ class WorkoutHistory {
         photoPath: json['photoPath'] as String?,
         rating: json['rating'] as int? ?? 0,
         isTemplate: json['isTemplate'] as bool? ?? false,
+        beatdownType: BeatdownType.fromString(json['beatdownType'] as String?),
+        eventTag: EventTag.fromString(json['eventTag'] as String?),
       );
 
   Map<String, dynamic> toJson() => {
@@ -123,6 +239,8 @@ class WorkoutHistory {
         if (photoPath != null) 'photoPath': photoPath,
         'rating': rating,
         'isTemplate': isTemplate,
+        'beatdownType': beatdownType.storageValue,
+        if (eventTag != null) 'eventTag': eventTag!.displayName,
       };
 
   /// Encode to a JSON string (for storage).
@@ -166,6 +284,8 @@ class WorkoutHistory {
     String? photoPath,
     int? rating,
     bool? isTemplate,
+    BeatdownType? beatdownType,
+    EventTag? eventTag,
   }) =>
       WorkoutHistory(
         id: id ?? this.id,
@@ -182,5 +302,7 @@ class WorkoutHistory {
         photoPath: photoPath ?? this.photoPath,
         rating: rating ?? this.rating,
         isTemplate: isTemplate ?? this.isTemplate,
+        beatdownType: beatdownType ?? this.beatdownType,
+        eventTag: eventTag ?? this.eventTag,
       );
 }

@@ -7,9 +7,11 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../models/app_version.dart';
 import 'package:share_plus/share_plus.dart';
+import '../models/auth_models.dart';
 import '../models/exercise.dart';
 import '../models/workout_settings.dart';
 import '../services/app_profile_service.dart' hide AppRole;
+import '../services/auth_service.dart';
 import '../services/history_service.dart';
 import '../services/local_backup_service.dart';
 import '../services/music_launcher.dart';
@@ -18,6 +20,8 @@ import '../services/f3_api_service.dart';
 import '../services/settings_service.dart';
 import '../theme/app_theme.dart';
 import 'achievements_screen.dart';
+import 'browse_aos_screen.dart';
+import 'deck_of_pain_screen.dart';
 import 'heatmap_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -272,7 +276,11 @@ class SettingsScreen extends StatelessWidget {
 
               const SizedBox(height: 28),
 
-              const SizedBox(height: 0),
+              // -- F3 Nation Account ---------------------------------------------------
+              const _SectionHeader('F3 NATION ACCOUNT'),
+              const SizedBox(height: 8),
+              const _F3NationAccountCard(),
+              const SizedBox(height: 28),
 
               // -- Slack Integration -------------------------------------------------
               const _SectionHeader('SLACK INTEGRATION'),
@@ -393,6 +401,24 @@ class SettingsScreen extends StatelessWidget {
                 color: const Color(0xFFFFD700),
                 onTap: () => Navigator.push(context,
                     MaterialPageRoute(builder: (_) => const AchievementsScreen())),
+              ),
+              const SizedBox(height: 8),
+              _NavTile(
+                icon: Icons.explore_rounded,
+                title: 'Browse AOs',
+                subtitle: 'Find F3 Nation AOs near you',
+                color: const Color(0xFF2196F3),
+                onTap: () => Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => const BrowseAosScreen())),
+              ),
+              const SizedBox(height: 8),
+              _NavTile(
+                icon: Icons.style_rounded,
+                title: 'Deck of Pain',
+                subtitle: 'Draw a card, do the work',
+                color: const Color(0xFFE53935),
+                onTap: () => Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => const DeckOfPainScreen())),
               ),
               const SizedBox(height: 28),
 
@@ -546,6 +572,110 @@ class _SectionHeader extends StatelessWidget {
             color: context.f3textMuted,
             letterSpacing: 1.5,
           ),
+    );
+  }
+}
+
+// ── F3 Nation account card ──────────────────────────────────────────────────
+
+class _F3NationAccountCard extends StatefulWidget {
+  const _F3NationAccountCard();
+
+  @override
+  State<_F3NationAccountCard> createState() => _F3NationAccountCardState();
+}
+
+class _F3NationAccountCardState extends State<_F3NationAccountCard> {
+  bool _busy = false;
+
+  LinkedIdentity? _f3Identity(AuthService auth) {
+    for (final identity in auth.currentUser?.identities ?? const []) {
+      if (identity.provider == AuthProvider.f3nation) return identity;
+    }
+    return null;
+  }
+
+  Future<void> _toggle(AuthService auth, bool linked) async {
+    setState(() => _busy = true);
+    try {
+      if (linked) {
+        await auth.unlinkF3Nation();
+      } else {
+        await auth.signInWithF3Nation();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('$e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<AuthService>(
+      builder: (context, auth, _) {
+        final identity = _f3Identity(auth);
+        final linked = identity != null;
+        return Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: context.f3card,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: context.f3divider),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(children: [
+                Icon(
+                  linked
+                      ? Icons.verified_user_rounded
+                      : Icons.person_outline_rounded,
+                  color: linked ? F3Colors.accent : context.f3textMuted,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    linked
+                        ? (identity.email.isNotEmpty ? identity.email : 'Linked')
+                        : 'Not linked',
+                    style: TextStyle(
+                      color: context.f3textPrimary,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ]),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _busy ? null : () => _toggle(auth, linked),
+                  icon: _busy
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Icon(
+                          linked ? Icons.logout_rounded : Icons.login_rounded),
+                  label: Text(linked ? 'Unlink Account' : 'Sign in with F3 Nation'),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Links your Digital Weinke profile to your F3 Nation account '
+                '(auth2.f3nation.com).',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

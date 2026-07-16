@@ -7,7 +7,8 @@ enum AuthProvider {
   slack,
   email,
   google,
-  apple;
+  apple,
+  f3nation;
 
   String get displayName {
     switch (this) {
@@ -21,6 +22,8 @@ enum AuthProvider {
         return 'Google';
       case AuthProvider.apple:
         return 'Apple';
+      case AuthProvider.f3nation:
+        return 'F3 Nation';
     }
   }
 }

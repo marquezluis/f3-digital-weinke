@@ -20,13 +20,41 @@ class AppRelease {
 }
 
 class AppVersion {
-  static const String current = '2.2.3';
-  static const String versionName = '2.2.3';
-  static const String buildNumber = '9';
-  static const String displayName = 'Digital Weinke v2.2.3';
-  static const String fullDisplayName = 'Digital Weinke v2.2.3+9';
+  static const String current = '2.3.0';
+  static const String versionName = '2.3.0';
+  static const String buildNumber = '11';
+  static const String displayName = 'Digital Weinke v2.3.0';
+  static const String fullDisplayName = 'Digital Weinke v2.3.0+11';
 
   static const List<AppRelease> releases = [
+    AppRelease(
+      version: '2.3.0',
+      title: 'The F3 Nation Integration Update',
+      summary:
+          'Sign in with your F3 Nation account, browse AOs near you, full official event types and tags, and the Deck of Pain game mode.',
+      newItems: [
+        'Sign in with F3 Nation (Settings → F3 Nation Account) — secure OAuth login against the F3 Nation auth server, ready to activate once client registration completes.',
+        'Browse AOs (Settings → Explore) — real F3 Nation AOs from the live API, sorted by distance when you allow location, tap to open in your maps app.',
+        'Deck of Pain (Settings → Explore) — draw from a full 52-card deck; suit picks the exercise, rank picks the reps. Suit-to-exercise mapping is editable to match your AO\'s tradition.',
+        'Event tags on saved sessions — VQ, Convergence, F3versary, Pre-Workout, and Off-The-Books, included in the backblast under EVENT TAG.',
+        'Five new beatdown types matching F3 Nation\'s full official list: QSource, Mobility, Gear, Wild Card, and Sports.',
+      ],
+      enhancements: [
+        'Beatdown types now map exactly to F3 Nation\'s official event_type values behind the scenes, ready for publishing backblasts through the F3 Nation API.',
+        'History cards show distinct badge colors and icons for all ten beatdown types.',
+      ],
+    ),
+    AppRelease(
+      version: '2.2.4',
+      title: 'F3 Nation Beatdown Types',
+      summary: 'Beatdown type now matches F3 Nation\'s official event categories — Boot Camp, Ruck, Run, Bike, Swim, or Other.',
+      newItems: [
+        'Beatdown type picker in the Save Session sheet (Boot Camp, Ruck, Run, Bike, Swim, Other).',
+        'Type badge on each history card for at-a-glance identification.',
+        'Beatdown type included in the backblast text under WORKOUT TYPE.',
+        'Type shown in the beatdown detail view.',
+      ],
+    ),
     AppRelease(
       version: '2.2.3',
       title: 'F3 Nation Slack Integration',

@@ -55,6 +55,8 @@ class _SaveSessionSheetState extends State<SaveSessionSheet> {
   late final TextEditingController _wotdCtrl;
 
   bool _saving = false;
+  BeatdownType _beatdownType = BeatdownType.bootCamp;
+  EventTag? _eventTag;
   List<String> _historyAOs  = [];
   List<String> _historyPax  = [];
 
@@ -210,6 +212,8 @@ class _SaveSessionSheetState extends State<SaveSessionSheet> {
       cot: _cotCtrl.text.trim(),
       wotd: _wotdCtrl.text.trim(),
       blocks: widget.blocks,
+      beatdownType: _beatdownType,
+      eventTag: _eventTag,
     );
 
     await context.read<HistoryService>().add(entry);
@@ -288,6 +292,62 @@ class _SaveSessionSheetState extends State<SaveSessionSheet> {
                 icon: Icons.title_rounded,
                 validator: (v) =>
                     (v == null || v.trim().isEmpty) ? 'Required' : null,
+              ),
+              const SizedBox(height: 12),
+
+              // ── Beatdown Type ──────────────────────────────────────────
+              Text(
+                'Beatdown Type',
+                style: TextStyle(color: context.f3textSecondary, fontSize: 13),
+              ),
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: BeatdownType.values.map((type) {
+                  final selected = _beatdownType == type;
+                  return ChoiceChip(
+                    label: Text(type.displayName,
+                        style: const TextStyle(fontSize: 12)),
+                    selected: selected,
+                    onSelected: (_) => setState(() => _beatdownType = type),
+                    backgroundColor: context.f3elevated,
+                    selectedColor: F3Colors.accent.withValues(alpha: 0.18),
+                    labelStyle: TextStyle(
+                        color: selected ? F3Colors.accent : context.f3textSecondary,
+                        fontWeight: selected ? FontWeight.bold : FontWeight.normal),
+                    side: BorderSide(
+                        color: selected ? F3Colors.accent : context.f3divider),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 12),
+
+              // ── Event Tag (optional) ────────────────────────────────────
+              Text(
+                'Event Tag (optional)',
+                style: TextStyle(color: context.f3textSecondary, fontSize: 13),
+              ),
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [null, ...EventTag.values].map((tag) {
+                  final selected = _eventTag == tag;
+                  return ChoiceChip(
+                    label: Text(tag?.displayName ?? 'None',
+                        style: const TextStyle(fontSize: 12)),
+                    selected: selected,
+                    onSelected: (_) => setState(() => _eventTag = tag),
+                    backgroundColor: context.f3elevated,
+                    selectedColor: F3Colors.accent.withValues(alpha: 0.18),
+                    labelStyle: TextStyle(
+                        color: selected ? F3Colors.accent : context.f3textSecondary,
+                        fontWeight: selected ? FontWeight.bold : FontWeight.normal),
+                    side: BorderSide(
+                        color: selected ? F3Colors.accent : context.f3divider),
+                  );
+                }).toList(),
               ),
               const SizedBox(height: 12),
               _Field(

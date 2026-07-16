@@ -1,7 +1,7 @@
 name: f3_nation_app
 description: Digital Weinke — local-first F3 bootcamp planner, live phase timer, and Exicon library.
 publish_to: 'none'
-version: 2.2.3+9
+version: 2.3.0+11
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -37,6 +37,12 @@ dependencies:
   google_generative_ai: ^0.4.3
   # Device-backed local app unlock: Face ID, Touch ID, fingerprint, or PIN
   local_auth: ^2.3.0
+  # OAuth 2.0 / OIDC login against auth.f3nation.com (Authorization Code + PKCE)
+  flutter_appauth: ^7.0.1
+  # Secure on-device storage for OAuth tokens (Keychain / Keystore-backed)
+  flutter_secure_storage: ^9.2.2
+  # Device GPS location for "nearby AOs" sorting on the Browse AOs screen
+  geolocator: ^13.0.1
   # Localization
   flutter_localizations:
     sdk: flutter

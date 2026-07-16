@@ -27,6 +27,10 @@ class BackblastFormatter {
       buf.writeln('PAX: ${h.pax.map(_at).join(" ")}');
     }
 
+    buf.writeln('WORKOUT TYPE: ${h.beatdownType.displayName}');
+    if (h.eventTag != null) {
+      buf.writeln('EVENT TAG: ${h.eventTag!.displayName}');
+    }
     buf.writeln('FNGs: ${h.fngCount > 0 ? h.fngCount.toString() : "None"}');
     buf.writeln('COUNT: ${h.totalCount > 0 ? h.totalCount.toString() : "—"}');
 

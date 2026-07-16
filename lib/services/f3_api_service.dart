@@ -13,7 +13,14 @@ import 'package:http/http.dart' as http;
 import '../models/f3_api_models.dart';
 
 class F3ApiService extends ChangeNotifier {
-  static const _base = 'https://api.f3nation.com';
+  // Override with --dart-define=F3_API_BASE_URL=https://staging.api.f3nation.com
+  // for end-to-end testing against the staging stack (pairs with
+  // F3_AUTH_ISSUER=https://staging.auth2.f3nation.com — staging-issued OAuth
+  // JWTs only verify against the staging API's JWKS lookup, not prod).
+  static const _base = String.fromEnvironment(
+    'F3_API_BASE_URL',
+    defaultValue: 'https://api.f3nation.com',
+  );
   static const _client = 'f3-digital-weinke';
 
   // Compile-time constants injected via --dart-define
@@ -30,17 +37,23 @@ class F3ApiService extends ChangeNotifier {
   // No-op — kept so main.dart callers don't need to change
   Future<void> load() async {}
 
-  Map<String, String> get _headers => {
-        'Authorization': 'Bearer $_apiKey',
+  Map<String, String> _headers([String? bearerOverride]) => {
+        'Authorization': 'Bearer ${bearerOverride ?? _apiKey}',
         'Client': _client,
         'Content-Type': 'application/json',
       };
 
-  Future<Map<String, dynamic>?> _get(String path) async {
-    if (!isConfigured) return null;
+  /// [bearerOverride] lets a caller authenticate as a specific signed-in user
+  /// (their F3 Nation OAuth access token) instead of the app's shared API
+  /// key. This matters for endpoints like /v1/me/profile: the API key
+  /// resolves to whoever *owns* the key, not whichever PAX is using the app,
+  /// so per-user endpoints need the user's own bearer token.
+  Future<Map<String, dynamic>?> _get(String path,
+      {String? bearerOverride}) async {
+    if (bearerOverride == null && !isConfigured) return null;
     try {
       final res = await http
-          .get(Uri.parse('$_base$path'), headers: _headers)
+          .get(Uri.parse('$_base$path'), headers: _headers(bearerOverride))
           .timeout(const Duration(seconds: 10));
       if (res.statusCode == 200) {
         return json.decode(res.body) as Map<String, dynamic>;
@@ -53,7 +66,7 @@ class F3ApiService extends ChangeNotifier {
     if (!isConfigured) return null;
     try {
       final res = await http
-          .get(Uri.parse('$_base$path'), headers: _headers)
+          .get(Uri.parse('$_base$path'), headers: _headers())
           .timeout(const Duration(seconds: 10));
       if (res.statusCode == 200) {
         final body = json.decode(res.body);
@@ -66,8 +79,13 @@ class F3ApiService extends ChangeNotifier {
 
   // ── Profile ───────────────────────────────────────────────────────────────
 
-  Future<F3UserProfile?> getMyProfile() async {
-    final data = await _get('/v1/me/profile');
+  /// Fetches the signed-in user's own profile. Pass [userAccessToken] (the
+  /// F3 Nation OAuth access token from [AuthService.getF3AccessToken]) to get
+  /// the actual signed-in PAX's profile — without it, this authenticates
+  /// with the shared app API key and returns that key's owner instead.
+  Future<F3UserProfile?> getMyProfile({String? userAccessToken}) async {
+    final data =
+        await _get('/v1/me/profile', bearerOverride: userAccessToken);
     if (data == null) return null;
     _myProfile = F3UserProfile.fromJson(data);
     notifyListeners();
@@ -150,7 +168,7 @@ class F3ApiService extends ChangeNotifier {
       final res = await http
           .post(
             Uri.parse('$_base/v1/slack/message'),
-            headers: _headers,
+            headers: _headers(),
             body: json.encode({
               'regionOrgId': regionOrgId,
               'slackChannelId': channelId,

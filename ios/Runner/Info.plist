@@ -24,10 +24,26 @@
 	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>com.digitalweinke.f3nationapp.oauth</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<!-- flutter_appauth redirect scheme for F3 Nation OAuth login -->
+				<string>com.digitalweinke.f3nationapp</string>
+			</array>
+		</dict>
+	</array>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Digital Weinke uses Face ID to unlock your local app profile and workout notes.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Digital Weinke uses your location to sort nearby AOs on the Browse AOs screen. This is optional and only used while the screen is open.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
