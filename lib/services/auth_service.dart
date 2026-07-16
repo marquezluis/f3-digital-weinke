@@ -4,6 +4,7 @@
 // Authorization Code + PKCE), and exposes future Slack/email entry points
 // without coupling UI to one backend.
 
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_appauth/flutter_appauth.dart';
@@ -133,19 +134,42 @@ class LocalAuthService extends AuthService {
 
     final AuthorizationTokenResponse result;
     try {
-      result = await _appAuth.authorizeAndExchangeCode(
-        AuthorizationTokenRequest(
-          _f3ClientId,
-          _f3RedirectUri,
-          clientSecret: _f3ClientSecret.isNotEmpty ? _f3ClientSecret : null,
-          issuer: _f3Issuer,
-          scopes: _f3Scopes,
-        ),
-      );
+      result = await _appAuth
+          .authorizeAndExchangeCode(
+            AuthorizationTokenRequest(
+              _f3ClientId,
+              _f3RedirectUri,
+              clientSecret:
+                  _f3ClientSecret.isNotEmpty ? _f3ClientSecret : null,
+              issuer: _f3Issuer,
+              scopes: _f3Scopes,
+            ),
+          )
+          // Safety net: if the browser flow dies without ever calling back
+          // (e.g. a hung tab was closed), release the caller so the UI can
+          // recover instead of waiting forever.
+          .timeout(const Duration(minutes: 3));
     } on FlutterAppAuthUserCancelledException {
       throw const AuthUnavailableException(
         'F3 Nation sign-in was cancelled.',
       );
+    } on TimeoutException {
+      throw const AuthUnavailableException(
+        'F3 Nation sign-in timed out after 3 minutes. Close any stuck '
+        'browser tabs and try again.',
+      );
+    } on FlutterAppAuthPlatformException catch (e) {
+      // Surface the full platform error so it can be read/screenshotted —
+      // this is the diagnostic detail (error code, description, OAuth error
+      // body) that a generic message would hide.
+      throw AuthUnavailableException(
+        'F3 Nation sign-in failed.\n\n'
+        'code: ${e.code}\n'
+        'message: ${e.message}\n'
+        'details: ${e.platformErrorDetails}',
+      );
+    } catch (e) {
+      throw AuthUnavailableException('F3 Nation sign-in failed:\n$e');
     }
 
     final accessToken = result.accessToken;

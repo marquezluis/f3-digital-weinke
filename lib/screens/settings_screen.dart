@@ -604,14 +604,44 @@ class _F3NationAccountCardState extends State<_F3NationAccountCard> {
         await auth.signInWithF3Nation();
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$e')),
-        );
-      }
+      if (mounted) _showErrorDialog('$e');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  /// Full-detail, copyable error dialog — a transient snackbar is useless
+  /// for diagnosing OAuth failures from a screenshot.
+  void _showErrorDialog(String message) {
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: context.f3card,
+        title: Text(
+          'F3 Nation Sign-In Error',
+          style: TextStyle(color: context.f3textPrimary, fontSize: 16),
+        ),
+        content: SingleChildScrollView(
+          child: SelectableText(
+            message,
+            style: TextStyle(
+              color: context.f3textSecondary,
+              fontSize: 12,
+              fontFamily: 'monospace',
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: message));
+              Navigator.pop(context);
+            },
+            child: const Text('Copy & Close'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -663,7 +693,11 @@ class _F3NationAccountCardState extends State<_F3NationAccountCard> {
                         )
                       : Icon(
                           linked ? Icons.logout_rounded : Icons.login_rounded),
-                  label: Text(linked ? 'Unlink Account' : 'Sign in with F3 Nation'),
+                  label: Text(_busy
+                      ? 'Working… (check your browser)'
+                      : linked
+                          ? 'Unlink Account'
+                          : 'Sign in with F3 Nation'),
                 ),
               ),
               const SizedBox(height: 8),
