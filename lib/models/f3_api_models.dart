@@ -5,24 +5,56 @@ class F3UserProfile {
   final String id;
   final String f3Name;
   final String email;
+  final String? firstName;
+  final String? lastName;
   final String? homeRegionId;
   final String? homeRegionName;
+  final String? avatarUrl;
 
   const F3UserProfile({
     required this.id,
     required this.f3Name,
     required this.email,
+    this.firstName,
+    this.lastName,
     this.homeRegionId,
     this.homeRegionName,
+    this.avatarUrl,
   });
 
-  factory F3UserProfile.fromJson(Map<String, dynamic> json) => F3UserProfile(
-        id: json['id'] as String? ?? '',
-        f3Name: json['f3Name'] as String? ?? '',
-        email: json['email'] as String? ?? '',
-        homeRegionId: json['homeRegionId'] as String?,
-        homeRegionName: json['homeRegion']?['name'] as String?,
-      );
+  /// Tolerant of the /me/profile shape: numeric ids arrive as ints (the API
+  /// uses numeric user/org ids), the payload may or may not be wrapped in a
+  /// `profile` key, and homeRegion may be an expanded object or a flat name.
+  factory F3UserProfile.fromJson(Map<String, dynamic> json) {
+    final data = json['profile'] is Map<String, dynamic>
+        ? json['profile'] as Map<String, dynamic>
+        : json;
+    String? str(dynamic v) {
+      final s = v?.toString();
+      return (s == null || s.isEmpty || s == 'null') ? null : s;
+    }
+
+    final homeRegion = data['homeRegion'];
+    return F3UserProfile(
+      id: str(data['id']) ?? '',
+      f3Name: str(data['f3Name']) ?? '',
+      email: str(data['email']) ?? '',
+      firstName: str(data['firstName']),
+      lastName: str(data['lastName']),
+      homeRegionId: str(data['homeRegionId']),
+      homeRegionName: str(homeRegion is Map
+          ? homeRegion['name']
+          : data['homeRegionName'] ?? data['homeRegionOrgName']),
+      avatarUrl: str(data['avatarUrl']),
+    );
+  }
+
+  /// Best display name: F3 handle, else first name, else email local part.
+  String get displayName {
+    if (f3Name.isNotEmpty) return f3Name;
+    if (firstName != null && firstName!.isNotEmpty) return firstName!;
+    return email.split('@').first;
+  }
 }
 
 class F3Location {

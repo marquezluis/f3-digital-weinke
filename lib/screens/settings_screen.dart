@@ -42,70 +42,7 @@ class SettingsScreen extends StatelessWidget {
             padding: const EdgeInsets.all(20),
             children: [
               // ── Profile banner ────────────────────────────────────────────
-              Consumer<AppProfileService>(
-                builder: (context, profile, _) {
-                  final name = profile.displayName.isEmpty
-                      ? 'Unnamed PAX'
-                      : profile.displayName;
-                  return Container(
-                    padding: const EdgeInsets.all(16),
-                    margin: const EdgeInsets.only(bottom: 24),
-                    decoration: BoxDecoration(
-                      color: context.f3card,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: F3Colors.accent.withValues(alpha: 0.3)),
-                    ),
-                    child: Row(children: [
-                      Container(
-                        width: 52, height: 52,
-                        decoration: BoxDecoration(
-                          color: F3Colors.accent.withValues(alpha: 0.14),
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: F3Colors.accent.withValues(alpha: 0.3)),
-                        ),
-                        child: const Icon(Icons.shield_rounded,
-                            color: F3Colors.accent, size: 30),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(name,
-                                style: TextStyle(
-                                    color: context.f3textPrimary,
-                                    fontWeight: FontWeight.w900,
-                                    fontSize: 18)),
-                            if (profile.homeAo.isNotEmpty)
-                              Text(profile.homeAo,
-                                  style: TextStyle(
-                                      color: context.f3textSecondary, fontSize: 13)),
-                            if (profile.region.isNotEmpty)
-                              Text(profile.region,
-                                  style: TextStyle(
-                                      color: context.f3textMuted, fontSize: 12)),
-                          ],
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: F3Colors.accent.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          service.appRole == AppRole.q ? 'Q' : 'PAX',
-                          style: const TextStyle(
-                              color: F3Colors.accent,
-                              fontWeight: FontWeight.w900,
-                              fontSize: 13,
-                              letterSpacing: 1),
-                        ),
-                      ),
-                    ]),
-                  );
-                },
-              ),
+              _ProfileBanner(isQ: service.appRole == AppRole.q),
 
               // ── Coupon Mode ───────────────────────────────────────────────
               const _SectionHeader('COUPON / EQUIPMENT'),
@@ -572,6 +509,170 @@ class _SectionHeader extends StatelessWidget {
             color: context.f3textMuted,
             letterSpacing: 1.5,
           ),
+    );
+  }
+}
+
+// ── Profile banner ───────────────────────────────────────────────────────────
+
+class _ProfileBanner extends StatefulWidget {
+  final bool isQ;
+  const _ProfileBanner({required this.isQ});
+
+  @override
+  State<_ProfileBanner> createState() => _ProfileBannerState();
+}
+
+class _ProfileBannerState extends State<_ProfileBanner> {
+  bool _synced = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _syncFromF3());
+  }
+
+  bool _isLinked(AuthService auth) =>
+      auth.currentUser?.identities
+          .any((i) => i.provider == AuthProvider.f3nation) ??
+      false;
+
+  /// When the account is linked, quietly refresh the local profile from the
+  /// F3 Nation database each time Settings opens — their DB is the source of
+  /// truth for F3 name, region, and avatar.
+  Future<void> _syncFromF3() async {
+    final auth = context.read<AuthService>();
+    final api = context.read<F3ApiService>();
+    final profile = context.read<AppProfileService>();
+    if (!_isLinked(auth)) return;
+
+    final token = await auth.getF3AccessToken();
+    if (token == null) return;
+    final f3 = await api.getMyProfile(userAccessToken: token);
+    if (f3 == null || !mounted) return;
+
+    await profile.applyF3Profile(
+      f3Name: f3.displayName,
+      region: f3.homeRegionName,
+      avatarUrl: f3.avatarUrl,
+    );
+    if (mounted) setState(() => _synced = true);
+  }
+
+  String get _greeting {
+    final hour = DateTime.now().hour;
+    if (hour < 5) return 'Embrace the gloom';
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer2<AppProfileService, AuthService>(
+      builder: (context, profile, auth, _) {
+        final name =
+            profile.displayName.isEmpty ? 'PAX' : profile.displayName;
+        final linked = _isLinked(auth);
+        return Container(
+          padding: const EdgeInsets.all(16),
+          margin: const EdgeInsets.only(bottom: 24),
+          decoration: BoxDecoration(
+            color: context.f3card,
+            borderRadius: BorderRadius.circular(14),
+            border:
+                Border.all(color: F3Colors.accent.withValues(alpha: 0.3)),
+          ),
+          child: Row(children: [
+            // Avatar from F3 Nation when available, shield otherwise.
+            profile.avatarUrl.isNotEmpty
+                ? CircleAvatar(
+                    radius: 26,
+                    backgroundColor:
+                        F3Colors.accent.withValues(alpha: 0.14),
+                    foregroundImage: NetworkImage(profile.avatarUrl),
+                    onForegroundImageError: (exception, stackTrace) {},
+                    child: const Icon(Icons.shield_rounded,
+                        color: F3Colors.accent, size: 26),
+                  )
+                : Container(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: F3Colors.accent.withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                          color: F3Colors.accent.withValues(alpha: 0.3)),
+                    ),
+                    child: const Icon(Icons.shield_rounded,
+                        color: F3Colors.accent, size: 30),
+                  ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('$_greeting,',
+                      style: TextStyle(
+                          color: context.f3textSecondary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600)),
+                  Text(name,
+                      style: TextStyle(
+                          color: context.f3textPrimary,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 18)),
+                  if (profile.homeAo.isNotEmpty)
+                    Text(profile.homeAo,
+                        style: TextStyle(
+                            color: context.f3textSecondary, fontSize: 13)),
+                  if (profile.region.isNotEmpty)
+                    Text(profile.region,
+                        style: TextStyle(
+                            color: context.f3textMuted, fontSize: 12)),
+                  if (linked)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        Icon(
+                            _synced
+                                ? Icons.verified_rounded
+                                : Icons.sync_rounded,
+                            color: F3Colors.accent, size: 13),
+                        const SizedBox(width: 4),
+                        Text(
+                          _synced
+                              ? 'Synced with F3 Nation'
+                              : 'Linked to F3 Nation',
+                          style: const TextStyle(
+                              color: F3Colors.accent,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700),
+                        ),
+                      ]),
+                    ),
+                ],
+              ),
+            ),
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: F3Colors.accent.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                widget.isQ ? 'Q' : 'PAX',
+                style: const TextStyle(
+                    color: F3Colors.accent,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 13,
+                    letterSpacing: 1),
+              ),
+            ),
+          ]),
+        );
+      },
     );
   }
 }

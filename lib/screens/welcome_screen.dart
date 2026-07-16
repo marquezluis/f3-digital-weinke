@@ -5,8 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../l10n/app_localizations.dart';
+import '../models/f3_api_models.dart';
 import '../services/app_profile_service.dart';
 import '../services/auth_service.dart';
+import '../services/f3_api_service.dart';
 import '../services/local_app_lock_service.dart';
 import '../theme/app_theme.dart';
 
@@ -80,6 +82,51 @@ class _WelcomeScreenState extends State<WelcomeScreen>
     widget.onComplete();
   }
 
+  /// The "real auth" first-run path: OAuth against F3 Nation, then hydrate
+  /// the local profile straight from their database — no manual typing.
+  /// Anything the F3 profile doesn't know (home AO, role) still comes from
+  /// whatever the user set on this screen.
+  Future<void> _signInWithF3() async {
+    setState(() => _saving = true);
+    HapticFeedback.mediumImpact();
+    final auth = context.read<AuthService>();
+    final api = context.read<F3ApiService>();
+    final profile = context.read<AppProfileService>();
+
+    try {
+      final user = await auth.signInWithF3Nation();
+      F3UserProfile? f3;
+      final token = await auth.getF3AccessToken();
+      if (token != null) {
+        f3 = await api.getMyProfile(userAccessToken: token);
+      }
+
+      final name = (f3?.displayName.isNotEmpty ?? false)
+          ? f3!.displayName
+          : (user.displayName.isNotEmpty ? user.displayName : _nameCtrl.text);
+      await profile.completeWelcome(
+        role: _role,
+        displayName: name,
+        homeAo: _homeAoCtrl.text,
+        region: f3?.homeRegionName ?? _regionCtrl.text,
+        authUserId: user.id,
+        appLockEnabled: _appLockEnabled,
+      );
+      if (f3?.avatarUrl != null) {
+        await profile.applyF3Profile(avatarUrl: f3!.avatarUrl);
+      }
+      if (!mounted) return;
+      widget.onComplete();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('$e'), duration: const Duration(seconds: 6)),
+      );
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -106,9 +153,45 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                 ),
               ),
               const SizedBox(height: 32),
-              // ── Divider with label ───────────────────────────────────────────
-              _SectionLabel(l10n.welcomeSetupProfile),
-              const SizedBox(height: 14),
+              // ── F3 Nation sign-in (primary path when configured) ────────────
+              if (LocalAuthService.f3LoginAvailable) ...[
+                ElevatedButton.icon(
+                  onPressed: _saving ? null : _signInWithF3,
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(52),
+                    textStyle: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.5),
+                  ),
+                  icon: _saving
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                              color: Colors.white, strokeWidth: 2))
+                      : const Icon(Icons.shield_rounded),
+                  label: const Text('Sign in with F3 Nation'),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Pulls your PAX profile — F3 name, region, avatar — '
+                  'straight from F3 Nation. No typing.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: context.f3textMuted,
+                    fontSize: 12,
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                const _SectionLabel('OR SET UP MANUALLY'),
+                const SizedBox(height: 14),
+              ] else ...[
+                // ── Divider with label ─────────────────────────────────────────
+                _SectionLabel(l10n.welcomeSetupProfile),
+                const SizedBox(height: 14),
+              ],
               TextField(
                 controller: _nameCtrl,
                 textCapitalization: TextCapitalization.words,

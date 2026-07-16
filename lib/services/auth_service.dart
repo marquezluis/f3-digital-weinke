@@ -44,6 +44,10 @@ class LocalAuthService extends AuthService {
   static const _keyCurrentUser = 'auth_current_user_v1';
   static const _uuid = Uuid();
 
+  /// Whether F3 Nation sign-in is available in this build (a client ID was
+  /// injected via --dart-define). UI uses this to show/hide the sign-in CTA.
+  static bool get f3LoginAvailable => _f3ClientId.isNotEmpty;
+
   // ── F3 Nation OAuth (auth2.f3nation.com) ─────────────────────────────────
   // IMPORTANT: auth2, not auth. Per Tackle (2026-07-15): auth.f3nation.com is
   // the OLD standalone auth server — do not use it. auth2.f3nation.com is the
