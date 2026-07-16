@@ -43,6 +43,7 @@ class AppProfileService extends ChangeNotifier {
   static const _keyAuthUserId = 'profile_auth_user_id';
   static const _keyAppLockEnabled = 'profile_app_lock_enabled';
   static const _keyAvatarUrl = 'profile_avatar_url';
+  static const _keyHomeRegionId = 'profile_home_region_id';
 
   SharedPreferences? _prefs;
   bool _welcomeComplete = false;
@@ -53,6 +54,7 @@ class AppProfileService extends ChangeNotifier {
   String _authUserId = '';
   bool _appLockEnabled = false;
   String _avatarUrl = '';
+  String _homeRegionId = '';
 
   bool get welcomeComplete => _welcomeComplete;
   String get displayName => _displayName;
@@ -62,6 +64,7 @@ class AppProfileService extends ChangeNotifier {
   String get authUserId => _authUserId;
   bool get appLockEnabled => _appLockEnabled;
   String get avatarUrl => _avatarUrl;
+  String get homeRegionId => _homeRegionId;
 
   Map<String, dynamic> toJson() => {
         'welcomeComplete': _welcomeComplete,
@@ -83,6 +86,7 @@ class AppProfileService extends ChangeNotifier {
     _authUserId = _prefs!.getString(_keyAuthUserId) ?? '';
     _appLockEnabled = _prefs!.getBool(_keyAppLockEnabled) ?? false;
     _avatarUrl = _prefs!.getString(_keyAvatarUrl) ?? '';
+    _homeRegionId = _prefs!.getString(_keyHomeRegionId) ?? '';
     final roleName = _prefs!.getString(_keyRole);
     _role = AppRole.values.firstWhere(
       (role) => role.name == roleName,
@@ -100,6 +104,7 @@ class AppProfileService extends ChangeNotifier {
     String? region,
     String? avatarUrl,
     String? f3UserId,
+    String? homeRegionId,
   }) async {
     var changed = false;
     if (f3Name != null && f3Name.isNotEmpty && f3Name != _displayName) {
@@ -118,6 +123,12 @@ class AppProfileService extends ChangeNotifier {
       _authUserId = f3UserId;
       changed = true;
     }
+    if (homeRegionId != null &&
+        homeRegionId.isNotEmpty &&
+        homeRegionId != _homeRegionId) {
+      _homeRegionId = homeRegionId;
+      changed = true;
+    }
     if (!changed) return;
     notifyListeners();
     _prefs ??= await SharedPreferences.getInstance();
@@ -126,6 +137,7 @@ class AppProfileService extends ChangeNotifier {
       _prefs!.setString(_keyRegion, _region),
       _prefs!.setString(_keyAvatarUrl, _avatarUrl),
       _prefs!.setString(_keyAuthUserId, _authUserId),
+      _prefs!.setString(_keyHomeRegionId, _homeRegionId),
     ]);
   }
 

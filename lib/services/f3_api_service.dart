@@ -27,7 +27,19 @@ class F3ApiService extends ChangeNotifier {
   static const _apiKey = String.fromEnvironment('F3_API_KEY');
   static const _orgIdEnv = String.fromEnvironment('F3_API_ORG_ID');
 
-  String? get orgId => _orgIdEnv.isNotEmpty ? _orgIdEnv : null;
+  // Set at runtime from the signed-in user's home region (via applyF3Profile).
+  // Prefer it over the build-time default so each PAX gets their own region
+  // for upcoming-beatdown filtering and Slack routing, instead of one org
+  // baked into the build.
+  String? _userOrgId;
+  set userOrgId(String? value) {
+    if (value == _userOrgId) return;
+    _userOrgId = (value != null && value.isNotEmpty) ? value : null;
+    notifyListeners();
+  }
+
+  String? get orgId =>
+      _userOrgId ?? (_orgIdEnv.isNotEmpty ? _orgIdEnv : null);
 
   bool get isConfigured => _apiKey.isNotEmpty;
 

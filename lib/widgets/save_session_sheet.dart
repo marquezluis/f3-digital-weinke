@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import '../models/workout_history.dart';
+import '../services/app_profile_service.dart' hide AppRole;
 import '../services/history_service.dart';
 import '../services/settings_service.dart';
 import '../theme/app_theme.dart';
@@ -77,8 +78,14 @@ class _SaveSessionSheetState extends State<SaveSessionSheet> {
       final settings = context.read<SettingsService>();
       final history  = context.read<HistoryService>();
 
-      if (_qCtrl.text.isEmpty && settings.myF3Name.isNotEmpty) {
-        _qCtrl.text = settings.myF3Name;
+      final profile = context.read<AppProfileService>();
+      // Prefer the explicit "My F3 Name" setting, else the synced F3 Nation
+      // profile name — a signed-in PAX shouldn't have to type their own Q.
+      final myName = settings.myF3Name.isNotEmpty
+          ? settings.myF3Name
+          : profile.displayName;
+      if (_qCtrl.text.isEmpty && myName.isNotEmpty) {
+        _qCtrl.text = myName;
       }
 
       final sessions = history.all.where((e) => !e.isTemplate).toList();
@@ -86,6 +93,19 @@ class _SaveSessionSheetState extends State<SaveSessionSheet> {
       if (_aoCtrl.text.isEmpty && sessions.isNotEmpty) {
         final lastAo = sessions.first.ao;
         if (lastAo.isNotEmpty) _aoCtrl.text = lastAo;
+      }
+
+      // VQ auto-suggest: if the current Q has never logged a session at this
+      // AO before, this may be their VQ (first time leading that AO) — default
+      // the tag so they don't forget it. Q can clear it. Only fires when both
+      // Q and AO are known and no tag was already chosen.
+      if (_eventTag == null &&
+          myName.isNotEmpty &&
+          _aoCtrl.text.isNotEmpty) {
+        final ledHereBefore = sessions.any((s) =>
+            s.ao.toLowerCase() == _aoCtrl.text.toLowerCase() &&
+            s.q.toLowerCase().contains(myName.toLowerCase()));
+        if (!ledHereBefore) _eventTag = EventTag.vq;
       }
 
       // Unique AOs in recency order (up to 6)

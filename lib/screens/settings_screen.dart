@@ -19,6 +19,7 @@ import '../services/region_service.dart';
 import '../services/f3_api_service.dart';
 import '../services/settings_service.dart';
 import '../theme/app_theme.dart';
+import '../utils/greeting.dart';
 import 'achievements_screen.dart';
 import 'browse_aos_screen.dart';
 import 'deck_of_pain_screen.dart';
@@ -420,6 +421,19 @@ class SettingsScreen extends StatelessWidget {
               // ── About ─────────────────────────────────────────────────────
               const _SectionHeader('ABOUT'),
               const SizedBox(height: 8),
+              Builder(builder: (context) {
+                final count = context
+                    .watch<HistoryService>()
+                    .all
+                    .where((e) => !e.isTemplate)
+                    .length;
+                if (count == 0) return const SizedBox.shrink();
+                return _InfoTile(
+                  icon: Icons.local_fire_department_rounded,
+                  title: '$count beatdown${count == 1 ? '' : 's'} planned',
+                  subtitle: 'Every one of them, posted in the gloom.',
+                );
+              }),
               const _VersionTile(),
               const _InfoTile(
                 icon: Icons.fitness_center_rounded,
@@ -555,16 +569,12 @@ class _ProfileBannerState extends State<_ProfileBanner> {
       f3Name: f3.displayName,
       region: f3.homeRegionName,
       avatarUrl: f3.avatarUrl,
+      homeRegionId: f3.homeRegionId,
     );
+    // Feed the per-user region into the API client so upcoming beatdowns and
+    // Slack routing target this PAX's own region, not the build default.
+    api.userOrgId = f3.homeRegionId;
     if (mounted) setState(() => _synced = true);
-  }
-
-  String get _greeting {
-    final hour = DateTime.now().hour;
-    if (hour < 5) return 'Embrace the gloom';
-    if (hour < 12) return 'Good morning';
-    if (hour < 17) return 'Good afternoon';
-    return 'Good evening';
   }
 
   @override
@@ -574,7 +584,7 @@ class _ProfileBannerState extends State<_ProfileBanner> {
         final name =
             profile.displayName.isEmpty ? 'PAX' : profile.displayName;
         final linked = _isLinked(auth);
-        return Container(
+        final banner = Container(
           padding: const EdgeInsets.all(16),
           margin: const EdgeInsets.only(bottom: 24),
           decoration: BoxDecoration(
@@ -612,7 +622,7 @@ class _ProfileBannerState extends State<_ProfileBanner> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('$_greeting,',
+                  Text('${greetingForNow()},',
                       style: TextStyle(
                           color: context.f3textSecondary,
                           fontSize: 12,
@@ -672,6 +682,17 @@ class _ProfileBannerState extends State<_ProfileBanner> {
             ),
           ]),
         );
+
+        // Pull down on the banner to force a re-sync from the F3 Nation DB.
+        if (!linked) return banner;
+        return RefreshIndicator(
+          onRefresh: _syncFromF3,
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            shrinkWrap: true,
+            children: [banner],
+          ),
+        );
       },
     );
   }
@@ -703,6 +724,8 @@ class _F3NationAccountCardState extends State<_F3NationAccountCard> {
         await auth.unlinkF3Nation();
       } else {
         await auth.signInWithF3Nation();
+        // Celebrate the moment a PAX first links their real F3 identity.
+        HapticFeedback.heavyImpact();
       }
     } catch (e) {
       if (mounted) _showErrorDialog('$e');

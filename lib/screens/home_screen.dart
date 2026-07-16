@@ -9,9 +9,11 @@ import '../models/exercise.dart';
 import '../models/workout_history.dart';
 import '../models/workout_plan.dart';
 import '../models/workout_settings.dart';
+import '../services/app_profile_service.dart' hide AppRole;
 import '../services/current_workout_service.dart';
 import '../services/exercise_service.dart';
 import '../services/history_service.dart';
+import '../utils/greeting.dart';
 import '../services/settings_service.dart';
 import '../services/f3_api_service.dart';
 import '../models/f3_api_models.dart';
@@ -72,17 +74,24 @@ class HomeScreen extends StatelessWidget {
                       ]),
                     ),
                     const SizedBox(height: 4),
-                    if (myF3Name.isNotEmpty) ...[
-                      Text(
-                        'Hey, $myF3Name!',
-                        style: TextStyle(
-                          color: context.f3textPrimary,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
+                    Builder(builder: (context) {
+                      final profileName =
+                          context.watch<AppProfileService>().displayName;
+                      final name =
+                          myF3Name.isNotEmpty ? myF3Name : profileName;
+                      if (name.isEmpty) return const SizedBox.shrink();
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 2),
+                        child: Text(
+                          '${greetingForNow(now)}, $name!',
+                          style: TextStyle(
+                            color: context.f3textPrimary,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 2),
-                    ],
+                      );
+                    }),
                     Text(
                       _formatDate(now),
                       style: TextStyle(
