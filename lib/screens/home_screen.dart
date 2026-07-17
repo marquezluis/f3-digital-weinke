@@ -23,6 +23,7 @@ import '../widgets/exercise_detail_sheet.dart';
 import '../theme/app_theme.dart';
 import 'history_screen.dart';
 import 'profile_screen.dart';
+import 'schedule_screen.dart';
 import '../widgets/version_footer.dart';
 import 'qsource_screen.dart';
 
@@ -322,6 +323,22 @@ class HomeScreen extends StatelessWidget {
                     // Trimmed to the essentials — Exicon, Live Timer, and
                     // Spartan Co-Q each have a dedicated nav tab, so they don't
                     // need to also crowd the home page.
+                    // Schedule — upcoming beatdowns, HC, preblast. Only shown
+                    // when connected to F3 Nation (needs the API).
+                    if (context.watch<F3ApiService>().isConfigured) ...[
+                      _QuickCard(
+                        icon: Icons.event_available_rounded,
+                        title: 'Schedule',
+                        subtitle: 'Upcoming beatdowns · HC · preblast',
+                        color: const Color(0xFF2196F3),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const ScheduleScreen()),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
                     if (appRole == AppRole.q) ...[
                       _QuickCard(
                         icon: Icons.bolt_rounded,

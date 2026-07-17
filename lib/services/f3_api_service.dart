@@ -160,11 +160,12 @@ class F3ApiService extends ChangeNotifier {
 
   // ── Events / Beatdowns ────────────────────────────────────────────────────
 
-  Future<List<F3EventInstance>> getUpcomingBeatdowns() async {
+  Future<List<F3EventInstance>> getUpcomingBeatdowns(
+      {String? userAccessToken}) async {
     final path = orgId != null
         ? '/v1/event-instance/calendar-home-schedule?orgId=$orgId'
         : '/v1/event-instance/calendar-home-schedule';
-    final data = await _getList(path);
+    final data = await _getList(path, bearerOverride: userAccessToken);
     if (data == null) return [];
     return data
         .map((e) => F3EventInstance.fromJson(e as Map<String, dynamic>))
@@ -287,6 +288,75 @@ class F3ApiService extends ChangeNotifier {
     });
     if (res.status == 200 || res.status == 201) return null;
     return 'Attendance write failed (${res.status}): ${res.body}';
+  }
+
+  // ── Schedule / signups (Tier 1) ───────────────────────────────────────────
+
+  /// HC / sign up the signed-in PAX for an upcoming beatdown (planned
+  /// attendance). Self-signup is allowed with the user's own token — no editor
+  /// role needed. Returns null on success, else an error string.
+  Future<String?> signUpForEvent({
+    required int eventInstanceId,
+    required int userId,
+    required String userAccessToken,
+  }) async {
+    final res = await _post(
+      '/v1/attendance',
+      {
+        'eventInstanceId': eventInstanceId,
+        'userId': userId,
+        'attendanceTypeIds': [attendanceTypePax],
+      },
+      bearerOverride: userAccessToken,
+    );
+    if (res.status == 200 || res.status == 201) return null;
+    return 'Sign-up failed (${res.status}): ${res.body}';
+  }
+
+  /// Remove the signed-in PAX's planned attendance (un-HC).
+  Future<String?> withdrawFromEvent({
+    required int eventInstanceId,
+    required int userId,
+    required String userAccessToken,
+  }) async {
+    final res = await _post(
+      '/v1/attendance/remove-planned',
+      {'eventInstanceId': eventInstanceId, 'userId': userId},
+      bearerOverride: userAccessToken,
+    );
+    if (res.status == 200 || res.status == 201) return null;
+    return 'Withdraw failed (${res.status}): ${res.body}';
+  }
+
+  /// Take the Q for an open event.
+  Future<String?> takeQ({
+    required int eventInstanceId,
+    required int userId,
+    required String userAccessToken,
+  }) async {
+    final res = await _post(
+      '/v1/attendance/take-q',
+      {'eventInstanceId': eventInstanceId, 'userId': userId},
+      bearerOverride: userAccessToken,
+    );
+    if (res.status == 200 || res.status == 201) return null;
+    return 'Take-Q failed (${res.status}): ${res.body}';
+  }
+
+  /// Post/update the preblast (the plan announced before a beatdown).
+  Future<String?> postPreblast({
+    required int eventInstanceId,
+    required String orgId,
+    required String preblast,
+  }) async {
+    final res = await _post('/v1/event-instance', {
+      'id': eventInstanceId,
+      'orgId': int.tryParse(orgId) ?? orgId,
+      'preblast': preblast,
+      'isActive': true,
+    });
+    if (res.status == 200 || res.status == 201) return null;
+    return 'Preblast failed (${res.status}): ${res.body}';
   }
 
   // ── Health check ─────────────────────────────────────────────────────────

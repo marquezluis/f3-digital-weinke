@@ -90,10 +90,13 @@ class F3EventInstance {
   final DateTime date;
   final String? name;
   final String? orgName;
+  final String? startTime;
   final String? qUserId;
   final String? qF3Name;
   final String? locationName;
   final String? eventTypeName;
+  final String? preblast;
+  final int? hcCount;
 
   const F3EventInstance({
     required this.id,
@@ -101,10 +104,13 @@ class F3EventInstance {
     required this.date,
     this.name,
     this.orgName,
+    this.startTime,
     this.qUserId,
     this.qF3Name,
     this.locationName,
     this.eventTypeName,
+    this.preblast,
+    this.hcCount,
   });
 
   bool get hasQ => qUserId != null && qUserId!.isNotEmpty;
@@ -121,18 +127,22 @@ class F3EventInstance {
   factory F3EventInstance.fromJson(Map<String, dynamic> json) {
     String? str(dynamic v) => v?.toString();
     final rawDate = str(json['date']) ?? str(json['startDate']) ?? '';
+    final hc = json['hcCount'] ?? json['paxCount'];
     return F3EventInstance(
       id: str(json['id']) ?? '',
       eventId: str(json['eventId']) ?? '',
       date: DateTime.tryParse(rawDate) ?? DateTime.now(),
       name: str(json['name']),
       orgName: str(json['orgName']),
+      startTime: str(json['startTime']),
       qUserId: str(json['qUserId']),
       qF3Name: str(json['qUser'] is Map ? json['qUser']['f3Name'] : null),
       locationName:
           str(json['location'] is Map ? json['location']['name'] : null),
       eventTypeName:
           str(json['eventType'] is Map ? json['eventType']['name'] : null),
+      preblast: str(json['preblast']),
+      hcCount: hc is int ? hc : int.tryParse(hc?.toString() ?? ''),
     );
   }
 }
