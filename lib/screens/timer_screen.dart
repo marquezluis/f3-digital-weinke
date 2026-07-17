@@ -156,8 +156,16 @@ class _TimerScreenState extends State<TimerScreen> {
               rounds: b.rounds,
             ))
         .toList();
-    _WorkoutSummarySheet.show(context, plan: plan, onSave: (String rolledPax) {
-      SaveSessionSheet.show(context, blocks: blocks, initialPax: rolledPax);
+    // Real minutes the timer actually ran (0 if never started).
+    final actualMins = context.read<TimerService>().elapsedRealMinutes;
+    _WorkoutSummarySheet.show(context, plan: plan, actualMinutes: actualMins,
+        onSave: (String rolledPax) {
+      SaveSessionSheet.show(
+        context,
+        blocks: blocks,
+        initialPax: rolledPax,
+        actualDurationMinutes: actualMins > 0 ? actualMins : null,
+      );
     });
   }
 
@@ -2050,16 +2058,21 @@ class _ControlButton extends StatelessWidget {
 class _WorkoutSummarySheet extends StatefulWidget {
   final WorkoutPlan plan;
   final void Function(String) onSave;
+  final int actualMinutes;
 
-  const _WorkoutSummarySheet({required this.plan, required this.onSave});
+  const _WorkoutSummarySheet(
+      {required this.plan, required this.onSave, this.actualMinutes = 0});
 
   static void show(BuildContext context,
-      {required WorkoutPlan plan, required void Function(String) onSave}) {
+      {required WorkoutPlan plan,
+      required void Function(String) onSave,
+      int actualMinutes = 0}) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => _WorkoutSummarySheet(plan: plan, onSave: onSave),
+      builder: (_) => _WorkoutSummarySheet(
+          plan: plan, onSave: onSave, actualMinutes: actualMinutes),
     );
   }
 
@@ -2153,8 +2166,10 @@ class _WorkoutSummarySheetState extends State<_WorkoutSummarySheet> {
           Row(children: [
             _SummaryStat(
               icon: Icons.timer_rounded,
-              value: '$totalMins',
-              label: 'MINUTES',
+              // Real time invested when the session was run live; otherwise
+              // the planned total.
+              value: '${widget.actualMinutes > 0 ? widget.actualMinutes : totalMins}',
+              label: widget.actualMinutes > 0 ? 'MIN LIVE' : 'MINUTES',
               color: F3Colors.phaseThang,
             ),
             _SummaryStat(

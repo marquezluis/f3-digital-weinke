@@ -173,6 +173,10 @@ class WorkoutHistory {
   final BeatdownType beatdownType;
   /// Optional F3 Nation event tag (VQ, Convergence, etc.). Null = no tag.
   final EventTag? eventTag;
+  /// Real wall-clock minutes the Q Mode timer actually ran, if this session
+  /// was run live. Null for plans saved without running the timer. This is
+  /// the true time invested, distinct from the planned block minutes.
+  final int? actualDurationMinutes;
 
   const WorkoutHistory({
     required this.id,
@@ -192,6 +196,7 @@ class WorkoutHistory {
     this.isTemplate = false,
     this.beatdownType = BeatdownType.bootCamp,
     this.eventTag,
+    this.actualDurationMinutes,
   });
 
   // ── Serialization ──────────────────────────────────────────────────────────
@@ -221,6 +226,7 @@ class WorkoutHistory {
         isTemplate: json['isTemplate'] as bool? ?? false,
         beatdownType: BeatdownType.fromString(json['beatdownType'] as String?),
         eventTag: EventTag.fromString(json['eventTag'] as String?),
+        actualDurationMinutes: json['actualDurationMinutes'] as int?,
       );
 
   Map<String, dynamic> toJson() => {
@@ -241,6 +247,8 @@ class WorkoutHistory {
         'isTemplate': isTemplate,
         'beatdownType': beatdownType.storageValue,
         if (eventTag != null) 'eventTag': eventTag!.displayName,
+        if (actualDurationMinutes != null)
+          'actualDurationMinutes': actualDurationMinutes,
       };
 
   /// Encode to a JSON string (for storage).
@@ -286,6 +294,7 @@ class WorkoutHistory {
     bool? isTemplate,
     BeatdownType? beatdownType,
     EventTag? eventTag,
+    int? actualDurationMinutes,
   }) =>
       WorkoutHistory(
         id: id ?? this.id,
@@ -304,5 +313,7 @@ class WorkoutHistory {
         isTemplate: isTemplate ?? this.isTemplate,
         beatdownType: beatdownType ?? this.beatdownType,
         eventTag: eventTag ?? this.eventTag,
+        actualDurationMinutes:
+            actualDurationMinutes ?? this.actualDurationMinutes,
       );
 }

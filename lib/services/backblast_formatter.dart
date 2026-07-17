@@ -31,6 +31,9 @@ class BackblastFormatter {
     if (h.eventTag != null) {
       buf.writeln('EVENT TAG: ${h.eventTag!.displayName}');
     }
+    if (h.actualDurationMinutes != null && h.actualDurationMinutes! > 0) {
+      buf.writeln('DURATION: ${h.actualDurationMinutes} min');
+    }
     buf.writeln('FNGs: ${h.fngCount > 0 ? h.fngCount.toString() : "None"}');
     buf.writeln('COUNT: ${h.totalCount > 0 ? h.totalCount.toString() : "—"}');
 

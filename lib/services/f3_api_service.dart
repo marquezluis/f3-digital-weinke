@@ -74,19 +74,47 @@ class F3ApiService extends ChangeNotifier {
     return null;
   }
 
-  Future<List<dynamic>?> _getList(String path) async {
-    if (!isConfigured) return null;
+  Future<List<dynamic>?> _getList(String path, {String? bearerOverride}) async {
+    if (bearerOverride == null && !isConfigured) return null;
     try {
       final res = await http
-          .get(Uri.parse('$_base$path'), headers: _headers())
+          .get(Uri.parse('$_base$path'), headers: _headers(bearerOverride))
           .timeout(const Duration(seconds: 10));
       if (res.statusCode == 200) {
         final body = json.decode(res.body);
         if (body is List) return body;
         if (body is Map && body['data'] is List) return body['data'] as List;
+        if (body is Map && body['eventInstances'] is List) {
+          return body['eventInstances'] as List;
+        }
       }
     } catch (_) {}
     return null;
+  }
+
+  /// Generic authenticated POST. Returns (statusCode, decodedBodyOrNull).
+  /// Used by the publish flow to write event instances and attendance.
+  Future<({int status, dynamic body})> _post(
+    String path,
+    Map<String, dynamic> payload, {
+    String? bearerOverride,
+  }) async {
+    try {
+      final res = await http
+          .post(
+            Uri.parse('$_base$path'),
+            headers: _headers(bearerOverride),
+            body: json.encode(payload),
+          )
+          .timeout(const Duration(seconds: 15));
+      dynamic decoded;
+      try {
+        decoded = res.body.isNotEmpty ? json.decode(res.body) : null;
+      } catch (_) {}
+      return (status: res.statusCode, body: decoded);
+    } catch (e) {
+      return (status: -1, body: e.toString());
+    }
   }
 
   // ── Profile ───────────────────────────────────────────────────────────────
@@ -195,6 +223,70 @@ class F3ApiService extends ChangeNotifier {
     } catch (e) {
       return 'Network error: $e';
     }
+  }
+
+  // ── Publish flow (backblast + attendance to F3 Nation) ────────────────────
+  // These write real records. Attendance type IDs (confirmed from the F3
+  // Nation seed data): 1 = PAX, 2 = Q, 3 = Co-Q.
+
+  static const int attendanceTypePax = 1;
+  static const int attendanceTypeQ = 2;
+
+  /// Past events where [userId] was Q/Co-Q, filtered server-side to those with
+  /// no backblast posted yet. Requires the user's own token (protected route).
+  Future<List<F3EventInstance>> getPastQsWithoutBackblast({
+    required String userId,
+    required String regionOrgId,
+    required String userAccessToken,
+  }) async {
+    final data = await _getList(
+      '/v1/event-instance/past-qs?userId=$userId&regionOrgId=$regionOrgId&notPostedOnly=true',
+      bearerOverride: userAccessToken,
+    );
+    if (data == null) return [];
+    return data
+        .map((e) => F3EventInstance.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Writes the backblast text + counts onto an event instance. Pass
+  /// [eventInstanceId] to update an existing one. Uses the app API key (the
+  /// trusted-app write model). Returns null on success, else an error string.
+  Future<String?> publishBackblast({
+    int? eventInstanceId,
+    required String orgId,
+    required String backblast,
+    required int paxCount,
+    required int fngCount,
+    String? eventTypeId,
+  }) async {
+    final payload = <String, dynamic>{
+      if (eventInstanceId != null) 'id': eventInstanceId,
+      'orgId': int.tryParse(orgId) ?? orgId,
+      'backblast': backblast,
+      'paxCount': paxCount,
+      'fngCount': fngCount,
+      if (eventTypeId != null) 'eventTypeId': int.tryParse(eventTypeId),
+      'isActive': true,
+    };
+    final res = await _post('/v1/event-instance', payload);
+    if (res.status == 200 || res.status == 201) return null;
+    return 'Event write failed (${res.status}): ${res.body}';
+  }
+
+  /// Records actual attendance for one PAX on an event instance.
+  Future<String?> recordAttendance({
+    required int eventInstanceId,
+    required int userId,
+    required int attendanceTypeId,
+  }) async {
+    final res = await _post('/v1/attendance/actual', {
+      'eventInstanceId': eventInstanceId,
+      'userId': userId,
+      'attendanceTypeIds': [attendanceTypeId],
+    });
+    if (res.status == 200 || res.status == 201) return null;
+    return 'Attendance write failed (${res.status}): ${res.body}';
   }
 
   // ── Health check ─────────────────────────────────────────────────────────

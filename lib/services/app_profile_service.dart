@@ -44,6 +44,7 @@ class AppProfileService extends ChangeNotifier {
   static const _keyAppLockEnabled = 'profile_app_lock_enabled';
   static const _keyAvatarUrl = 'profile_avatar_url';
   static const _keyHomeRegionId = 'profile_home_region_id';
+  static const _keyLocalAvatarPath = 'profile_local_avatar_path';
 
   SharedPreferences? _prefs;
   bool _welcomeComplete = false;
@@ -55,6 +56,7 @@ class AppProfileService extends ChangeNotifier {
   bool _appLockEnabled = false;
   String _avatarUrl = '';
   String _homeRegionId = '';
+  String _localAvatarPath = '';
 
   bool get welcomeComplete => _welcomeComplete;
   String get displayName => _displayName;
@@ -65,6 +67,17 @@ class AppProfileService extends ChangeNotifier {
   bool get appLockEnabled => _appLockEnabled;
   String get avatarUrl => _avatarUrl;
   String get homeRegionId => _homeRegionId;
+
+  /// Locally-uploaded avatar file path (takes priority over the F3 Nation
+  /// network avatar for display).
+  String get localAvatarPath => _localAvatarPath;
+
+  Future<void> setLocalAvatarPath(String path) async {
+    _localAvatarPath = path;
+    notifyListeners();
+    _prefs ??= await SharedPreferences.getInstance();
+    await _prefs!.setString(_keyLocalAvatarPath, path);
+  }
 
   Map<String, dynamic> toJson() => {
         'welcomeComplete': _welcomeComplete,
@@ -87,6 +100,7 @@ class AppProfileService extends ChangeNotifier {
     _appLockEnabled = _prefs!.getBool(_keyAppLockEnabled) ?? false;
     _avatarUrl = _prefs!.getString(_keyAvatarUrl) ?? '';
     _homeRegionId = _prefs!.getString(_keyHomeRegionId) ?? '';
+    _localAvatarPath = _prefs!.getString(_keyLocalAvatarPath) ?? '';
     final roleName = _prefs!.getString(_keyRole);
     _role = AppRole.values.firstWhere(
       (role) => role.name == roleName,

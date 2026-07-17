@@ -2,6 +2,8 @@
 // Digital Weinke — home dashboard.
 // Branding: F3 "Badass Black" + red-orange accent.
 
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
@@ -20,6 +22,7 @@ import '../models/f3_api_models.dart';
 import '../widgets/exercise_detail_sheet.dart';
 import '../theme/app_theme.dart';
 import 'history_screen.dart';
+import 'profile_screen.dart';
 import '../widgets/version_footer.dart';
 import 'qsource_screen.dart';
 
@@ -593,12 +596,21 @@ class _HomeAvatar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<AppProfileService>(
       builder: (context, profile, _) {
-        final url = profile.avatarUrl;
         final name = profile.displayName;
         final initial =
             name.isNotEmpty ? name.characters.first.toUpperCase() : '';
+        ImageProvider? img;
+        if (profile.localAvatarPath.isNotEmpty &&
+            File(profile.localAvatarPath).existsSync()) {
+          img = FileImage(File(profile.localAvatarPath));
+        } else if (profile.avatarUrl.isNotEmpty) {
+          img = NetworkImage(profile.avatarUrl);
+        }
         return GestureDetector(
-          onTap: () => context.read<ValueNotifier<int>>().value = 6,
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const ProfileScreen()),
+          ),
           child: Container(
             width: 48,
             height: 48,
@@ -607,13 +619,12 @@ class _HomeAvatar extends StatelessWidget {
               color: F3Colors.accent.withValues(alpha: 0.14),
               border:
                   Border.all(color: F3Colors.accent.withValues(alpha: 0.5), width: 2),
-              image: url.isNotEmpty
-                  ? DecorationImage(
-                      image: NetworkImage(url), fit: BoxFit.cover)
+              image: img != null
+                  ? DecorationImage(image: img, fit: BoxFit.cover)
                   : null,
             ),
             alignment: Alignment.center,
-            child: url.isNotEmpty
+            child: img != null
                 ? null
                 : (initial.isNotEmpty
                     ? Text(initial,

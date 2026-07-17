@@ -44,6 +44,10 @@
 	<string>Digital Weinke uses Face ID to unlock your local app profile and workout notes.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Digital Weinke uses your location to sort nearby AOs on the Browse AOs screen. This is optional and only used while the screen is open.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Digital Weinke lets you pick a profile photo from your library. It stays on your device.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Digital Weinke lets you take a profile photo. It stays on your device.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

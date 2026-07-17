@@ -5,13 +5,36 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
+import '../models/auth_models.dart';
+import '../models/f3_api_models.dart';
 import '../models/workout_history.dart';
+import '../services/app_profile_service.dart' hide AppRole;
+import '../services/auth_service.dart';
 import '../services/history_service.dart';
 import '../services/backblast_formatter.dart';
 import '../services/f3_api_service.dart';
 import '../services/settings_service.dart';
 import '../services/slack_service.dart';
 import '../theme/app_theme.dart';
+
+/// The Q's choice in the publish event picker: an existing scheduled instance,
+/// a new unscheduled event, or cancel.
+class _EventChoice {
+  final F3EventInstance? instance;
+  final bool isCancel;
+  const _EventChoice._(this.instance, this.isCancel);
+  factory _EventChoice.existing(F3EventInstance e) => _EventChoice._(e, false);
+  factory _EventChoice.unscheduled() => const _EventChoice._(null, false);
+  static const _EventChoice cancelled = _EventChoice._(null, true);
+
+  @override
+  bool operator ==(Object other) =>
+      other is _EventChoice &&
+      other.instance?.id == instance?.id &&
+      other.isCancel == isCancel;
+  @override
+  int get hashCode => Object.hash(instance?.id, isCancel);
+}
 
 class HistoryScreen extends StatelessWidget {
   const HistoryScreen({super.key});
@@ -369,6 +392,13 @@ class _BackblastScreenState extends State<BackblastScreen> {
   late String _backblast;
   bool _copied = false;
   bool _posting = false;
+  bool _publishing = false;
+
+  bool _isF3Linked() =>
+      context.read<AuthService>().currentUser?.identities.any(
+            (i) => i.provider == AuthProvider.f3nation,
+          ) ??
+      false;
 
   @override
   void initState() {
@@ -406,6 +436,177 @@ class _BackblastScreenState extends State<BackblastScreen> {
       SnackBar(
         content: Text(error ?? 'Posted to Slack!'),
         duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  /// Publish this backblast to F3 Nation: pick (or create) the event
+  /// instance, write the backblast + counts, then attendance for each PAX and
+  /// Q credit. Writes go through the app API key; identity is the signed-in
+  /// user's token.
+  Future<void> _publish(WorkoutHistory entry) async {
+    final auth = context.read<AuthService>();
+    final api = context.read<F3ApiService>();
+    final profile = context.read<AppProfileService>();
+
+    final token = await auth.getF3AccessToken();
+    final orgId = api.orgId;
+    if (token == null || orgId == null || orgId.isEmpty) {
+      if (mounted) {
+        _publishResult('Not ready to publish',
+            'Sign in to F3 Nation and make sure your home region synced '
+            '(Settings → pull to refresh).');
+      }
+      return;
+    }
+
+    setState(() => _publishing = true);
+    try {
+      // 1. Offer the user's unposted scheduled Qs, or "new unscheduled".
+      final events = await api.getPastQsWithoutBackblast(
+        userId: profile.authUserId,
+        regionOrgId: orgId,
+        userAccessToken: token,
+      );
+      if (!mounted) return;
+      final chosen = await _chooseEvent(events);
+      if (chosen == _EventChoice.cancelled) {
+        setState(() => _publishing = false);
+        return;
+      }
+
+      // 2. Write the backblast + counts onto the instance.
+      final err = await api.publishBackblast(
+        eventInstanceId: chosen.instance?.numericId,
+        orgId: orgId,
+        backblast: _backblast,
+        paxCount: entry.totalCount,
+        fngCount: entry.fngCount,
+        eventTypeId: null,
+      );
+      if (err != null) {
+        if (mounted) _publishResult('Publish failed', err);
+        return;
+      }
+
+      // 3. Attendance for each named PAX (best effort), + the Q.
+      var attWritten = 0;
+      final failed = <String>[];
+      final eiId = chosen.instance?.numericId;
+      if (eiId != null) {
+        for (final paxName in entry.pax) {
+          final pax = await api.findPaxByF3Name(paxName.replaceAll('@', ''));
+          final uid = int.tryParse(pax?.id ?? '');
+          if (uid == null) {
+            failed.add(paxName);
+            continue;
+          }
+          final e = await api.recordAttendance(
+            eventInstanceId: eiId,
+            userId: uid,
+            attendanceTypeId: F3ApiService.attendanceTypePax,
+          );
+          if (e == null) {
+            attWritten++;
+          } else {
+            failed.add(paxName);
+          }
+        }
+        // Q credit for the signed-in user.
+        final quid = int.tryParse(profile.authUserId);
+        if (quid != null) {
+          await api.recordAttendance(
+            eventInstanceId: eiId,
+            userId: quid,
+            attendanceTypeId: F3ApiService.attendanceTypeQ,
+          );
+        }
+      }
+
+      if (!mounted) return;
+      _publishResult(
+        'Published to F3 Nation',
+        'Backblast written'
+        '${eiId != null ? ' · $attWritten of ${entry.pax.length} PAX recorded · Q credit logged' : ''}.'
+        '${failed.isEmpty ? '' : '\n\nCould not match: ${failed.join(', ')} '
+            '(check spelling or that they\'re registered).'}',
+      );
+    } catch (e) {
+      if (mounted) _publishResult('Publish error', '$e');
+    } finally {
+      if (mounted) setState(() => _publishing = false);
+    }
+  }
+
+  Future<_EventChoice> _chooseEvent(List<F3EventInstance> events) async {
+    final result = await showModalBottomSheet<_EventChoice>(
+      context: context,
+      backgroundColor: context.f3card,
+      isScrollControlled: true,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text('Which event is this backblast for?',
+                  style: TextStyle(
+                      color: context.f3textPrimary,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 16)),
+            ),
+            if (events.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Text(
+                  'No scheduled Qs without a backblast found for your region. '
+                  'You can still publish it as a new unscheduled event.',
+                  style: TextStyle(
+                      color: context.f3textSecondary, fontSize: 13),
+                ),
+              ),
+            ...events.map((e) => ListTile(
+                  leading: const Icon(Icons.event_rounded,
+                      color: F3Colors.accent),
+                  title: Text(e.displayLabel,
+                      style: TextStyle(color: context.f3textPrimary)),
+                  onTap: () =>
+                      Navigator.pop(context, _EventChoice.existing(e)),
+                )),
+            const Divider(height: 1),
+            ListTile(
+              leading:
+                  const Icon(Icons.add_circle_outline_rounded, color: F3Colors.accent),
+              title: const Text('Unscheduled event (create new)'),
+              onTap: () => Navigator.pop(context, _EventChoice.unscheduled()),
+            ),
+            ListTile(
+              leading: Icon(Icons.close_rounded, color: context.f3textMuted),
+              title: const Text('Cancel'),
+              onTap: () => Navigator.pop(context, _EventChoice.cancelled),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    return result ?? _EventChoice.cancelled;
+  }
+
+  void _publishResult(String title, String message) {
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: context.f3card,
+        title: Text(title,
+            style: TextStyle(color: context.f3textPrimary, fontSize: 16)),
+        content: Text(message,
+            style: TextStyle(color: context.f3textSecondary, fontSize: 13)),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK')),
+        ],
       ),
     );
   }
@@ -610,32 +811,61 @@ class _BackblastScreenState extends State<BackblastScreen> {
                         builder: (_, svc, api, __) {
                           final canPost = (api.isConfigured && svc.slackChannelId.isNotEmpty)
                               || svc.slackWebhookUrl.isNotEmpty;
-                          if (!canPost) return const SizedBox.shrink();
+                          final canPublish = _isF3Linked();
 
-                          return SizedBox(
-                            width: double.infinity,
-                            height: 48,
-                            child: OutlinedButton.icon(
-                              onPressed: _posting
-                                  ? null
-                                  : () => _postToSlack(entry),
-                              icon: _posting
-                                  ? const SizedBox(
-                                      width: 16,
-                                      height: 16,
-                                      child: CircularProgressIndicator(
-                                          strokeWidth: 2),
-                                    )
-                                  : const Icon(Icons.send_rounded, size: 18),
-                              label: Text(
-                                  _posting ? 'POSTING…' : 'POST TO SLACK'),
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: const Color(0xFF4A154B),
-                                side: const BorderSide(
-                                    color: Color(0xFF4A154B)),
+                          return Column(children: [
+                            // Publish to F3 Nation — writes the real event +
+                            // attendance, the primary action when signed in.
+                            if (canPublish) ...[
+                              SizedBox(
+                                width: double.infinity,
+                                height: 48,
+                                child: ElevatedButton.icon(
+                                  onPressed:
+                                      _publishing ? null : () => _publish(entry),
+                                  icon: _publishing
+                                      ? const SizedBox(
+                                          width: 16,
+                                          height: 16,
+                                          child: CircularProgressIndicator(
+                                              color: Colors.white,
+                                              strokeWidth: 2))
+                                      : const Icon(Icons.cloud_upload_rounded,
+                                          size: 18),
+                                  label: Text(_publishing
+                                      ? 'PUBLISHING…'
+                                      : 'PUBLISH TO F3 NATION'),
+                                ),
                               ),
-                            ),
-                          );
+                              const SizedBox(height: 8),
+                            ],
+                            if (canPost)
+                              SizedBox(
+                                width: double.infinity,
+                                height: 48,
+                                child: OutlinedButton.icon(
+                                  onPressed: _posting
+                                      ? null
+                                      : () => _postToSlack(entry),
+                                  icon: _posting
+                                      ? const SizedBox(
+                                          width: 16,
+                                          height: 16,
+                                          child: CircularProgressIndicator(
+                                              strokeWidth: 2),
+                                        )
+                                      : const Icon(Icons.send_rounded,
+                                          size: 18),
+                                  label: Text(
+                                      _posting ? 'POSTING…' : 'POST TO SLACK'),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: const Color(0xFF4A154B),
+                                    side: const BorderSide(
+                                        color: Color(0xFF4A154B)),
+                                  ),
+                                ),
+                              ),
+                          ]);
                         },
                       ),
                     ],

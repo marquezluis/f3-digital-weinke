@@ -54,16 +54,64 @@ class DeckOfPainScreen extends StatefulWidget {
   State<DeckOfPainScreen> createState() => _DeckOfPainScreenState();
 }
 
+/// A named preset — four suit→exercise mappings. All bodyweight (no coupon
+/// required) unless noted, so a Q can run any of them cold at any AO.
+class _DeckPreset {
+  final String name;
+  final String hearts;
+  final String diamonds;
+  final String clubs;
+  final String spades;
+  const _DeckPreset(this.name,
+      {required this.hearts,
+      required this.diamonds,
+      required this.clubs,
+      required this.spades});
+}
+
+const _deckPresets = <_DeckPreset>[
+  _DeckPreset('Classic',
+      hearts: 'Merkins',
+      diamonds: 'Squats',
+      clubs: 'Burpees',
+      spades: 'Mountain Climbers'),
+  _DeckPreset('Upper Body',
+      hearts: 'Merkins',
+      diamonds: 'Diamond Merkins',
+      clubs: 'Wide Merkins',
+      spades: 'Dips'),
+  _DeckPreset('Legs',
+      hearts: 'Squats',
+      diamonds: 'Lunges',
+      clubs: 'Jump Squats',
+      spades: 'Calf Raises'),
+  _DeckPreset('Core',
+      hearts: 'Big Boy Sit-ups',
+      diamonds: 'Flutter Kicks',
+      clubs: 'American Hammers',
+      spades: 'Freddie Mercuries'),
+  _DeckPreset('Gasser',
+      hearts: 'Burpees',
+      diamonds: 'Mountain Climbers',
+      clubs: 'Squat Jumps',
+      spades: 'Merkins'),
+  _DeckPreset('Coupon',
+      hearts: 'Curls',
+      diamonds: 'Overhead Press',
+      clubs: 'Coupon Squats',
+      spades: 'Coupon Swings'),
+];
+
 class _DeckOfPainScreenState extends State<DeckOfPainScreen> {
-  // Default suit → exercise mapping. This is regional F3 folklore, not a
-  // standard — shown as editable text fields so a Q can match their AO's
-  // own convention.
+  // Suit → exercise mapping. Regional F3 folklore, not a standard — editable
+  // so a Q can match their AO's convention, and swappable via presets.
   final Map<_CardSuit, TextEditingController> _exerciseCtrls = {
     _CardSuit.hearts: TextEditingController(text: 'Merkins'),
     _CardSuit.diamonds: TextEditingController(text: 'Squats'),
     _CardSuit.clubs: TextEditingController(text: 'Burpees'),
     _CardSuit.spades: TextEditingController(text: 'Mountain Climbers'),
   };
+  int _presetIndex = 0;
 
   List<_PlayingCard> _deck = [];
   int _drawn = 0;
@@ -74,6 +122,15 @@ class _DeckOfPainScreenState extends State<DeckOfPainScreen> {
   void initState() {
     super.initState();
     _reshuffle();
+  }
+
+  void _applyPreset(int index) {
+    final p = _deckPresets[index];
+    _exerciseCtrls[_CardSuit.hearts]!.text = p.hearts;
+    _exerciseCtrls[_CardSuit.diamonds]!.text = p.diamonds;
+    _exerciseCtrls[_CardSuit.clubs]!.text = p.clubs;
+    _exerciseCtrls[_CardSuit.spades]!.text = p.spades;
+    setState(() => _presetIndex = index);
   }
 
   @override
@@ -145,6 +202,34 @@ class _DeckOfPainScreenState extends State<DeckOfPainScreen> {
                     label: const Text('Reshuffle'),
                   ),
                 ],
+              ),
+            ),
+            // Preset decks — tap to swap all four suits at once.
+            SizedBox(
+              height: 40,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+                itemCount: _deckPresets.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (context, i) {
+                  final selected = i == _presetIndex;
+                  return ChoiceChip(
+                    label: Text(_deckPresets[i].name,
+                        style: const TextStyle(fontSize: 12)),
+                    selected: selected,
+                    onSelected: (_) => _applyPreset(i),
+                    backgroundColor: context.f3elevated,
+                    selectedColor: F3Colors.accent.withValues(alpha: 0.18),
+                    labelStyle: TextStyle(
+                        color:
+                            selected ? F3Colors.accent : context.f3textSecondary,
+                        fontWeight:
+                            selected ? FontWeight.bold : FontWeight.normal),
+                    side: BorderSide(
+                        color: selected ? F3Colors.accent : context.f3divider),
+                  );
+                },
               ),
             ),
             if (_showCustomize)

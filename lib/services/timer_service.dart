@@ -23,6 +23,17 @@ class TimerService extends ChangeNotifier {
   int _initialTotalSeconds = TimerState.totalBootcampSeconds;
   int get initialTotalSeconds => _initialTotalSeconds;
 
+  // Real wall-clock seconds the timer actually ran — accumulates one per
+  // running tick, unaffected by skipping phases or extending. This is the
+  // "time actually invested" a backblast should report, vs. the planned
+  // total. Reset alongside the plan.
+  int _elapsedRealSeconds = 0;
+  int get elapsedRealSeconds => _elapsedRealSeconds;
+
+  /// Real minutes invested, rounded up, minimum 1 once any time was logged.
+  int get elapsedRealMinutes =>
+      _elapsedRealSeconds == 0 ? 0 : ((_elapsedRealSeconds + 59) ~/ 60);
+
   TimerState get state => _state;
 
   int _durationForPhase(BootcampPhase phase) =>
@@ -56,6 +67,7 @@ class TimerService extends ChangeNotifier {
     _ticker?.cancel();
     _thangSeconds = BootcampPhase.thang.durationSeconds;
     _initialTotalSeconds = TimerState.totalBootcampSeconds;
+    _elapsedRealSeconds = 0;
     _state = const TimerState();
     _syncWakelock();
     notifyListeners();
@@ -81,6 +93,7 @@ class TimerService extends ChangeNotifier {
 
     _initialTotalSeconds = total;
 
+    _elapsedRealSeconds = 0;
     _state = TimerState(
       currentPhase: BootcampPhase.disclaimer,
       phaseRemainingSeconds: _durationForPhase(BootcampPhase.disclaimer),
@@ -201,6 +214,7 @@ class TimerService extends ChangeNotifier {
   // ── Internal ──────────────────────────────────────────────────────────────
 
   void _tick() {
+    _elapsedRealSeconds++;
     final newPhase = _state.phaseRemainingSeconds - 1;
     final newTotal = _state.totalRemainingSeconds - 1;
 

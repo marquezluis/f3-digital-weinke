@@ -88,6 +88,8 @@ class F3EventInstance {
   final String id;
   final String eventId;
   final DateTime date;
+  final String? name;
+  final String? orgName;
   final String? qUserId;
   final String? qF3Name;
   final String? locationName;
@@ -97,6 +99,8 @@ class F3EventInstance {
     required this.id,
     required this.eventId,
     required this.date,
+    this.name,
+    this.orgName,
     this.qUserId,
     this.qF3Name,
     this.locationName,
@@ -104,17 +108,33 @@ class F3EventInstance {
   });
 
   bool get hasQ => qUserId != null && qUserId!.isNotEmpty;
+  int? get numericId => int.tryParse(id);
 
-  factory F3EventInstance.fromJson(Map<String, dynamic> json) =>
-      F3EventInstance(
-        id: json['id'] as String? ?? '',
-        eventId: json['eventId'] as String? ?? '',
-        date: DateTime.tryParse(json['date'] as String? ?? '') ?? DateTime.now(),
-        qUserId: json['qUserId'] as String?,
-        qF3Name: json['qUser']?['f3Name'] as String?,
-        locationName: json['location']?['name'] as String?,
-        eventTypeName: json['eventType']?['name'] as String?,
-      );
+  /// Best display label for a picker row.
+  String get displayLabel {
+    final where = orgName ?? locationName ?? name ?? 'Event';
+    return '$where · ${date.month}/${date.day}';
+  }
+
+  /// Tolerant of both the calendar-home shape and the past-qs shape (numeric
+  /// ids, `startDate`, `orgName`).
+  factory F3EventInstance.fromJson(Map<String, dynamic> json) {
+    String? str(dynamic v) => v?.toString();
+    final rawDate = str(json['date']) ?? str(json['startDate']) ?? '';
+    return F3EventInstance(
+      id: str(json['id']) ?? '',
+      eventId: str(json['eventId']) ?? '',
+      date: DateTime.tryParse(rawDate) ?? DateTime.now(),
+      name: str(json['name']),
+      orgName: str(json['orgName']),
+      qUserId: str(json['qUserId']),
+      qF3Name: str(json['qUser'] is Map ? json['qUser']['f3Name'] : null),
+      locationName:
+          str(json['location'] is Map ? json['location']['name'] : null),
+      eventTypeName:
+          str(json['eventType'] is Map ? json['eventType']['name'] : null),
+    );
+  }
 }
 
 class F3Org {

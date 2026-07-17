@@ -16,11 +16,14 @@ class SaveSessionSheet extends StatefulWidget {
   final List<HistoryBlock> blocks;
   /// Optional PAX names pre-filled from Name-O-Rama roll call.
   final String initialPax;
+  /// Real minutes the Q Mode timer ran, if this came from a live session.
+  final int? actualDurationMinutes;
 
   const SaveSessionSheet({
     super.key,
     required this.blocks,
     this.initialPax = '',
+    this.actualDurationMinutes,
   });
 
   /// Convenience: push as a modal bottom sheet.
@@ -28,6 +31,7 @@ class SaveSessionSheet extends StatefulWidget {
     BuildContext context, {
     required List<HistoryBlock> blocks,
     String initialPax = '',
+    int? actualDurationMinutes,
   }) {
     return showModalBottomSheet(
       context: context,
@@ -36,7 +40,11 @@ class SaveSessionSheet extends StatefulWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (_) => SaveSessionSheet(blocks: blocks, initialPax: initialPax),
+      builder: (_) => SaveSessionSheet(
+        blocks: blocks,
+        initialPax: initialPax,
+        actualDurationMinutes: actualDurationMinutes,
+      ),
     );
   }
 
@@ -234,6 +242,7 @@ class _SaveSessionSheetState extends State<SaveSessionSheet> {
       blocks: widget.blocks,
       beatdownType: _beatdownType,
       eventTag: _eventTag,
+      actualDurationMinutes: widget.actualDurationMinutes,
     );
 
     await context.read<HistoryService>().add(entry);

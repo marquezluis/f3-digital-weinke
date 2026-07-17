@@ -1,6 +1,8 @@
 // lib/screens/settings_screen.dart
 // Workout generation settings: coupon mode, intensity filter.
 
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:flutter/services.dart';
@@ -24,6 +26,7 @@ import 'achievements_screen.dart';
 import 'browse_aos_screen.dart';
 import 'deck_of_pain_screen.dart';
 import 'heatmap_screen.dart';
+import 'profile_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -614,29 +617,34 @@ class _ProfileBannerState extends State<_ProfileBanner> {
                 Border.all(color: F3Colors.accent.withValues(alpha: 0.3)),
           ),
           child: Row(children: [
-            // Avatar from F3 Nation when available, shield otherwise.
-            profile.avatarUrl.isNotEmpty
-                ? CircleAvatar(
-                    radius: 26,
-                    backgroundColor:
-                        F3Colors.accent.withValues(alpha: 0.14),
-                    foregroundImage: NetworkImage(profile.avatarUrl),
-                    onForegroundImageError: (exception, stackTrace) {},
-                    child: const Icon(Icons.shield_rounded,
-                        color: F3Colors.accent, size: 26),
-                  )
-                : Container(
-                    width: 52,
-                    height: 52,
-                    decoration: BoxDecoration(
-                      color: F3Colors.accent.withValues(alpha: 0.14),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                          color: F3Colors.accent.withValues(alpha: 0.3)),
-                    ),
-                    child: const Icon(Icons.shield_rounded,
-                        color: F3Colors.accent, size: 30),
-                  ),
+            // Avatar: local photo → F3 Nation avatar → shield. Tap to open
+            // the full profile.
+            GestureDetector(
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ProfileScreen()),
+              ),
+              child: () {
+                ImageProvider? img;
+                if (profile.localAvatarPath.isNotEmpty &&
+                    File(profile.localAvatarPath).existsSync()) {
+                  img = FileImage(File(profile.localAvatarPath));
+                } else if (profile.avatarUrl.isNotEmpty) {
+                  img = NetworkImage(profile.avatarUrl);
+                }
+                return CircleAvatar(
+                  radius: 26,
+                  backgroundColor: F3Colors.accent.withValues(alpha: 0.14),
+                  foregroundImage: img,
+                  onForegroundImageError:
+                      img != null ? (e, s) {} : null,
+                  child: img == null
+                      ? const Icon(Icons.shield_rounded,
+                          color: F3Colors.accent, size: 26)
+                      : null,
+                );
+              }(),
+            ),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
