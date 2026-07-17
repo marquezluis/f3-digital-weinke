@@ -85,15 +85,26 @@ class SettingsScreen extends StatelessWidget {
                 ),
               ),
 
-              const SizedBox(height: 12),
-              TextFormField(
-                initialValue: service.myF3Name,
-                decoration: const InputDecoration(
-                  labelText: 'My F3 Name',
-                  hintText: 'Your F3 handle (auto-fills the Q field)',
-                  prefixIcon: Icon(Icons.badge_rounded),
-                ),
-                onChanged: (val) => service.setMyF3Name(val.trim()),
+              // Manual F3 name field only when we don't already have it from
+              // the signed-in F3 Nation profile — no point asking twice.
+              Consumer<AppProfileService>(
+                builder: (context, profile, _) {
+                  if (profile.displayName.isNotEmpty) {
+                    return const SizedBox.shrink();
+                  }
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: TextFormField(
+                      initialValue: service.myF3Name,
+                      decoration: const InputDecoration(
+                        labelText: 'My F3 Name',
+                        hintText: 'Your F3 handle (auto-fills the Q field)',
+                        prefixIcon: Icon(Icons.badge_rounded),
+                      ),
+                      onChanged: (val) => service.setMyF3Name(val.trim()),
+                    ),
+                  );
+                },
               ),
 
               const SizedBox(height: 28),
@@ -298,6 +309,15 @@ class SettingsScreen extends StatelessWidget {
                       Text(p.displayName),
                     ]),
                   )).toList(),
+                  // Collapsed field is text-only — the prefixIcon already
+                  // shows the provider icon, so the item's own icon would
+                  // render it twice.
+                  selectedItemBuilder: (context) => MusicProvider.values
+                      .map((p) => Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(p.displayName),
+                          ))
+                      .toList(),
                   onChanged: (p) { if (p != null) service.setMusicProvider(p); },
                 ),
                 const SizedBox(height: 12),

@@ -48,50 +48,73 @@ class HomeScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Wordmark row with settings gear
-                    RichText(
-                      text: TextSpan(children: [
-                        TextSpan(
-                          text: 'DIGITAL ',
-                          style: TextStyle(
-                            color: context.f3textPrimary,
-                            fontSize: 32,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 2,
-                            height: 1,
+                    // Wordmark + avatar row
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Expanded(
+                          child: RichText(
+                            text: TextSpan(children: [
+                              TextSpan(
+                                text: 'DIGITAL ',
+                                style: TextStyle(
+                                  color: context.f3textPrimary,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 2,
+                                  height: 1,
+                                ),
+                              ),
+                              TextSpan(
+                                text: 'WEINKE',
+                                style: TextStyle(
+                                  color: F3Colors.accent,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 2,
+                                  height: 1,
+                                ),
+                              ),
+                            ]),
                           ),
                         ),
-                        TextSpan(
-                          text: 'WEINKE',
-                          style: TextStyle(
-                            color: F3Colors.accent,
-                            fontSize: 32,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 2,
-                            height: 1,
-                          ),
-                        ),
-                      ]),
+                        // Tap the avatar to jump to your profile & settings.
+                        const _HomeAvatar(),
+                      ],
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 14),
+                    // Big, friendly greeting — the personal hello.
                     Builder(builder: (context) {
                       final profileName =
                           context.watch<AppProfileService>().displayName;
                       final name =
                           myF3Name.isNotEmpty ? myF3Name : profileName;
-                      if (name.isEmpty) return const SizedBox.shrink();
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 2),
-                        child: Text(
-                          '${greetingForNow(now)}, $name!',
-                          style: TextStyle(
-                            color: context.f3textPrimary,
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
+                      final greeting = greetingForNow(now);
+                      return RichText(
+                        text: TextSpan(children: [
+                          TextSpan(
+                            text: name.isEmpty ? greeting : '$greeting,\n',
+                            style: TextStyle(
+                              color: context.f3textSecondary,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              height: 1.3,
+                            ),
                           ),
-                        ),
+                          if (name.isNotEmpty)
+                            TextSpan(
+                              text: name,
+                              style: TextStyle(
+                                color: context.f3textPrimary,
+                                fontSize: 28,
+                                fontWeight: FontWeight.w900,
+                                height: 1.1,
+                              ),
+                            ),
+                        ]),
                       );
                     }),
+                    const SizedBox(height: 6),
                     Text(
                       _formatDate(now),
                       style: TextStyle(
@@ -293,6 +316,9 @@ class HomeScreen extends StatelessWidget {
                               fontWeight: FontWeight.w700,
                               letterSpacing: 1.5)),
                     ),
+                    // Trimmed to the essentials — Exicon, Live Timer, and
+                    // Spartan Co-Q each have a dedicated nav tab, so they don't
+                    // need to also crowd the home page.
                     if (appRole == AppRole.q) ...[
                       _QuickCard(
                         icon: Icons.bolt_rounded,
@@ -302,24 +328,7 @@ class HomeScreen extends StatelessWidget {
                         onTap: () => _nav(context, 1),
                       ),
                       const SizedBox(height: 8),
-                      _QuickCard(
-                        icon: Icons.timer_rounded,
-                        title: 'Live Weinke Timer',
-                        subtitle: 'Phase-aware countdown + exercise display',
-                        color: F3Colors.phaseThang,
-                        onTap: () => _nav(context, 3),
-                      ),
-                      const SizedBox(height: 8),
                     ],
-                    _QuickCard(
-                      icon: Icons.menu_book_rounded,
-                      title: 'Exicon Library',
-                      subtitle:
-                          '${service.all.length} exercises · search & filter',
-                      color: F3Colors.catBodyweight,
-                      onTap: () => _nav(context, 2),
-                    ),
-                    const SizedBox(height: 8),
                     _QuickCard(
                       icon: Icons.school_rounded,
                       title: 'Q Field Guide',
@@ -347,14 +356,6 @@ class HomeScreen extends StatelessWidget {
                               builder: (_) => const HistoryScreen()),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    _QuickCard(
-                      icon: Icons.shield_rounded,
-                      title: 'Spartan Co-Q',
-                      subtitle: 'AI assistant for audibles & prep',
-                      color: F3Colors.catCoupon,
-                      onTap: () => _nav(context, 4),
                     ),
                   ],
                 ),
@@ -579,6 +580,55 @@ class _StatsRow extends StatelessWidget {
 }
 
 // ─── Quick action card ────────────────────────────────────────────────────────
+
+// ─── Home avatar ──────────────────────────────────────────────────────────────
+
+/// Circular profile avatar in the home header. Shows the F3 Nation avatar
+/// when synced, else the user's initial, else a shield. Tapping it jumps to
+/// Settings (where the profile & account live).
+class _HomeAvatar extends StatelessWidget {
+  const _HomeAvatar();
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<AppProfileService>(
+      builder: (context, profile, _) {
+        final url = profile.avatarUrl;
+        final name = profile.displayName;
+        final initial =
+            name.isNotEmpty ? name.characters.first.toUpperCase() : '';
+        return GestureDetector(
+          onTap: () => context.read<ValueNotifier<int>>().value = 6,
+          child: Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: F3Colors.accent.withValues(alpha: 0.14),
+              border:
+                  Border.all(color: F3Colors.accent.withValues(alpha: 0.5), width: 2),
+              image: url.isNotEmpty
+                  ? DecorationImage(
+                      image: NetworkImage(url), fit: BoxFit.cover)
+                  : null,
+            ),
+            alignment: Alignment.center,
+            child: url.isNotEmpty
+                ? null
+                : (initial.isNotEmpty
+                    ? Text(initial,
+                        style: const TextStyle(
+                            color: F3Colors.accent,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 20))
+                    : const Icon(Icons.shield_rounded,
+                        color: F3Colors.accent, size: 24)),
+          ),
+        );
+      },
+    );
+  }
+}
 
 class _QuickCard extends StatelessWidget {
   final IconData icon;
