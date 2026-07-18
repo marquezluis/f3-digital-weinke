@@ -1,61 +1,39 @@
 {
   "@@locale": "es",
-
   "appTitle": "Digital Weinke",
-
   "appTagline": "La hoja Q digital para el PAX moderno.\nCrea Weinkes, activa el modo Q, registra tu grupo — todo sin conexión, todo tuyo.",
-
   "welcomeSetupProfile": "CONFIGURA TU PERFIL",
-
   "welcomeF3Name": "Nombre F3 (opcional)",
-
   "welcomeF3NameHint": "ej. Dredd, Mayhem, Roscoe",
-
   "welcomeHomeAo": "AO de origen (opcional)",
-
   "welcomeHomeAoHint": "ej. The Patriot",
-
   "welcomeRegion": "Región (opcional)",
-
   "welcomeRegionHint": "ej. F3 Kansas City",
-
   "welcomeYourRole": "TU ROL",
-
   "welcomePrivacy": "Tu perfil permanece en este dispositivo. No se envía nada a ningún lado a menos que elijas compartirlo.",
-
   "welcomeProtectApp": "Proteger esta app",
-
   "welcomeProtectAppDesc": "Usa Face ID, huella dactilar o el PIN del dispositivo al abrir.",
-
   "welcomeProtectNotAvailable": "El bloqueo de dispositivo no está disponible en este equipo.",
-
   "welcomeCta": "CONFIRMAR — ¡VAMOS!",
-
   "welcomeCtaLoading": "CARGANDO...",
-
   "welcomeSubtext": "EH · MODIFICA · MOSEY",
-
   "roleQName": "Q (Líder del entrenamiento)",
-
   "roleQDesc": "Planeo y lidero los beatdowns. Necesito todas las herramientas para crear Weinkes.",
-
   "rolePaxName": "PAX",
-
   "rolePaxDesc": "Me presento y sudo. Dame el cronómetro y la biblioteca.",
-
   "settingsTitle": "AJUSTES",
-
   "settingsAppearance": "APARIENCIA",
-
   "settingsThemeDark": "Oscuro",
-
   "settingsThemeLight": "Claro",
-
   "settingsThemeSystem": "Sistema",
-
   "settingsLanguage": "Idioma",
-
   "settingsAbout": "ACERCA DE",
-
-  "changelogTitle": "REGISTRO DE CAMBIOS"
+  "changelogTitle": "REGISTRO DE CAMBIOS",
+  "greetingMorning": "Buenos días",
+  "greetingAfternoon": "Buenas tardes",
+  "greetingEvening": "Buenas noches",
+  "greetingGloom": "Abraza la penumbra",
+  "welcomeSignInF3": "Inicia sesión con F3 Nation",
+  "welcomeSignInF3Sub": "Trae tu perfil PAX — nombre F3, región, avatar — directo de F3 Nation. Sin escribir nada.",
+  "welcomeSetupManually": "O CONFIGURA MANUALMENTE"
 }

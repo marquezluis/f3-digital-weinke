@@ -6,6 +6,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:flutter/services.dart';
+import '../l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 import '../models/app_version.dart';
 import 'package:share_plus/share_plus.dart';
@@ -650,7 +651,7 @@ class _ProfileBannerState extends State<_ProfileBanner> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('${greetingForNow()},',
+                  Text('${greetingFor(AppLocalizations.of(context)!)},',
                       style: TextStyle(
                           color: context.f3textSecondary,
                           fontSize: 12,

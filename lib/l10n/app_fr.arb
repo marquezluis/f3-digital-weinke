@@ -1,61 +1,39 @@
 {
   "@@locale": "fr",
-
   "appTitle": "Digital Weinke",
-
   "appTagline": "La feuille Q numérique pour le PAX moderne.\nCrée des Weinkes, lance le mode Q, suis ton groupe — tout hors ligne, tout à toi.",
-
   "welcomeSetupProfile": "CONFIGURER TON PROFIL",
-
   "welcomeF3Name": "Nom F3 (optionnel)",
-
   "welcomeF3NameHint": "ex. Dredd, Mayhem, Roscoe",
-
   "welcomeHomeAo": "AO principal (optionnel)",
-
   "welcomeHomeAoHint": "ex. The Patriot",
-
   "welcomeRegion": "Région (optionnel)",
-
   "welcomeRegionHint": "ex. F3 Kansas City",
-
   "welcomeYourRole": "TON RÔLE",
-
   "welcomePrivacy": "Ton profil reste sur cet appareil. Rien n'est envoyé nulle part sauf si tu choisis de le partager.",
-
   "welcomeProtectApp": "Protéger cette app",
-
   "welcomeProtectAppDesc": "Utilise Face ID, l'empreinte digitale ou le code PIN à l'ouverture.",
-
   "welcomeProtectNotAvailable": "Le verrouillage de l'appareil n'est pas disponible sur cet appareil.",
-
   "welcomeCta": "C'EST PARTI — ALLONS-Y !",
-
   "welcomeCtaLoading": "CHARGEMENT...",
-
   "welcomeSubtext": "EH · MODIFIER · MOSEY",
-
   "roleQName": "Q (Responsable de l'entraînement)",
-
   "roleQDesc": "Je planifie et dirige les beatdowns. J'ai besoin de tous les outils pour créer des Weinkes.",
-
   "rolePaxName": "PAX",
-
   "rolePaxDesc": "Je me présente et je transpire. Donne-moi le minuteur et la bibliothèque.",
-
   "settingsTitle": "PARAMÈTRES",
-
   "settingsAppearance": "APPARENCE",
-
   "settingsThemeDark": "Sombre",
-
   "settingsThemeLight": "Clair",
-
   "settingsThemeSystem": "Système",
-
   "settingsLanguage": "Langue",
-
   "settingsAbout": "À PROPOS",
-
-  "changelogTitle": "JOURNAL DES MODIFICATIONS"
+  "changelogTitle": "JOURNAL DES MODIFICATIONS",
+  "greetingMorning": "Bonjour",
+  "greetingAfternoon": "Bon après-midi",
+  "greetingEvening": "Bonsoir",
+  "greetingGloom": "Embrasse la pénombre",
+  "welcomeSignInF3": "Se connecter avec F3 Nation",
+  "welcomeSignInF3Sub": "Récupère ton profil PAX — nom F3, région, avatar — directement depuis F3 Nation. Sans rien taper.",
+  "welcomeSetupManually": "OU CONFIGURER MANUELLEMENT"
 }

@@ -171,12 +171,11 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                           child: CircularProgressIndicator(
                               color: Colors.white, strokeWidth: 2))
                       : const Icon(Icons.shield_rounded),
-                  label: const Text('Sign in with F3 Nation'),
+                  label: Text(l10n.welcomeSignInF3),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Pulls your PAX profile — F3 name, region, avatar — '
-                  'straight from F3 Nation. No typing.',
+                  l10n.welcomeSignInF3Sub,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: context.f3textMuted,
@@ -185,7 +184,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                   ),
                 ),
                 const SizedBox(height: 24),
-                const _SectionLabel('OR SET UP MANUALLY'),
+                _SectionLabel(l10n.welcomeSetupManually),
                 const SizedBox(height: 14),
               ] else ...[
                 // ── Divider with label ─────────────────────────────────────────

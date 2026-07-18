@@ -1,90 +1,147 @@
 {
   "@@locale": "en",
-
   "appTitle": "Digital Weinke",
-  "@appTitle": { "description": "The app name." },
-
+  "@appTitle": {
+    "description": "The app name."
+  },
   "appTagline": "The digital Q sheet for the modern PAX.\nBuild Weinkes, run Q Mode, track your crew — all offline, all yours.",
-  "@appTagline": { "description": "Welcome screen tagline shown below the logo." },
-
+  "@appTagline": {
+    "description": "Welcome screen tagline shown below the logo."
+  },
   "welcomeSetupProfile": "SET UP YOUR PROFILE",
-  "@welcomeSetupProfile": { "description": "Section label for the profile fields on the welcome screen." },
-
+  "@welcomeSetupProfile": {
+    "description": "Section label for the profile fields on the welcome screen."
+  },
   "welcomeF3Name": "F3 Name (optional)",
-  "@welcomeF3Name": { "description": "Label for the F3 name text field." },
-
+  "@welcomeF3Name": {
+    "description": "Label for the F3 name text field."
+  },
   "welcomeF3NameHint": "e.g. Dredd, Mayhem, Roscoe",
-  "@welcomeF3NameHint": { "description": "Hint text for the F3 name text field." },
-
+  "@welcomeF3NameHint": {
+    "description": "Hint text for the F3 name text field."
+  },
   "welcomeHomeAo": "Home AO (optional)",
-  "@welcomeHomeAo": { "description": "Label for the Home AO text field." },
-
+  "@welcomeHomeAo": {
+    "description": "Label for the Home AO text field."
+  },
   "welcomeHomeAoHint": "e.g. The Patriot",
-  "@welcomeHomeAoHint": { "description": "Hint text for the Home AO text field." },
-
+  "@welcomeHomeAoHint": {
+    "description": "Hint text for the Home AO text field."
+  },
   "welcomeRegion": "Region (optional)",
-  "@welcomeRegion": { "description": "Label for the Region text field." },
-
+  "@welcomeRegion": {
+    "description": "Label for the Region text field."
+  },
   "welcomeRegionHint": "e.g. F3 Kansas City",
-  "@welcomeRegionHint": { "description": "Hint text for the Region text field." },
-
+  "@welcomeRegionHint": {
+    "description": "Hint text for the Region text field."
+  },
   "welcomeYourRole": "YOUR ROLE",
-  "@welcomeYourRole": { "description": "Section label for the role picker on the welcome screen." },
-
+  "@welcomeYourRole": {
+    "description": "Section label for the role picker on the welcome screen."
+  },
   "welcomePrivacy": "Your profile stays on this device. Nothing is sent anywhere unless you choose to share it.",
-  "@welcomePrivacy": { "description": "Privacy notice on the welcome screen." },
-
+  "@welcomePrivacy": {
+    "description": "Privacy notice on the welcome screen."
+  },
   "welcomeProtectApp": "Protect This App",
-  "@welcomeProtectApp": { "description": "Switch label for enabling app lock on the welcome screen." },
-
+  "@welcomeProtectApp": {
+    "description": "Switch label for enabling app lock on the welcome screen."
+  },
   "welcomeProtectAppDesc": "Use Face ID, fingerprint, or device PIN on open.",
-  "@welcomeProtectAppDesc": { "description": "Description for the app lock switch when the device supports biometrics." },
-
+  "@welcomeProtectAppDesc": {
+    "description": "Description for the app lock switch when the device supports biometrics."
+  },
   "welcomeProtectNotAvailable": "Device lock is not available on this device.",
-  "@welcomeProtectNotAvailable": { "description": "Subtitle shown when app lock is not available on the device." },
-
+  "@welcomeProtectNotAvailable": {
+    "description": "Subtitle shown when app lock is not available on the device."
+  },
   "welcomeCta": "LOCK IN — LET'S GO",
-  "@welcomeCta": { "description": "Call-to-action button label on the welcome screen." },
-
+  "@welcomeCta": {
+    "description": "Call-to-action button label on the welcome screen."
+  },
   "welcomeCtaLoading": "LOADING...",
-  "@welcomeCtaLoading": { "description": "Button label shown while the welcome screen is saving." },
-
+  "@welcomeCtaLoading": {
+    "description": "Button label shown while the welcome screen is saving."
+  },
   "welcomeSubtext": "EH · MODIFY · MOSEY",
-  "@welcomeSubtext": { "description": "Small decorative subtext at the bottom of the welcome screen." },
-
+  "@welcomeSubtext": {
+    "description": "Small decorative subtext at the bottom of the welcome screen."
+  },
   "roleQName": "Q (Workout Leader)",
-  "@roleQName": { "description": "Display name for the Q role." },
-
+  "@roleQName": {
+    "description": "Display name for the Q role."
+  },
   "roleQDesc": "I plan and lead beatdowns. I need full Weinke-building tools.",
-  "@roleQDesc": { "description": "Description for the Q role." },
-
+  "@roleQDesc": {
+    "description": "Description for the Q role."
+  },
   "rolePaxName": "PAX",
-  "@rolePaxName": { "description": "Display name for the PAX role." },
-
+  "@rolePaxName": {
+    "description": "Display name for the PAX role."
+  },
   "rolePaxDesc": "I show up and sweat. Give me the timer and the library.",
-  "@rolePaxDesc": { "description": "Description for the PAX role." },
-
+  "@rolePaxDesc": {
+    "description": "Description for the PAX role."
+  },
   "settingsTitle": "SETTINGS",
-  "@settingsTitle": { "description": "Title for the settings screen." },
-
+  "@settingsTitle": {
+    "description": "Title for the settings screen."
+  },
   "settingsAppearance": "APPEARANCE",
-  "@settingsAppearance": { "description": "Section header for the appearance settings." },
-
+  "@settingsAppearance": {
+    "description": "Section header for the appearance settings."
+  },
   "settingsThemeDark": "Dark",
-  "@settingsThemeDark": { "description": "Dark theme option label." },
-
+  "@settingsThemeDark": {
+    "description": "Dark theme option label."
+  },
   "settingsThemeLight": "Light",
-  "@settingsThemeLight": { "description": "Light theme option label." },
-
+  "@settingsThemeLight": {
+    "description": "Light theme option label."
+  },
   "settingsThemeSystem": "System",
-  "@settingsThemeSystem": { "description": "System theme option label." },
-
+  "@settingsThemeSystem": {
+    "description": "System theme option label."
+  },
   "settingsLanguage": "Language",
-  "@settingsLanguage": { "description": "Language picker label in settings." },
-
+  "@settingsLanguage": {
+    "description": "Language picker label in settings."
+  },
   "settingsAbout": "ABOUT",
-  "@settingsAbout": { "description": "Section header for the About section in settings." },
-
+  "@settingsAbout": {
+    "description": "Section header for the About section in settings."
+  },
   "changelogTitle": "CHANGELOG",
-  "@changelogTitle": { "description": "Title for the changelog bottom sheet." }
+  "@changelogTitle": {
+    "description": "Title for the changelog bottom sheet."
+  },
+  "greetingMorning": "Good morning",
+  "@greetingMorning": {
+    "description": "Time-of-day greeting, morning."
+  },
+  "greetingAfternoon": "Good afternoon",
+  "@greetingAfternoon": {
+    "description": "Time-of-day greeting, afternoon."
+  },
+  "greetingEvening": "Good evening",
+  "@greetingEvening": {
+    "description": "Time-of-day greeting, evening."
+  },
+  "greetingGloom": "Embrace the gloom",
+  "@greetingGloom": {
+    "description": "Pre-dawn greeting (before 5am)."
+  },
+  "welcomeSignInF3": "Sign in with F3 Nation",
+  "@welcomeSignInF3": {
+    "description": "Primary F3 Nation sign-in button on welcome screen."
+  },
+  "welcomeSignInF3Sub": "Pulls your PAX profile — F3 name, region, avatar — straight from F3 Nation. No typing.",
+  "@welcomeSignInF3Sub": {
+    "description": "Subtext under the F3 Nation sign-in button."
+  },
+  "welcomeSetupManually": "OR SET UP MANUALLY",
+  "@welcomeSetupManually": {
+    "description": "Divider label before the manual profile form."
+  }
 }

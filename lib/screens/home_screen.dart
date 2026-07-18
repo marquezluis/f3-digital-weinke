@@ -7,6 +7,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
+import '../l10n/app_localizations.dart';
 import '../models/exercise.dart';
 import '../models/workout_history.dart';
 import '../models/workout_plan.dart';
@@ -93,7 +94,8 @@ class HomeScreen extends StatelessWidget {
                           context.watch<AppProfileService>().displayName;
                       final name =
                           myF3Name.isNotEmpty ? myF3Name : profileName;
-                      final greeting = greetingForNow(now);
+                      final greeting =
+                          greetingFor(AppLocalizations.of(context)!, now);
                       return RichText(
                         text: TextSpan(children: [
                           TextSpan(

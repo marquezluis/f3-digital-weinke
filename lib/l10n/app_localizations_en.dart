@@ -100,4 +100,26 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get changelogTitle => 'CHANGELOG';
+
+  @override
+  String get greetingMorning => 'Good morning';
+
+  @override
+  String get greetingAfternoon => 'Good afternoon';
+
+  @override
+  String get greetingEvening => 'Good evening';
+
+  @override
+  String get greetingGloom => 'Embrace the gloom';
+
+  @override
+  String get welcomeSignInF3 => 'Sign in with F3 Nation';
+
+  @override
+  String get welcomeSignInF3Sub =>
+      'Pulls your PAX profile — F3 name, region, avatar — straight from F3 Nation. No typing.';
+
+  @override
+  String get welcomeSetupManually => 'OR SET UP MANUALLY';
 }

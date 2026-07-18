@@ -273,6 +273,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'CHANGELOG'**
   String get changelogTitle;
+
+  /// Time-of-day greeting, morning.
+  ///
+  /// In en, this message translates to:
+  /// **'Good morning'**
+  String get greetingMorning;
+
+  /// Time-of-day greeting, afternoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Good afternoon'**
+  String get greetingAfternoon;
+
+  /// Time-of-day greeting, evening.
+  ///
+  /// In en, this message translates to:
+  /// **'Good evening'**
+  String get greetingEvening;
+
+  /// Pre-dawn greeting (before 5am).
+  ///
+  /// In en, this message translates to:
+  /// **'Embrace the gloom'**
+  String get greetingGloom;
+
+  /// Primary F3 Nation sign-in button on welcome screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in with F3 Nation'**
+  String get welcomeSignInF3;
+
+  /// Subtext under the F3 Nation sign-in button.
+  ///
+  /// In en, this message translates to:
+  /// **'Pulls your PAX profile — F3 name, region, avatar — straight from F3 Nation. No typing.'**
+  String get welcomeSignInF3Sub;
+
+  /// Divider label before the manual profile form.
+  ///
+  /// In en, this message translates to:
+  /// **'OR SET UP MANUALLY'**
+  String get welcomeSetupManually;
 }
 
 class _AppLocalizationsDelegate
