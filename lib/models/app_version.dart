@@ -20,13 +20,37 @@ class AppRelease {
 }
 
 class AppVersion {
-  static const String current = '2.3.0';
-  static const String versionName = '2.3.0';
-  static const String buildNumber = '11';
-  static const String displayName = 'Digital Weinke v2.3.0';
-  static const String fullDisplayName = 'Digital Weinke v2.3.0+11';
+  static const String current = '2.4.0';
+  static const String versionName = '2.4.0';
+  static const String buildNumber = '12';
+  static const String displayName = 'Digital Weinke v2.4.0';
+  static const String fullDisplayName = 'Digital Weinke v2.4.0+12';
 
   static const List<AppRelease> releases = [
+    AppRelease(
+      version: '2.4.0',
+      title: 'The Schedule, Map & Notifications Update',
+      summary:
+          'A real calendar for Schedule, HC/Q reminders, a map view for Browse AOs, and a full F3 Nation profile screen.',
+      newItems: [
+        'Schedule now has a month calendar (the default view) with a 7-day agenda underneath — tap any date to see just that day, with AO/type filters and HC/take-Q/preblast actions right from the event card.',
+        'Reminders for anything you\'re HC\'d or Q\'d for — a day before, an hour before, and a nudge to post the backblast afterward if you were Q.',
+        'Browse AOs has a map view — AOs plotted on the map, numbered to match the list below, centered on your location.',
+        'Full F3 Nation profile screen (tap your name/avatar) — edit your name/email/phone, sign out, and change region, all in one place.',
+        'Emergency info is now tied to whoever\'s actually signed in, so a device shared between PAX never shows the wrong person\'s medical info.',
+      ],
+      enhancements: [
+        'Home\'s Upcoming Beatdowns is a single card: how many you\'re HC\'d for, the next one, and a link to see them all — with a small dot row when they\'re spread across more than one week.',
+        'Onboarding now tells you up front that the app will ask for location and notification permission.',
+        'Faster, clearer location lookup on Browse AOs, plus a dedicated recenter button on the map.',
+      ],
+      bugFixes: [
+        'Change Region picker was silently showing no results.',
+        'Signing out from your Profile could strand you on a blank screen instead of returning to sign-in.',
+        'Browse AOs map freezing on load, and going blank after applying a filter.',
+        'Schedule\'s calendar could get stuck on a different month than the agenda underneath it after backing out of a selected day.',
+      ],
+    ),
     AppRelease(
       version: '2.3.0',
       title: 'The F3 Nation Integration Update',
