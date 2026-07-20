@@ -1079,93 +1079,117 @@ class _UpcomingBeatdownsSectionState extends State<_UpcomingBeatdownsSection> {
             ),
           )
         else
-          SizedBox(
-            height: 108,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-              itemCount: events.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 10),
-              itemBuilder: (context, i) => _BeatdownChip(event: events[i]),
-            ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: _UpcomingBeatdownsCard(events: events),
           ),
       ],
     );
   }
 }
 
-class _BeatdownChip extends StatelessWidget {
-  final F3EventInstance event;
-  const _BeatdownChip({required this.event});
+/// One summary card: how many beatdowns the PAX is HC'd/Q'd for, a preview
+/// of the next one (with its actual AO, not just a location string), and a
+/// tap-through to Schedule for the rest — replaces the old horizontal chip
+/// list, which showed `locationName` instead of the AO and gave no sense of
+/// how many were coming up without scrolling.
+class _UpcomingBeatdownsCard extends StatelessWidget {
+  final List<F3EventInstance> events;
+  const _UpcomingBeatdownsCard({required this.events});
 
   @override
   Widget build(BuildContext context) {
-    final isToday = _isToday(event.date);
-    final isTomorrow = _isTomorrow(event.date);
+    final next = events.first;
+    final count = events.length;
+    final isToday = _isToday(next.date);
+    final isTomorrow = _isTomorrow(next.date);
     final dayLabel = isToday
-        ? 'TODAY'
+        ? 'Today'
         : isTomorrow
-            ? 'TOMORROW'
-            : _shortDate(event.date);
+            ? 'Tomorrow'
+            : _shortDate(next.date);
+    final aoName = next.orgName ?? next.locationName ?? next.name ?? 'AO';
 
-    return Container(
-      width: 140,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: isToday
-            ? F3Colors.accent.withValues(alpha: 0.12)
-            : context.f3card,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: isToday ? F3Colors.accent.withValues(alpha: 0.5) : context.f3divider,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () => context.read<ValueNotifier<int>>().value = 2, // Schedule tab
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: context.f3card,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: context.f3divider),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: F3Colors.accent.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Text(
+                  '$count',
+                  style: const TextStyle(
+                    color: F3Colors.accent,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      count == 1
+                          ? 'You\'re HC\'d for 1 beatdown'
+                          : 'You\'re HC\'d for $count beatdowns',
+                      style: TextStyle(
+                        color: context.f3textPrimary,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      '$dayLabel · $aoName${next.userIsQ ? ' · You\'re Q' : ''}',
+                      style: TextStyle(color: context.f3textMuted, fontSize: 12),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (count > 1) ...[
+                      const SizedBox(height: 6),
+                      _WeekSpreadDots(events: events),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'See all',
+                    style: TextStyle(
+                      color: F3Colors.accent,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  Icon(Icons.chevron_right_rounded, color: F3Colors.accent, size: 18),
+                ],
+              ),
+            ],
+          ),
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            dayLabel,
-            style: TextStyle(
-              color: isToday ? F3Colors.accent : context.f3textMuted,
-              fontSize: 10,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 1.2,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            event.locationName ?? 'AO',
-            style: TextStyle(
-              color: context.f3textPrimary,
-              fontSize: 13,
-              fontWeight: FontWeight.w800,
-              height: 1.2,
-            ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const Spacer(),
-          if (event.hasQ)
-            Text(
-              'Q: ${event.qF3Name ?? '—'}',
-              style: TextStyle(
-                color: context.f3textSecondary,
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            )
-          else
-            Text(
-              'Q OPEN',
-              style: TextStyle(
-                color: F3Colors.accent,
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-        ],
       ),
     );
   }
@@ -1184,5 +1208,50 @@ class _BeatdownChip extends StatelessWidget {
     const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     return '${days[d.weekday - 1]} ${months[d.month - 1]} ${d.day}';
+  }
+}
+
+/// One dot per upcoming HC'd/Q'd beatdown (capped, with a "+N" overflow) —
+/// accent for anything within the next 7 days, steel blue for beyond that,
+/// so it's visible at a glance that these are spread across more than one
+/// week without having to tap through to Schedule.
+class _WeekSpreadDots extends StatelessWidget {
+  final List<F3EventInstance> events;
+  static const _maxDots = 6;
+
+  const _WeekSpreadDots({required this.events});
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final weekCutoff =
+        DateTime(now.year, now.month, now.day).add(const Duration(days: 7));
+    final shown = events.take(_maxDots).toList();
+    final overflow = events.length - shown.length;
+    return Row(
+      children: [
+        for (final e in shown)
+          Container(
+            width: 6,
+            height: 6,
+            margin: const EdgeInsets.only(right: 4),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: e.date.isBefore(weekCutoff)
+                  ? F3Colors.accent
+                  : F3Colors.phaseDisclaimer,
+            ),
+          ),
+        if (overflow > 0)
+          Text(
+            '+$overflow',
+            style: TextStyle(
+              color: context.f3textMuted,
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+      ],
+    );
   }
 }

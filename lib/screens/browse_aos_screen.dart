@@ -4,8 +4,12 @@
 // F3 Nation, so this is safe to ship without any of the auth/permission
 // caveats that apply to the future "publish backblast" feature.
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/f3_api_models.dart';
@@ -13,6 +17,16 @@ import '../services/f3_api_service.dart';
 import '../services/geo_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/filter_pill.dart';
+
+/// Hard cap on markers drawn at once — a safety net for whatever's in the
+/// viewport at very low zoom (zoomed out to see a whole state/country).
+/// Rendering the full unfiltered nationwide set (~3,100 AOs) as Marker
+/// widgets simultaneously is what was freezing the screen before.
+const _maxVisibleMarkers = 200;
+
+/// What the map auto-fits to around the device's GPS position when no
+/// filters are active.
+const _nearbyRadiusMiles = 10.0;
 
 const _weekdays = [
   'monday',
@@ -33,6 +47,15 @@ class BrowseAosScreen extends StatefulWidget {
 
 class _BrowseAosScreenState extends State<BrowseAosScreen> {
   final _searchCtrl = TextEditingController();
+  final _mapController = MapController();
+
+  // What's currently on-screen in the map viewport — markers are limited to
+  // this (intersected with the search/filter results) instead of dragging
+  // every matching AO nationwide onto the map at once. Zooming out grows
+  // this, which is what reveals more pins.
+  LatLngBounds? _visibleBounds;
+  Timer? _boundsDebounce;
+  bool _mapReady = false;
 
   bool _loading = true;
   bool _locating = false;
@@ -57,14 +80,31 @@ class _BrowseAosScreenState extends State<BrowseAosScreen> {
   @override
   void dispose() {
     _searchCtrl.dispose();
+    _boundsDebounce?.cancel();
     super.dispose();
+  }
+
+  /// Debounced so a drag/zoom gesture (which fires this on every frame)
+  /// doesn't trigger a setState + marker-list rebuild dozens of times a
+  /// second — only once movement settles.
+  void _onMapPositionChanged(MapCamera camera, bool hasGesture) {
+    _boundsDebounce?.cancel();
+    _boundsDebounce = Timer(const Duration(milliseconds: 150), () {
+      if (!mounted) return;
+      setState(() => _visibleBounds = camera.visibleBounds);
+    });
   }
 
   Future<void> _load() async {
     setState(() => _loading = true);
     final api = context.read<F3ApiService>();
-    final locations = await api.getLocations();
-    final schedules = await api.getLocationSchedules();
+    final results = await Future.wait([
+      api.getLocations(),
+      api.getLocationSchedules(),
+    ]);
+    final locations = results[0] as List<F3Location>;
+    final schedules = results[1]
+        as Map<String, ({List<F3WeeklyWorkout> schedule, String? aoName})>;
     final merged = locations.map((loc) {
       final s = schedules[loc.id];
       return loc.withSchedule(s?.schedule ?? const [], aoName: s?.aoName);
@@ -129,6 +169,7 @@ class _BrowseAosScreenState extends State<BrowseAosScreen> {
             'Couldn\'t get your location — showing AOs alphabetically instead.';
       }
     });
+    _refitMap();
   }
 
   double? _distanceMiles(F3Location loc) {
@@ -178,6 +219,80 @@ class _BrowseAosScreenState extends State<BrowseAosScreen> {
     return sorted;
   }
 
+  /// AOs with real coordinates, in the same order as the filtered/sorted
+  /// list — this order is what the numbered badges (list ⇄ map pin) key off.
+  /// Roving AOs (no lat/lon) are excluded here but still show in the list
+  /// below, just without a number.
+  List<F3Location> get _mappable =>
+      _filtered.where((l) => l.lat != null && l.lon != null).toList();
+
+  /// 1-based badge number for [loc], or null if it has no coordinates (so
+  /// it isn't on the map at all).
+  int? _mapNumber(F3Location loc) {
+    final index = _mappable.indexWhere((l) => l.id == loc.id);
+    return index == -1 ? null : index + 1;
+  }
+
+  void _focusOnMap(F3Location loc) {
+    if (loc.lat == null || loc.lon == null) return;
+    _mapController.move(LatLng(loc.lat!, loc.lon!), 15);
+  }
+
+  static LatLngBounds _boundsForRadiusMiles(LatLng center, double miles) {
+    final meters = miles * 1609.344;
+    const d = Distance();
+    return LatLngBounds.fromPoints([
+      d.offset(center, meters, 0),
+      d.offset(center, meters, 90),
+      d.offset(center, meters, 180),
+      d.offset(center, meters, 270),
+    ]);
+  }
+
+  /// Moves the map to match what's actually relevant right now: with no
+  /// filters active, that's a `_nearbyRadiusMiles` circle around the device
+  /// (the "what's around me" view); with filters active, it's every
+  /// matching AO's combined extent (there's no real state/region boundary
+  /// polygon data available from the API, so "fit to the matching AOs'
+  /// bounding box" is the practical stand-in for "show its perimeter").
+  void _refitMap() {
+    if (!_mapReady) return;
+    final position = _position;
+    if (_hasActiveFilters) {
+      final pts = _mappable.map((l) => LatLng(l.lat!, l.lon!)).toList();
+      if (pts.isEmpty) return;
+      // A filter that matches AOs clustered tightly together (or just one)
+      // produces a near-zero-size bounding box — fitting to that without a
+      // maxZoom cap sends the camera to an extreme zoom with no tiles
+      // available at all, which is what was rendering as a blank map.
+      _mapController.fitCamera(CameraFit.bounds(
+        bounds: LatLngBounds.fromPoints(pts),
+        padding: const EdgeInsets.all(32),
+        maxZoom: 13,
+      ));
+    } else if (position != null) {
+      _mapController.fitCamera(CameraFit.bounds(
+        bounds: _boundsForRadiusMiles(
+            LatLng(position.latitude, position.longitude), _nearbyRadiusMiles),
+        padding: const EdgeInsets.all(16),
+        maxZoom: 13,
+      ));
+    }
+  }
+
+  /// Recenter on the device's GPS position: instant if we already have a
+  /// recent fix (no reason to make the user wait on a fresh GPS request
+  /// just to re-look at where they already know they are), otherwise
+  /// kicks off a real location request — [_findMe] calls [_refitMap] once
+  /// that resolves.
+  void _recenterOnMe() {
+    if (_position != null) {
+      _refitMap();
+    } else {
+      _findMe();
+    }
+  }
+
   Future<void> _openInMaps(F3Location loc) async {
     if (loc.lat == null || loc.lon == null) return;
     final uri = Uri.parse('geo:${loc.lat},${loc.lon}?q=${loc.lat},${loc.lon}(${Uri.encodeComponent(loc.name)})');
@@ -217,7 +332,7 @@ class _BrowseAosScreenState extends State<BrowseAosScreen> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.my_location_rounded),
-            tooltip: 'Sort by distance',
+            tooltip: 'Refresh my location',
             onPressed: _locating ? null : _findMe,
           ),
         ],
@@ -251,6 +366,7 @@ class _BrowseAosScreenState extends State<BrowseAosScreen> {
                     ),
                   ),
                   if (_locations.isNotEmpty) _buildFilterBar(context),
+                  if (!_loading && _mappable.isNotEmpty) _buildMap(context),
                   if (_locationError != null)
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -285,7 +401,9 @@ class _BrowseAosScreenState extends State<BrowseAosScreen> {
                                   return _AoTile(
                                     location: loc,
                                     distanceMiles: distance,
+                                    mapNumber: _mapNumber(loc),
                                     onTap: () => _openDetails(loc),
+                                    onTapNumber: () => _focusOnMap(loc),
                                   );
                                 },
                               ),
@@ -293,6 +411,169 @@ class _BrowseAosScreenState extends State<BrowseAosScreen> {
                 ],
               ),
             ),
+    );
+  }
+
+  /// AOs to actually draw as [Marker]s: whatever's inside the current map
+  /// viewport (so zooming out reveals more, zooming in/panning narrows it),
+  /// capped as a safety net, nearest-first, in case the viewport itself is
+  /// huge (zoomed way out) and still contains hundreds of matches.
+  List<F3Location> _visibleMarkersFor(List<F3Location> mappable) {
+    final bounds = _visibleBounds;
+    var visible = bounds == null
+        ? mappable
+        : mappable
+            .where((l) => bounds.contains(LatLng(l.lat!, l.lon!)))
+            .toList();
+    if (visible.length > _maxVisibleMarkers) {
+      final first = visible.first;
+      final center = bounds?.center ??
+          (_position != null
+              ? LatLng(_position!.latitude, _position!.longitude)
+              : LatLng(first.lat!, first.lon!));
+      final byDistance = [...visible]
+        ..sort((a, b) => const Distance()
+            .distance(center, LatLng(a.lat!, a.lon!))
+            .compareTo(
+                const Distance().distance(center, LatLng(b.lat!, b.lon!))));
+      visible = byDistance.take(_maxVisibleMarkers).toList();
+    }
+    return visible;
+  }
+
+  Widget _buildMap(BuildContext context) {
+    final mappable = _mappable;
+    final position = _position;
+    final center = position != null
+        ? LatLng(position.latitude, position.longitude)
+        : LatLng(mappable.first.lat!, mappable.first.lon!);
+    final visible = _visibleMarkersFor(mappable);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: SizedBox(
+          height: MediaQuery.of(context).size.height * 0.42,
+          child: Stack(
+            children: [
+              FlutterMap(
+                mapController: _mapController,
+                options: MapOptions(
+                  initialCenter: center,
+                  initialZoom: position != null ? 12 : 10,
+                  onMapReady: () {
+                    _mapReady = true;
+                    setState(
+                        () => _visibleBounds = _mapController.camera.visibleBounds);
+                    _refitMap();
+                  },
+                  onPositionChanged: _onMapPositionChanged,
+                ),
+                children: [
+                  TileLayer(
+                    urlTemplate:
+                        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    userAgentPackageName: 'com.digitalweinke.f3_nation_app',
+                  ),
+                  MarkerLayer(
+                    markers: [
+                      if (position != null)
+                        Marker(
+                          point: LatLng(position.latitude, position.longitude),
+                          width: 16,
+                          height: 16,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.blueAccent,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 2),
+                            ),
+                          ),
+                        ),
+                      for (final loc in visible)
+                        Marker(
+                          point: LatLng(loc.lat!, loc.lon!),
+                          width: 30,
+                          height: 30,
+                          child: GestureDetector(
+                            onTap: () => _openDetails(loc),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: F3Colors.accent,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white, width: 1.5),
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                '${_mapNumber(loc)}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  RichAttributionWidget(
+                    attributions: [
+                      TextSourceAttribution(
+                        'OpenStreetMap contributors',
+                        onTap: () =>
+                            launchUrl(Uri.parse('https://openstreetmap.org/copyright')),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              if (mappable.length > visible.length)
+                Positioned(
+                  top: 8,
+                  left: 8,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.6),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Text(
+                      'Zoom out for more',
+                      style: TextStyle(color: Colors.white, fontSize: 11),
+                    ),
+                  ),
+                ),
+              Positioned(
+                bottom: 8,
+                right: 8,
+                child: Material(
+                  color: context.f3card,
+                  shape: const CircleBorder(),
+                  elevation: 3,
+                  child: InkWell(
+                    customBorder: const CircleBorder(),
+                    onTap: _recenterOnMe,
+                    child: Padding(
+                      padding: const EdgeInsets.all(10),
+                      child: _locating
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.my_location_rounded,
+                              color: F3Colors.accent, size: 20),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -321,6 +602,7 @@ class _BrowseAosScreenState extends State<BrowseAosScreen> {
                   _regionFilter = null;
                 }
               });
+              _refitMap();
             },
           ),
           const SizedBox(width: 8),
@@ -340,6 +622,7 @@ class _BrowseAosScreenState extends State<BrowseAosScreen> {
                   _stateFilter = null;
                 }
               });
+              _refitMap();
             },
           ),
           const SizedBox(width: 8),
@@ -354,16 +637,20 @@ class _BrowseAosScreenState extends State<BrowseAosScreen> {
               if (picked == null) return;
               setState(
                   () => _weekdayFilter = picked.isEmpty ? null : picked);
+              _refitMap();
             },
           ),
           if (_hasActiveFilters) ...[
             const SizedBox(width: 8),
             TextButton(
-              onPressed: () => setState(() {
-                _stateFilter = null;
-                _regionFilter = null;
-                _weekdayFilter = null;
-              }),
+              onPressed: () {
+                setState(() {
+                  _stateFilter = null;
+                  _regionFilter = null;
+                  _weekdayFilter = null;
+                });
+                _refitMap();
+              },
               child: const Text('Clear all'),
             ),
           ],
@@ -376,12 +663,16 @@ class _BrowseAosScreenState extends State<BrowseAosScreen> {
 class _AoTile extends StatelessWidget {
   final F3Location location;
   final double? distanceMiles;
+  final int? mapNumber;
   final VoidCallback? onTap;
+  final VoidCallback? onTapNumber;
 
   const _AoTile({
     required this.location,
     required this.distanceMiles,
     required this.onTap,
+    this.mapNumber,
+    this.onTapNumber,
   });
 
   @override
@@ -400,15 +691,28 @@ class _AoTile extends StatelessWidget {
           ),
           child: Row(
             children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: F3Colors.accent.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(10),
+              GestureDetector(
+                onTap: mapNumber != null ? onTapNumber : null,
+                child: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: F3Colors.accent.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  alignment: Alignment.center,
+                  child: mapNumber != null
+                      ? Text(
+                          '$mapNumber',
+                          style: const TextStyle(
+                            color: F3Colors.accent,
+                            fontSize: 17,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        )
+                      : const Icon(Icons.shield_rounded,
+                          color: F3Colors.accent, size: 22),
                 ),
-                child: const Icon(Icons.shield_rounded,
-                    color: F3Colors.accent, size: 22),
               ),
               const SizedBox(width: 12),
               Expanded(

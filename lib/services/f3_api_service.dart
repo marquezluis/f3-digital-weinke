@@ -91,6 +91,12 @@ class F3ApiService extends ChangeNotifier {
         if (body is Map && body['events'] is List) {
           return body['events'] as List;
         }
+        if (body is Map && body['orgs'] is List) {
+          return body['orgs'] as List;
+        }
+        if (body is Map && body['locations'] is List) {
+          return body['locations'] as List;
+        }
       }
     } catch (_) {
     }

@@ -116,15 +116,19 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   }
 
   /// Tapping the already-selected date deselects it (back to the default
-  /// 7-day agenda) — the same gesture that opened it closes it.
+  /// 7-day agenda) — the same gesture that opened it closes it. Deselecting
+  /// means "back to today," so it also snaps the calendar month back (via
+  /// _resetToToday) — otherwise the agenda shows the current week while the
+  /// grid above is left stranded on whatever month you'd navigated to.
   void _selectDay(DateTime day) {
     final normalized = MonthCalendar.normalize(day);
-    setState(() {
-      _selectedDay =
-          _selectedDay != null && MonthCalendar.normalize(_selectedDay!) == normalized
-              ? null
-              : normalized;
-    });
+    final isDeselecting = _selectedDay != null &&
+        MonthCalendar.normalize(_selectedDay!) == normalized;
+    if (isDeselecting) {
+      _resetToToday();
+      return;
+    }
+    setState(() => _selectedDay = normalized);
   }
 
   Future<void> _load() async {
@@ -230,7 +234,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               onRefresh: () =>
                   Future.wait([_load(), _loadCalendarMonth()]),
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
+                padding: const EdgeInsets.fromLTRB(14, 10, 14, 28),
                 children: [
                   MonthCalendar(
                     month: _calendarMonth,
@@ -250,7 +254,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                               child: CircularProgressIndicator(
                                   strokeWidth: 2))),
                     ),
-                  const Divider(height: 24),
+                  const Divider(height: 32, thickness: 1),
                   if (_selectedDay != null)
                     _buildSelectedDaySection(context)
                   else
@@ -269,8 +273,28 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(4, 4, 4, 2),
+          child: Row(children: [
+            const Icon(Icons.view_agenda_rounded, size: 13, color: F3Colors.accent),
+            const SizedBox(width: 6),
+            Text('NEXT 7 DAYS',
+                style: TextStyle(
+                    color: context.f3textMuted,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.5)),
+          ]),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(4, 2, 4, 12),
+          child: Text(
+            'Tap a date on the calendar above to see just that day.',
+            style: TextStyle(color: context.f3textMuted, fontSize: 12),
+          ),
+        ),
         if (_events.isNotEmpty) _buildFilterBar(context),
-        const SizedBox(height: 8),
+        const SizedBox(height: 14),
         if (_loading)
           const Padding(
             padding: EdgeInsets.all(24),
@@ -285,54 +309,66 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                     e.date.month == day.month &&
                     e.date.day == day.day)
                 .toList();
+            final isLast = i == 6;
             // Empty days collapse to a single muted row — writing out a
             // full "Nothing scheduled" block for most of a sparse week
             // was the clutter.
-            if (dayEvents.isEmpty) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 6),
-                child: Row(children: [
-                  SizedBox(
-                    width: 90,
-                    child: Text(_dayLabel(day, i, short: true),
-                        style: TextStyle(
-                            color: context.f3textMuted,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700)),
-                  ),
-                  Expanded(
-                    child: Text(
-                      _hasActiveFilters ? 'No matches' : 'Nothing scheduled',
-                      style: TextStyle(
-                          color: context.f3textMuted.withValues(alpha: 0.6),
-                          fontSize: 12),
+            final block = dayEvents.isEmpty
+                ? Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    child: Row(children: [
+                      SizedBox(
+                        width: 90,
+                        child: Text(_dayLabel(day, i, short: true),
+                            style: TextStyle(
+                                color: context.f3textMuted,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700)),
+                      ),
+                      Expanded(
+                        child: Text(
+                          _hasActiveFilters
+                              ? 'No matches'
+                              : 'Nothing scheduled',
+                          style: TextStyle(
+                              color:
+                                  context.f3textMuted.withValues(alpha: 0.6),
+                              fontSize: 12),
+                        ),
+                      ),
+                    ]),
+                  )
+                : Padding(
+                    padding: const EdgeInsets.only(bottom: 4, top: 10),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _dayLabel(day, i),
+                          style: TextStyle(
+                              color: context.f3textMuted,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 1),
+                        ),
+                        const SizedBox(height: 8),
+                        ...dayEvents.map((e) => Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: _EventCard(
+                                  event: e, onTap: () => _openEvent(e)),
+                            )),
+                      ],
                     ),
-                  ),
-                ]),
-              );
-            }
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 16, top: 6),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _dayLabel(day, i),
-                    style: TextStyle(
-                        color: context.f3textMuted,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 1),
-                  ),
-                  const SizedBox(height: 6),
-                  ...dayEvents.map((e) => Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child:
-                            _EventCard(event: e, onTap: () => _openEvent(e)),
-                      )),
-                ],
-              ),
-            );
+                  );
+            // A subtle divider between each day keeps a sparse week from
+            // reading as one undifferentiated block of text.
+            return Column(children: [
+              block,
+              if (!isLast)
+                Divider(
+                    height: 1,
+                    color: context.f3divider.withValues(alpha: 0.5)),
+            ]);
           }),
       ],
     );
@@ -343,26 +379,44 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   Widget _buildSelectedDaySection(BuildContext context) {
     final day = _selectedDay!;
     final dayEvents = _selectedDayEvents;
+    final subtitle = _loadingCalendar
+        ? 'Loading…'
+        : dayEvents.isEmpty
+            ? 'Nothing scheduled'
+            : '${dayEvents.length} beatdown${dayEvents.length == 1 ? '' : 's'}';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              _dayLabel(day, null),
-              style: TextStyle(
-                  color: context.f3textPrimary,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w800),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _dayLabel(day, null),
+                  style: TextStyle(
+                      color: context.f3textPrimary,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 2),
+                Text(subtitle,
+                    style:
+                        TextStyle(color: context.f3textMuted, fontSize: 12)),
+              ],
             ),
-            TextButton(
-              onPressed: () => setState(() => _selectedDay = null),
-              child: const Text('Back to this week'),
+            TextButton.icon(
+              onPressed: _resetToToday,
+              icon: const Icon(Icons.arrow_back_rounded, size: 16),
+              label: const Text('This week'),
             ),
           ],
         ),
         const SizedBox(height: 8),
+        Divider(height: 1, color: context.f3divider.withValues(alpha: 0.5)),
+        const SizedBox(height: 14),
         if (_loadingCalendar)
           const Center(child: CircularProgressIndicator())
         else if (dayEvents.isEmpty)

@@ -43,6 +43,9 @@ dependencies:
   flutter_secure_storage: ^9.2.2
   # Device GPS location for "nearby AOs" sorting on the Browse AOs screen
   geolocator: ^13.0.1
+  # Map view for Browse AOs — OpenStreetMap tiles, no API key/billing needed
+  flutter_map: ^7.0.2
+  latlong2: ^0.9.1
   # Profile avatar photo upload (gallery/camera) + local storage
   image_picker: ^1.1.2
   path_provider: ^2.1.4

@@ -192,6 +192,33 @@ class _SetupPage extends StatelessWidget {
           Text('You can do these now or later from Settings.',
               textAlign: TextAlign.center,
               style: TextStyle(color: context.f3textMuted, fontSize: 13)),
+          const SizedBox(height: 20),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: F3Colors.accent.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.info_outline_rounded,
+                    color: F3Colors.accent, size: 18),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'We\'ll ask for location access (to find AOs near you) '
+                    'and notification permission (for HC/Q reminders) the '
+                    'first time you use those features.',
+                    style: TextStyle(
+                        color: context.f3textSecondary,
+                        fontSize: 12,
+                        height: 1.4),
+                  ),
+                ),
+              ],
+            ),
+          ),
           const SizedBox(height: 24),
           _SetupTile(
             icon: Icons.fingerprint_rounded,

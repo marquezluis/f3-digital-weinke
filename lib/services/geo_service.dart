@@ -11,6 +11,11 @@ class GeoService {
   /// Requests (if needed) and returns the device's current position, or
   /// null if location services are off, permission is denied, or the
   /// request fails for any reason.
+  ///
+  /// Tries the OS's cached last-known position first — near-instant, and
+  /// plenty accurate for a "which AOs are nearby" use case — before falling
+  /// back to a fresh GPS request, which can take several real seconds
+  /// (worse indoors) and was the actual cause of "this takes forever."
   static Future<Position?> getCurrentPosition() async {
     try {
       if (!await Geolocator.isLocationServiceEnabled()) return null;
@@ -24,11 +29,17 @@ class GeoService {
         return null;
       }
 
+      final lastKnown = await Geolocator.getLastKnownPosition();
+      if (lastKnown != null &&
+          DateTime.now().difference(lastKnown.timestamp).inMinutes < 15) {
+        return lastKnown;
+      }
+
       return await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.medium,
         ),
-      ).timeout(const Duration(seconds: 10));
+      ).timeout(const Duration(seconds: 8));
     } catch (_) {
       return null;
     }
