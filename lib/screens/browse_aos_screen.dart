@@ -12,6 +12,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../l10n/app_localizations.dart';
 import '../models/f3_api_models.dart';
 import '../services/f3_api_service.dart';
 import '../services/geo_service.dart';
@@ -165,8 +166,7 @@ class _BrowseAosScreenState extends State<BrowseAosScreen> {
       _position = position;
       _locating = false;
       if (position == null) {
-        _locationError =
-            'Couldn\'t get your location — showing AOs alphabetically instead.';
+        _locationError = AppLocalizations.of(context)!.browseAosLocationError;
       }
     });
     _refitMap();
@@ -317,11 +317,12 @@ class _BrowseAosScreenState extends State<BrowseAosScreen> {
   @override
   Widget build(BuildContext context) {
     final api = context.watch<F3ApiService>();
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       backgroundColor: context.f3bg,
       appBar: AppBar(
-        title: const Text('Browse AOs'),
+        title: Text(l10n.browseAosTitle),
         backgroundColor: context.f3bg,
         actions: [
           IconButton(
@@ -332,17 +333,16 @@ class _BrowseAosScreenState extends State<BrowseAosScreen> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.my_location_rounded),
-            tooltip: 'Refresh my location',
+            tooltip: l10n.browseAosRefreshLocation,
             onPressed: _locating ? null : _findMe,
           ),
         ],
       ),
       body: !api.isConfigured
-          ? const _EmptyState(
+          ? _EmptyState(
               icon: Icons.cloud_off_rounded,
-              title: 'F3 Nation API not configured',
-              subtitle:
-                  'This build isn\'t connected to the F3 Nation API, so AO data isn\'t available.',
+              title: l10n.browseAosApiNotConfiguredTitle,
+              subtitle: l10n.browseAosApiNotConfiguredSub,
             )
           : RefreshIndicator(
               onRefresh: _load,
@@ -354,7 +354,7 @@ class _BrowseAosScreenState extends State<BrowseAosScreen> {
                       controller: _searchCtrl,
                       style: TextStyle(color: context.f3textPrimary),
                       decoration: InputDecoration(
-                        hintText: 'Search AOs',
+                        hintText: l10n.browseAosSearchHint,
                         prefixIcon: const Icon(Icons.search_rounded),
                         filled: true,
                         fillColor: context.f3card,
@@ -385,10 +385,10 @@ class _BrowseAosScreenState extends State<BrowseAosScreen> {
                         : _filtered.isEmpty
                             ? _EmptyState(
                                 icon: Icons.location_off_rounded,
-                                title: 'No AOs found',
+                                title: l10n.browseAosNoAosFound,
                                 subtitle: _locations.isEmpty
-                                    ? 'Couldn\'t load AOs — pull to refresh.'
-                                    : 'No AOs match your search/filters.',
+                                    ? l10n.browseAosCouldntLoad
+                                    : l10n.browseAosNoMatches,
                               )
                             : ListView.separated(
                                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
@@ -540,9 +540,9 @@ class _BrowseAosScreenState extends State<BrowseAosScreen> {
                       color: Colors.black.withValues(alpha: 0.6),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Text(
-                      'Zoom out for more',
-                      style: TextStyle(color: Colors.white, fontSize: 11),
+                    child: Text(
+                      AppLocalizations.of(context)!.browseAosZoomForMore,
+                      style: const TextStyle(color: Colors.white, fontSize: 11),
                     ),
                   ),
                 ),
@@ -578,17 +578,18 @@ class _BrowseAosScreenState extends State<BrowseAosScreen> {
   }
 
   Widget _buildFilterBar(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(children: [
           FilterPill(
-            label: _stateFilter ?? 'State',
+            label: _stateFilter ?? l10n.browseAosStateFilter,
             active: _stateFilter != null,
             onTap: () async {
               final picked = await showFilterPickerSheet(context,
-                  title: 'Filter by state',
+                  title: l10n.browseAosFilterByState,
                   options: _stateOptions,
                   current: _stateFilter);
               if (picked == null) return;
@@ -607,11 +608,11 @@ class _BrowseAosScreenState extends State<BrowseAosScreen> {
           ),
           const SizedBox(width: 8),
           FilterPill(
-            label: _regionFilter ?? 'Region',
+            label: _regionFilter ?? l10n.browseAosRegionFilter,
             active: _regionFilter != null,
             onTap: () async {
               final picked = await showFilterPickerSheet(context,
-                  title: 'Filter by region',
+                  title: l10n.browseAosFilterByRegion,
                   options: _regionOptions,
                   current: _regionFilter);
               if (picked == null) return;
@@ -627,11 +628,15 @@ class _BrowseAosScreenState extends State<BrowseAosScreen> {
           ),
           const SizedBox(width: 8),
           FilterPill(
-            label: _weekdayFilter ?? 'Day',
+            // Weekday values themselves stay in English (Monday, Tuesday…):
+            // they're matched against the API's own weekday strings for
+            // filtering, so translating just the display would break that
+            // comparison. Only the pill's own chrome is localized.
+            label: _weekdayFilter ?? l10n.browseAosDayFilter,
             active: _weekdayFilter != null,
             onTap: () async {
               final picked = await showFilterPickerSheet(context,
-                  title: 'Filter by workout day',
+                  title: l10n.browseAosFilterByDay,
                   options: _weekdayOptions,
                   current: _weekdayFilter);
               if (picked == null) return;
@@ -651,7 +656,7 @@ class _BrowseAosScreenState extends State<BrowseAosScreen> {
                 });
                 _refitMap();
               },
-              child: const Text('Clear all'),
+              child: Text(l10n.browseAosClearAll),
             ),
           ],
         ]),
@@ -759,7 +764,7 @@ class _AoTile extends StatelessWidget {
                       Padding(
                         padding: const EdgeInsets.only(top: 2),
                         child: Text(
-                          'No beatdowns scheduled yet',
+                          AppLocalizations.of(context)!.browseAosNoBeatdownsScheduled,
                           style: TextStyle(
                               color: context.f3textMuted,
                               fontSize: 12,
@@ -832,6 +837,7 @@ class _AoDetailSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final addressParts = [
       if (location.street != null && location.street!.isNotEmpty)
         location.street,
@@ -866,22 +872,23 @@ class _AoDetailSheet extends StatelessWidget {
                   fontWeight: FontWeight.w900)),
           const SizedBox(height: 16),
           if (location.regionName != null)
-            _row(context, 'REGION', location.regionName!),
-          if (addressParts.isNotEmpty) _row(context, 'ADDRESS', addressParts),
+            _row(context, l10n.browseAosRegion, location.regionName!),
+          if (addressParts.isNotEmpty)
+            _row(context, l10n.browseAosAddress, addressParts),
           if (location.description != null &&
               location.description!.isNotEmpty)
-            _row(context, 'NOTES', location.description!),
+            _row(context, l10n.browseAosNotes, location.description!),
           if (location.schedule.isNotEmpty)
             _row(
               context,
-              'SCHEDULE',
+              l10n.browseAosSchedule,
               location.schedule
                   .map((w) =>
                       '${w.displayWeekday} ${w.displayTime}${w.eventTypeName != null ? ' · ${w.eventTypeName}' : ''}')
                   .join('\n'),
             )
           else
-            _row(context, 'SCHEDULE', 'No beatdowns scheduled yet'),
+            _row(context, l10n.browseAosSchedule, l10n.browseAosNoBeatdownsScheduled),
           const SizedBox(height: 8),
           if (location.lat != null)
             SizedBox(
@@ -889,7 +896,7 @@ class _AoDetailSheet extends StatelessWidget {
               child: OutlinedButton.icon(
                 onPressed: onOpenMaps,
                 icon: const Icon(Icons.map_rounded, size: 18),
-                label: const Text('Open in Maps'),
+                label: Text(l10n.browseAosOpenInMaps),
               ),
             ),
         ],

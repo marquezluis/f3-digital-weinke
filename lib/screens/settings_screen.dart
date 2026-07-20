@@ -21,6 +21,7 @@ import '../services/f3_api_service.dart';
 import '../services/settings_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/greeting.dart';
+import '../widgets/theme_language_picker.dart';
 import 'profile_screen.dart';
 import 'emergency_screen.dart';
 
@@ -29,10 +30,11 @@ class SettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: context.f3bg,
       appBar: AppBar(
-        title: const Text('Settings'),
+        title: Text(l10n.settingsTitle),
         backgroundColor: context.f3bg,
       ),
       body: Consumer<SettingsService>(
@@ -59,10 +61,10 @@ class SettingsScreen extends StatelessWidget {
                     padding: const EdgeInsets.only(top: 12),
                     child: TextFormField(
                       initialValue: service.myF3Name,
-                      decoration: const InputDecoration(
-                        labelText: 'My F3 Name',
-                        hintText: 'Your F3 handle (auto-fills the Q field)',
-                        prefixIcon: Icon(Icons.badge_rounded),
+                      decoration: InputDecoration(
+                        labelText: l10n.settingsMyF3Name,
+                        hintText: l10n.settingsMyF3NameHint,
+                        prefixIcon: const Icon(Icons.badge_rounded),
                       ),
                       onChanged: (val) => service.setMyF3Name(val.trim()),
                     ),
@@ -73,25 +75,25 @@ class SettingsScreen extends StatelessWidget {
               const SizedBox(height: 28),
 
               // ── Appearance ────────────────────────────────────────────────
-              const _SectionHeader('APPEARANCE'),
+              _SectionHeader(l10n.settingsAppearance),
               const SizedBox(height: 8),
-              _ThemePicker(
+              ThemePicker(
                 current: service.themeMode,
                 onSelect: (mode) => service.setThemeMode(mode),
               ),
               const SizedBox(height: 12),
-              _LanguagePicker(
+              LanguagePicker(
                 current: service.locale.languageCode,
                 onSelect: (code) => service.setLocale(Locale(code)),
               ),
               const SizedBox(height: 28),
 
               // ── Voice & Accessibility ───────────────────────────────────────
-              const _SectionHeader('VOICE & ACCESSIBILITY'),
+              _SectionHeader(l10n.settingsVoiceAccessibility),
               const SizedBox(height: 8),
               _SwitchRow(
-                label: 'Enable Voice Callouts',
-                subtitle: 'TTS for phase changes and exercises.',
+                label: l10n.settingsEnableVoiceCallouts,
+                subtitle: l10n.settingsVoiceCalloutsDesc,
                 value: service.voiceEnabled,
                 onChanged: (val) => service.updateVoiceEnabled(val),
               ),
@@ -104,19 +106,19 @@ class SettingsScreen extends StatelessWidget {
               ],
               const SizedBox(height: 8),
               _SwitchRow(
-                label: 'Reduced Motion',
-                subtitle: 'Disables non-essential animations.',
+                label: l10n.settingsReducedMotion,
+                subtitle: l10n.settingsReducedMotionDesc,
                 value: service.reducedMotion,
                 onChanged: (val) => service.updateReducedMotion(val),
               ),
               const SizedBox(height: 28),
 
               // ── Music ─────────────────────────────────────────────────────
-              const _SectionHeader('MUSIC'),
+              _SectionHeader(l10n.settingsMusic),
               const SizedBox(height: 8),
               _SwitchRow(
-                label: 'Launch music on workout start',
-                subtitle: 'Opens your music app when you tap START WORKOUT.',
+                label: l10n.settingsLaunchMusic,
+                subtitle: l10n.settingsLaunchMusicDesc,
                 value: service.musicEnabled,
                 onChanged: (val) => service.setMusicEnabled(val),
               ),
@@ -126,7 +128,7 @@ class SettingsScreen extends StatelessWidget {
                   initialValue: service.musicProvider,
                   dropdownColor: context.f3card,
                   decoration: InputDecoration(
-                    labelText: 'Music Provider',
+                    labelText: l10n.settingsMusicProvider,
                     prefixIcon: Padding(
                       padding: const EdgeInsets.all(10),
                       child: _MusicProviderIcon(service.musicProvider),
@@ -154,17 +156,17 @@ class SettingsScreen extends StatelessWidget {
                 const SizedBox(height: 12),
                 TextFormField(
                   initialValue: service.musicPlaylistUrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Playlist URL (optional)',
-                    hintText: 'Paste a Spotify / Apple Music / YouTube link',
-                    prefixIcon: Icon(Icons.link_rounded),
+                  decoration: InputDecoration(
+                    labelText: l10n.settingsPlaylistUrl,
+                    hintText: l10n.settingsPlaylistUrlHint,
+                    prefixIcon: const Icon(Icons.link_rounded),
                   ),
                   onChanged: (val) => service.setMusicPlaylistUrl(val.trim()),
                 ),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
                   child: Text(
-                    'Leave blank to just open the app. Paste a share link to jump straight to your beatdown playlist.',
+                    l10n.settingsPlaylistUrlHelp,
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ),
@@ -172,12 +174,12 @@ class SettingsScreen extends StatelessWidget {
               const SizedBox(height: 28),
 
               // ── Safety ────────────────────────────────────────────────────
-              const _SectionHeader('SAFETY'),
+              _SectionHeader(l10n.settingsSafety),
               const SizedBox(height: 8),
               _NavTile(
                 icon: Icons.emergency_rounded,
-                title: 'Emergency Info',
-                subtitle: 'Medical + AO-site info · works without sign-in',
+                title: l10n.settingsEmergencyInfo,
+                subtitle: l10n.settingsEmergencyInfoSub,
                 color: Colors.redAccent,
                 onTap: () => Navigator.push(context,
                     MaterialPageRoute(builder: (_) => const EmergencyScreen())),
@@ -185,12 +187,12 @@ class SettingsScreen extends StatelessWidget {
               const SizedBox(height: 28),
 
               // ── Data ──────────────────────────────────────────────────────
-              const _SectionHeader('DATA'),
+              _SectionHeader(l10n.settingsData),
               const SizedBox(height: 8),
               _NavTile(
                 icon: Icons.upload_rounded,
-                title: 'Export Backup',
-                subtitle: 'Share all sessions as a JSON file',
+                title: l10n.settingsExportBackup,
+                subtitle: l10n.settingsExportBackupSub,
                 color: F3Colors.catBodyweight,
                 onTap: () async {
                   final profile = context.read<AppProfileService>();
@@ -207,8 +209,8 @@ class SettingsScreen extends StatelessWidget {
               const SizedBox(height: 8),
               _NavTile(
                 icon: Icons.download_rounded,
-                title: 'Import Backup',
-                subtitle: 'Paste backup JSON from clipboard',
+                title: l10n.settingsImportBackup,
+                subtitle: l10n.settingsImportBackupSub,
                 color: F3Colors.catCoupon,
                 onTap: () async {
                   final profile   = context.read<AppProfileService>();
@@ -220,7 +222,7 @@ class SettingsScreen extends StatelessWidget {
                   final raw = data?.text ?? '';
                   if (raw.isEmpty) {
                     messenger.showSnackBar(
-                      const SnackBar(content: Text('Clipboard is empty.')),
+                      SnackBar(content: Text(l10n.settingsClipboardEmpty)),
                     );
                     return;
                   }
@@ -233,12 +235,12 @@ class SettingsScreen extends StatelessWidget {
                     );
                     if (!messenger.mounted) return;
                     messenger.showSnackBar(
-                      const SnackBar(content: Text('Backup imported successfully!')),
+                      SnackBar(content: Text(l10n.settingsBackupImported)),
                     );
                   } catch (e) {
                     if (!messenger.mounted) return;
                     messenger.showSnackBar(
-                      SnackBar(content: Text('Import failed: $e')),
+                      SnackBar(content: Text(l10n.settingsImportFailed('$e'))),
                     );
                   }
                 },
@@ -246,7 +248,7 @@ class SettingsScreen extends StatelessWidget {
               const SizedBox(height: 28),
 
               // ── About ─────────────────────────────────────────────────────
-              const _SectionHeader('ABOUT'),
+              _SectionHeader(l10n.settingsAbout),
               const SizedBox(height: 8),
               Builder(builder: (context) {
                 final count = context
@@ -257,20 +259,20 @@ class SettingsScreen extends StatelessWidget {
                 if (count == 0) return const SizedBox.shrink();
                 return _InfoTile(
                   icon: Icons.local_fire_department_rounded,
-                  title: '$count beatdown${count == 1 ? '' : 's'} planned',
-                  subtitle: 'Every one of them, posted in the gloom.',
+                  title: l10n.settingsBeatdownsPlanned(count),
+                  subtitle: l10n.settingsBeatdownsPlannedSub,
                 );
               }),
               const _VersionTile(),
-              const _InfoTile(
+              _InfoTile(
                 icon: Icons.fitness_center_rounded,
-                title: '907 Exicon exercises',
-                subtitle: 'Full F3 Codex, bundled offline.',
+                title: l10n.settingsExiconCount,
+                subtitle: l10n.settingsExiconCountSub,
               ),
-              const _InfoTile(
+              _InfoTile(
                 icon: Icons.wifi_off_rounded,
-                title: 'Fully offline',
-                subtitle: 'No account or internet required.',
+                title: l10n.settingsFullyOffline,
+                subtitle: l10n.settingsFullyOfflineSub,
               ),
             ],
           );
@@ -600,7 +602,7 @@ class _F3NationAccountCardState extends State<_F3NationAccountCard> {
       builder: (context) => AlertDialog(
         backgroundColor: context.f3card,
         title: Text(
-          'F3 Nation Sign-In Error',
+          AppLocalizations.of(context)!.settingsF3SignInErrorTitle,
           style: TextStyle(color: context.f3textPrimary, fontSize: 16),
         ),
         content: SingleChildScrollView(
@@ -619,7 +621,7 @@ class _F3NationAccountCardState extends State<_F3NationAccountCard> {
               Clipboard.setData(ClipboardData(text: message));
               Navigator.pop(context);
             },
-            child: const Text('Copy & Close'),
+            child: Text(AppLocalizations.of(context)!.settingsCopyAndClose),
           ),
         ],
       ),
@@ -630,6 +632,7 @@ class _F3NationAccountCardState extends State<_F3NationAccountCard> {
   Widget build(BuildContext context) {
     return Consumer<AuthService>(
       builder: (context, auth, _) {
+        final l10n = AppLocalizations.of(context)!;
         final identity = _f3Identity(auth);
         final linked = identity != null;
         return Container(
@@ -653,8 +656,8 @@ class _F3NationAccountCardState extends State<_F3NationAccountCard> {
                 Expanded(
                   child: Text(
                     linked
-                        ? (identity.email.isNotEmpty ? identity.email : 'Linked')
-                        : 'Not linked',
+                        ? (identity.email.isNotEmpty ? identity.email : l10n.settingsLinked)
+                        : l10n.settingsNotLinked,
                     style: TextStyle(
                       color: context.f3textPrimary,
                       fontWeight: FontWeight.w800,
@@ -675,17 +678,17 @@ class _F3NationAccountCardState extends State<_F3NationAccountCard> {
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : const Icon(Icons.login_rounded),
-                    label: Text(
-                        _busy ? 'Working… (check your browser)' : 'Sign in with F3 Nation'),
+                    label: Text(_busy
+                        ? l10n.settingsWorkingCheckBrowser
+                        : l10n.loginGateSignIn),
                   ),
                 ),
               ],
               const SizedBox(height: 8),
               Text(
                 linked
-                    ? 'Sign out and region switching are on your Profile screen.'
-                    : 'Links your Digital Weinke profile to your F3 Nation account '
-                        '(auth2.f3nation.com).',
+                    ? l10n.settingsSignOutRegionNote
+                    : l10n.settingsLinksAccountNote,
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ],
@@ -816,7 +819,7 @@ class _VoiceSelectorState extends State<_VoiceSelector> {
   }
 
   String _displayNameForVoice(String rawName) {
-    if (rawName.isEmpty) return 'System Default';
+    if (rawName.isEmpty) return AppLocalizations.of(context)!.settingsSystemDefault;
     for (final (display, raw) in _voices) {
       if (raw == rawName) return display;
     }
@@ -848,11 +851,12 @@ class _VoiceSelectorState extends State<_VoiceSelector> {
 
   void _pick(BuildContext context) {
     if (_voices.isEmpty) return;
+    final l10n = AppLocalizations.of(context)!;
     showDialog<String>(
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: context.f3card,
-        title: Text('Select TTS Voice',
+        title: Text(l10n.settingsSelectTtsVoice,
             style: TextStyle(color: context.f3textPrimary, fontSize: 16)),
         content: SizedBox(
           width: double.maxFinite,
@@ -881,11 +885,11 @@ class _VoiceSelectorState extends State<_VoiceSelector> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, ''),
-            child: const Text('USE DEFAULT'),
+            child: Text(l10n.settingsUseDefault),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('CANCEL'),
+            child: Text(l10n.settingsCancel),
           ),
         ],
       ),
@@ -896,6 +900,7 @@ class _VoiceSelectorState extends State<_VoiceSelector> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final label = _displayNameForVoice(widget.currentVoice);
     return GestureDetector(
       onTap: _loading ? null : () => _pick(context),
@@ -911,10 +916,10 @@ class _VoiceSelectorState extends State<_VoiceSelector> {
           const SizedBox(width: 12),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('TTS Voice',
+              Text(l10n.settingsTtsVoice,
                   style: TextStyle(color: context.f3textPrimary, fontWeight: FontWeight.w600, fontSize: 14)),
               Text(
-                _loading ? 'Loading voices…' : label,
+                _loading ? l10n.settingsLoadingVoices : label,
                 style: TextStyle(color: context.f3textMuted, fontSize: 12),
               ),
             ]),
@@ -930,61 +935,6 @@ class _VoiceSelectorState extends State<_VoiceSelector> {
   }
 }
 
-// ── Theme picker ──────────────────────────────────────────────────────────────
-
-class _ThemePicker extends StatelessWidget {
-  final ThemeMode current;
-  final void Function(ThemeMode) onSelect;
-
-  const _ThemePicker({required this.current, required this.onSelect});
-
-  static const _options = [
-    (ThemeMode.dark,   Icons.dark_mode_rounded,       'Dark'),
-    (ThemeMode.light,  Icons.light_mode_rounded,      'Light'),
-    (ThemeMode.system, Icons.brightness_auto_rounded, 'System'),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: _options.map((opt) {
-        final (mode, icon, label) = opt;
-        final selected = mode == current;
-        return Expanded(
-          child: Padding(
-            padding: const EdgeInsets.only(right: 6),
-            child: GestureDetector(
-              onTap: () => onSelect(mode),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                decoration: BoxDecoration(
-                  color: selected ? F3Colors.accent.withValues(alpha: 0.14) : context.f3card,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: selected ? F3Colors.accent : context.f3divider,
-                    width: selected ? 1.5 : 1,
-                  ),
-                ),
-                child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(icon,
-                      color: selected ? F3Colors.accent : context.f3textSecondary,
-                      size: 22),
-                  const SizedBox(height: 4),
-                  Text(label,
-                      style: TextStyle(
-                        color: selected ? F3Colors.accent : context.f3textSecondary,
-                        fontSize: 11,
-                        fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                      )),
-                ]),
-              ),
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
-}
 
 // ── Info tile + tappable version tile ────────────────────────────────────────
 
@@ -1043,7 +993,7 @@ class _VersionTile extends StatelessWidget {
             child: Row(children: [
               Icon(Icons.history_rounded, color: F3Colors.accent, size: 22),
               SizedBox(width: 10),
-              Text('CHANGELOG',
+              Text(AppLocalizations.of(context)!.changelogTitle,
                   style: TextStyle(color: context.f3textPrimary, fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1)),
             ]),
           ),
@@ -1080,7 +1030,7 @@ class _VersionTile extends StatelessWidget {
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(AppVersion.displayName,
                   style: TextStyle(color: context.f3textPrimary, fontWeight: FontWeight.w700, fontSize: 14)),
-              Text('Tap to see what\'s new',
+              Text(AppLocalizations.of(context)!.settingsTapToSeeWhatsNew,
                   style: TextStyle(color: F3Colors.accent, fontSize: 12)),
             ])),
             Icon(Icons.chevron_right_rounded, color: F3Colors.accent, size: 20),
@@ -1134,66 +1084,6 @@ class _ReleaseCard extends StatelessWidget {
   }
 }
 
-// ── Language picker ───────────────────────────────────────────────────────────
-
-class _LanguagePicker extends StatelessWidget {
-  final String current;
-  final void Function(String) onSelect;
-
-  const _LanguagePicker({required this.current, required this.onSelect});
-
-  static const _options = [
-    ('en', '🇺🇸', 'English'),
-    ('es', '🇻🇪', 'Español'),
-    ('fr', '🇫🇷', 'Français'),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: _options.map((opt) {
-        final (code, flag, label) = opt;
-        final selected = code == current;
-        return Expanded(
-          child: Padding(
-            padding: const EdgeInsets.only(right: 6),
-            child: GestureDetector(
-              onTap: () => onSelect(code),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                decoration: BoxDecoration(
-                  color: selected
-                      ? F3Colors.accent.withValues(alpha: 0.14)
-                      : context.f3card,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: selected ? F3Colors.accent : context.f3divider,
-                    width: selected ? 1.5 : 1,
-                  ),
-                ),
-                child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  Text(flag, style: const TextStyle(fontSize: 20)),
-                  const SizedBox(height: 4),
-                  Text(
-                    label,
-                    style: TextStyle(
-                      color: selected
-                          ? F3Colors.accent
-                          : context.f3textSecondary,
-                      fontSize: 11,
-                      fontWeight:
-                          selected ? FontWeight.w700 : FontWeight.w500,
-                    ),
-                  ),
-                ]),
-              ),
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
-}
 
 class _ChangeGroup extends StatelessWidget {
   final String label;

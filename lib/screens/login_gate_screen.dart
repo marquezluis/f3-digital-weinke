@@ -10,11 +10,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import '../l10n/app_localizations.dart';
 import '../models/f3_api_models.dart';
 import '../services/app_profile_service.dart';
 import '../services/auth_service.dart';
 import '../services/f3_api_service.dart';
+import '../services/settings_service.dart' hide AppRole;
 import '../theme/app_theme.dart';
+import '../widgets/theme_language_picker.dart';
 import 'emergency_screen.dart';
 
 class LoginGateScreen extends StatefulWidget {
@@ -157,7 +160,7 @@ class _LoginGateScreenState extends State<LoginGateScreen> {
                     color: context.f3card,
                   ),
                   child: Text(
-                    'FOR F3 NATION',
+                    AppLocalizations.of(context)!.loginGateForF3Nation,
                     style: TextStyle(
                         color: context.f3textSecondary,
                         fontSize: 11,
@@ -166,9 +169,29 @@ class _LoginGateScreenState extends State<LoginGateScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 22),
+              const SizedBox(height: 18),
+              // Language + theme, right up front — this is the very first
+              // screen a non-English-speaking PAX sees, so switching out of
+              // English shouldn't require getting through an all-English
+              // sign-in flow (and further into Settings) first.
+              Consumer<SettingsService>(
+                builder: (context, settings, _) => Column(
+                  children: [
+                    LanguagePicker(
+                      current: settings.locale.languageCode,
+                      onSelect: (code) => settings.setLocale(Locale(code)),
+                    ),
+                    const SizedBox(height: 8),
+                    ThemePicker(
+                      current: settings.themeMode,
+                      onSelect: (mode) => settings.setThemeMode(mode),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 18),
               Text(
-                'Sign in with your F3 Nation account to continue.',
+                AppLocalizations.of(context)!.loginGateSubtitle,
                 textAlign: TextAlign.center,
                 style: TextStyle(color: context.f3textSecondary, fontSize: 15),
               ),
@@ -203,7 +226,9 @@ class _LoginGateScreenState extends State<LoginGateScreen> {
                             color: Colors.white, strokeWidth: 2),
                       )
                     : const Icon(Icons.login_rounded),
-                label: Text(_busy ? 'Signing in…' : 'Sign in with F3 Nation'),
+                label: Text(_busy
+                    ? AppLocalizations.of(context)!.loginGateSigningIn
+                    : AppLocalizations.of(context)!.loginGateSignIn),
               ),
               const Spacer(),
               // Life-safety: reachable with no auth, no network.
@@ -218,7 +243,7 @@ class _LoginGateScreenState extends State<LoginGateScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
                 icon: const Icon(Icons.emergency_rounded),
-                label: const Text('Emergency Info'),
+                label: Text(AppLocalizations.of(context)!.loginGateEmergencyInfo),
               ),
               const SizedBox(height: 24),
             ],

@@ -6,6 +6,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../l10n/app_localizations.dart';
 import '../services/current_workout_service.dart';
 import '../theme/app_theme.dart';
 import 'home_screen.dart';
@@ -34,15 +35,16 @@ class ShellScreen extends StatelessWidget {
             ?.allExercises
             .length ??
         0;
+    final l10n = AppLocalizations.of(context)!;
 
     return ValueListenableBuilder<int>(
       valueListenable: context.read<ValueNotifier<int>>(),
       builder: (context, index, _) {
         final destinations = [
-          const NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home_rounded),
-            label: 'Home',
+          NavigationDestination(
+            icon: const Icon(Icons.home_outlined),
+            selectedIcon: const Icon(Icons.home_rounded),
+            label: l10n.navHome,
           ),
           NavigationDestination(
             icon: Badge(
@@ -55,22 +57,22 @@ class ShellScreen extends StatelessWidget {
               label: Text('$draftCount'),
               child: const Icon(Icons.fitness_center_rounded),
             ),
-            label: 'Plan',
+            label: l10n.navPlan,
           ),
-          const NavigationDestination(
-            icon: Icon(Icons.event_outlined),
-            selectedIcon: Icon(Icons.event_rounded),
-            label: 'Schedule',
+          NavigationDestination(
+            icon: const Icon(Icons.event_outlined),
+            selectedIcon: const Icon(Icons.event_rounded),
+            label: l10n.navSchedule,
           ),
-          const NavigationDestination(
-            icon: Icon(Icons.groups_outlined),
-            selectedIcon: Icon(Icons.groups_rounded),
-            label: 'Community',
+          NavigationDestination(
+            icon: const Icon(Icons.groups_outlined),
+            selectedIcon: const Icon(Icons.groups_rounded),
+            label: l10n.navCommunity,
           ),
-          const NavigationDestination(
-            icon: Icon(Icons.person_outline_rounded),
-            selectedIcon: Icon(Icons.person_rounded),
-            label: 'You',
+          NavigationDestination(
+            icon: const Icon(Icons.person_outline_rounded),
+            selectedIcon: const Icon(Icons.person_rounded),
+            label: l10n.navYou,
           ),
         ];
 
@@ -85,7 +87,7 @@ class ShellScreen extends StatelessWidget {
             heroTag: 'spartanFab',
             backgroundColor: F3Colors.catCoupon,
             foregroundColor: Colors.white,
-            tooltip: 'Spartan Co-Q',
+            tooltip: l10n.navSpartanCoQ,
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const SpartanChatScreen()),

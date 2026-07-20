@@ -6,6 +6,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import '../l10n/app_localizations.dart';
 import '../services/app_profile_service.dart';
 import '../services/local_app_lock_service.dart';
 import '../theme/app_theme.dart';
@@ -49,15 +50,16 @@ class _LocalLoginScreenState extends State<LocalLoginScreen> {
 
     setState(() {
       _checking = false;
-      _message =
-          'Unlock was canceled or unavailable. Use your device Face ID, fingerprint, or PIN to continue.';
+      _message = AppLocalizations.of(context)!.localLoginCanceled;
     });
   }
 
   @override
   Widget build(BuildContext context) {
     final profile = context.watch<AppProfileService>();
-    final name = profile.displayName.isEmpty ? 'PAX' : profile.displayName;
+    final name = profile.displayName.isEmpty
+        ? AppLocalizations.of(context)!.rolePaxName
+        : profile.displayName;
 
     return Scaffold(
       backgroundColor: context.f3bg,
@@ -112,7 +114,7 @@ class _LocalLoginScreenState extends State<LocalLoginScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'F3 NATION · SPARTAN UP',
+                  AppLocalizations.of(context)!.localLoginTagline,
                   style: TextStyle(
                     color: context.f3textMuted,
                     fontSize: 10,
@@ -122,7 +124,7 @@ class _LocalLoginScreenState extends State<LocalLoginScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Welcome back, $name.',
+                  AppLocalizations.of(context)!.localLoginWelcomeBack(name),
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: context.f3textSecondary,
@@ -145,7 +147,7 @@ class _LocalLoginScreenState extends State<LocalLoginScreen> {
                       SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          'This local lock protects your signed-in F3 Nation session on this device.',
+                          AppLocalizations.of(context)!.localLoginProtects,
                           style: TextStyle(
                             color: context.f3textSecondary,
                             fontSize: 13,
@@ -184,7 +186,9 @@ class _LocalLoginScreenState extends State<LocalLoginScreen> {
                             ),
                           )
                         : const Icon(Icons.lock_open_rounded),
-                    label: Text(_checking ? 'UNLOCKING...' : 'UNLOCK APP'),
+                    label: Text(_checking
+                        ? AppLocalizations.of(context)!.localLoginUnlocking
+                        : AppLocalizations.of(context)!.localLoginUnlockApp),
                   ),
                 ),
                 const SizedBox(height: 28),
@@ -207,7 +211,7 @@ class _LocalLoginScreenState extends State<LocalLoginScreen> {
                       side: const BorderSide(color: Colors.redAccent, width: 1.5),
                     ),
                     icon: const Icon(Icons.emergency_rounded),
-                    label: const Text('EMERGENCY INFO'),
+                    label: Text(AppLocalizations.of(context)!.localLoginEmergencyInfo),
                   ),
                 ),
               ],

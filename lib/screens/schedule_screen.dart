@@ -5,7 +5,9 @@
 // actions (self-signup uses the user's own token, no editor role needed).
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import '../l10n/app_localizations.dart';
 import '../models/auth_models.dart';
 import '../models/f3_api_models.dart';
 import '../services/app_profile_service.dart' hide AppRole;
@@ -212,24 +214,25 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   @override
   Widget build(BuildContext context) {
     final api = context.watch<F3ApiService>();
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: context.f3bg,
       appBar: AppBar(
-        title: const Text('Schedule'),
+        title: Text(l10n.scheduleTitle),
         backgroundColor: context.f3bg,
         actions: [
           IconButton(
-            tooltip: 'Jump to today',
+            tooltip: l10n.scheduleJumpToday,
             icon: const Icon(Icons.today_rounded),
             onPressed: _resetToToday,
           ),
         ],
       ),
       body: !api.isConfigured
-          ? const _Empty(
+          ? _Empty(
               icon: Icons.cloud_off_rounded,
-              title: 'F3 Nation API not configured',
-              subtitle: 'This build isn\'t connected to the F3 Nation API.')
+              title: l10n.scheduleApiNotConfiguredTitle,
+              subtitle: l10n.scheduleApiNotConfiguredSub)
           : RefreshIndicator(
               onRefresh: () =>
                   Future.wait([_load(), _loadCalendarMonth()]),
@@ -268,6 +271,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   /// Default state (no date tapped): the next 7 days, one section each,
   /// shown whether or not that specific day has anything scheduled.
   Widget _buildWeekAgenda(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final today = DateTime.now();
     final todayStart = DateTime(today.year, today.month, today.day);
     return Column(
@@ -278,7 +282,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           child: Row(children: [
             const Icon(Icons.view_agenda_rounded, size: 13, color: F3Colors.accent),
             const SizedBox(width: 6),
-            Text('NEXT 7 DAYS',
+            Text(l10n.scheduleNext7Days,
                 style: TextStyle(
                     color: context.f3textMuted,
                     fontSize: 11,
@@ -289,7 +293,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         Padding(
           padding: const EdgeInsets.fromLTRB(4, 2, 4, 12),
           child: Text(
-            'Tap a date on the calendar above to see just that day.',
+            l10n.scheduleTapDateHint,
             style: TextStyle(color: context.f3textMuted, fontSize: 12),
           ),
         ),
@@ -328,8 +332,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                       Expanded(
                         child: Text(
                           _hasActiveFilters
-                              ? 'No matches'
-                              : 'Nothing scheduled',
+                              ? l10n.scheduleNoMatches
+                              : l10n.scheduleNothingScheduled,
                           style: TextStyle(
                               color:
                                   context.f3textMuted.withValues(alpha: 0.6),
@@ -377,13 +381,14 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   /// A calendar date was tapped: show just that day, with a way back to the
   /// default 7-day agenda (tapping the same date again does the same thing).
   Widget _buildSelectedDaySection(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final day = _selectedDay!;
     final dayEvents = _selectedDayEvents;
     final subtitle = _loadingCalendar
-        ? 'Loading…'
+        ? l10n.scheduleLoadingEllipsis
         : dayEvents.isEmpty
-            ? 'Nothing scheduled'
-            : '${dayEvents.length} beatdown${dayEvents.length == 1 ? '' : 's'}';
+            ? l10n.scheduleNothingScheduled
+            : l10n.scheduleBeatdownCount(dayEvents.length);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -410,7 +415,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             TextButton.icon(
               onPressed: _resetToToday,
               icon: const Icon(Icons.arrow_back_rounded, size: 16),
-              label: const Text('This week'),
+              label: Text(l10n.scheduleThisWeek),
             ),
           ],
         ),
@@ -422,7 +427,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         else if (dayEvents.isEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 16),
-            child: Text('Nothing scheduled this day.',
+            child: Text(l10n.scheduleNothingThisDay,
                 style: TextStyle(color: context.f3textMuted)),
           )
         else
@@ -435,30 +440,36 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   }
 
   String _dayLabel(DateTime day, int? offsetFromToday, {bool short = false}) {
-    if (offsetFromToday == 0) return short ? 'Today' : 'TODAY · ${_fmtDate(day)}';
-    if (offsetFromToday == 1) return short ? 'Tomorrow' : 'TOMORROW · ${_fmtDate(day)}';
-    const weekdaysFull = [
-      'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'
-    ];
-    const weekdaysShort = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    if (short) return '${weekdaysShort[day.weekday - 1]} ${_fmtDate(day)}';
-    return '${weekdaysFull[day.weekday - 1]} · ${_fmtDate(day)}';
+    final l10n = AppLocalizations.of(context)!;
+    if (offsetFromToday == 0) {
+      return short ? l10n.scheduleTodayShort : '${l10n.scheduleTodayFull} · ${_fmtDate(day)}';
+    }
+    if (offsetFromToday == 1) {
+      return short ? l10n.scheduleTomorrowShort : '${l10n.scheduleTomorrowFull} · ${_fmtDate(day)}';
+    }
+    // Locale-aware weekday names via intl rather than a hand-translated
+    // array — DateFormat already knows every supported locale's weekday
+    // names.
+    final locale = l10n.localeName;
+    if (short) return '${DateFormat('E', locale).format(day)} ${_fmtDate(day)}';
+    return '${DateFormat('EEEE', locale).format(day).toUpperCase()} · ${_fmtDate(day)}';
   }
 
   String _fmtDate(DateTime d) =>
       '${d.month}/${d.day}${d.year != DateTime.now().year ? '/${d.year}' : ''}';
 
   Widget _buildFilterBar(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(children: [
           FilterPill(
-            label: _aoFilter ?? 'AO',
+            label: _aoFilter ?? l10n.scheduleFilterAo,
             active: _aoFilter != null,
             onTap: () => _pickFromList(
-              title: 'Filter by AO',
+              title: l10n.scheduleFilterByAo,
               options: _aoOptions,
               current: _aoFilter,
               onPicked: (v) => setState(() => _aoFilter = v),
@@ -466,10 +477,10 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           ),
           const SizedBox(width: 8),
           FilterPill(
-            label: _typeFilter ?? 'Type',
+            label: _typeFilter ?? l10n.scheduleFilterType,
             active: _typeFilter != null,
             onTap: () => _pickFromList(
-              title: 'Filter by type',
+              title: l10n.scheduleFilterByType,
               options: _typeOptions,
               current: _typeFilter,
               onPicked: (v) => setState(() => _typeFilter = v),
@@ -482,7 +493,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 _aoFilter = null;
                 _typeFilter = null;
               }),
-              child: const Text('Clear all'),
+              child: Text(l10n.scheduleClearAll),
             ),
           ],
         ]),
@@ -498,6 +509,7 @@ class _EventCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Material(
       color: context.f3card,
       borderRadius: BorderRadius.circular(12),
@@ -514,7 +526,7 @@ class _EventCard extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Text(_month(event.date),
+                Text(_month(event.date, l10n.localeName),
                     style: const TextStyle(
                         color: F3Colors.accent,
                         fontSize: 11,
@@ -531,7 +543,7 @@ class _EventCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(event.orgName ?? event.locationName ?? 'Beatdown',
+                  Text(event.orgName ?? event.locationName ?? l10n.scheduleBeatdownFallback,
                       style: TextStyle(
                           color: context.f3textPrimary,
                           fontWeight: FontWeight.w800,
@@ -540,7 +552,9 @@ class _EventCard extends StatelessWidget {
                   Text(
                     [
                       if (event.startTime != null) event.startTime,
-                      event.hasQ ? 'Q: ${event.qF3Name ?? "set"}' : 'Q needed',
+                      event.hasQ
+                          ? l10n.scheduleQLabel(event.qF3Name ?? l10n.scheduleQSet)
+                          : l10n.scheduleQNeeded,
                     ].join(' · '),
                     style: TextStyle(
                         color: event.hasQ
@@ -559,7 +573,7 @@ class _EventCard extends StatelessWidget {
                   color: F3Colors.accent.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Text('${event.hcCount} HC',
+                child: Text(l10n.scheduleHcCount(event.hcCount ?? 0),
                     style: const TextStyle(
                         color: F3Colors.accent,
                         fontSize: 12,
@@ -573,10 +587,8 @@ class _EventCard extends StatelessWidget {
     );
   }
 
-  String _month(DateTime d) => const [
-        'JAN','FEB','MAR','APR','MAY','JUN',
-        'JUL','AUG','SEP','OCT','NOV','DEC'
-      ][d.month - 1];
+  String _month(DateTime d, String locale) =>
+      DateFormat('MMM', locale).format(d).toUpperCase();
 }
 
 /// Detail sheet: shows preblast + HC count and the action buttons (HC / take Q
@@ -620,7 +632,7 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
     try {
       final c = await _creds();
       if (c.token == null || c.uid == null) {
-        setState(() => _flash = 'Sign in to F3 Nation first.');
+        setState(() => _flash = AppLocalizations.of(context)!.scheduleSignInFirst);
         return;
       }
       final err = await op(id, c.uid!, c.token!);
@@ -634,7 +646,7 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
     await _run(
       (id, uid, token) => context.read<F3ApiService>().signUpForEvent(
           eventInstanceId: id, userId: uid),
-      'You\'re HC\'d — see you in the gloom.',
+      AppLocalizations.of(context)!.scheduleHcSuccess,
     );
     if (_flash != null && !_flash!.toLowerCase().contains('fail')) {
       setState(() => _attending = true);
@@ -646,7 +658,7 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
     await _run(
       (id, uid, token) => context.read<F3ApiService>().withdrawFromEvent(
           eventInstanceId: id, userId: uid),
-      'Un-HC\'d. Hope to catch you next time.',
+      AppLocalizations.of(context)!.scheduleUnhcSuccess,
     );
     if (_flash != null && !_flash!.toLowerCase().contains('fail')) {
       setState(() => _attending = false);
@@ -659,7 +671,7 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
     await _run(
       (id, uid, token) => context.read<F3ApiService>().takeQ(
           eventInstanceId: id, userId: uid),
-      'You\'ve got the Q. Time to build a Weinke.',
+      AppLocalizations.of(context)!.scheduleTakeQSuccess,
     );
     if (_flash != null && !_flash!.toLowerCase().contains('fail')) {
       _scheduleReminders(isQ: true);
@@ -674,34 +686,36 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
     NotificationService().scheduleEventReminders(
       eventId: id,
       eventDateTime: widget.event.dateTime,
-      title: widget.event.orgName ?? widget.event.locationName ?? 'Beatdown',
+      title: widget.event.orgName ??
+          widget.event.locationName ??
+          AppLocalizations.of(context)!.scheduleBeatdownFallback,
       isQ: isQ ?? widget.event.userIsQ,
       hasPreblast: (widget.event.preblast ?? '').isNotEmpty,
     );
   }
 
   Future<void> _postPreblast() async {
+    final l10n = AppLocalizations.of(context)!;
     final ctrl = TextEditingController(text: widget.event.preblast ?? '');
     final text = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: context.f3card,
-        title: const Text('Post Preblast'),
+        title: Text(l10n.schedulePostPreblast),
         content: TextField(
           controller: ctrl,
           maxLines: 5,
           autofocus: true,
           style: TextStyle(color: context.f3textPrimary),
-          decoration: const InputDecoration(
-              hintText: 'The plan, the theme, coupons, what to expect...'),
+          decoration: InputDecoration(hintText: l10n.schedulePreblastHint),
         ),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel')),
+              child: Text(l10n.scheduleCancel)),
           TextButton(
               onPressed: () => Navigator.pop(context, ctrl.text.trim()),
-              child: const Text('Post')),
+              child: Text(l10n.schedulePost)),
         ],
       ),
     );
@@ -711,7 +725,7 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
     final eventOrgId = widget.event.orgId;
     final c = await _creds();
     if (id == null || eventOrgId == null || c.token == null) {
-      setState(() => _flash = 'Sign in to post a preblast.');
+      setState(() => _flash = l10n.scheduleSignInToPostPreblast);
       return;
     }
     setState(() => _busy = true);
@@ -726,13 +740,14 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
     if (mounted) {
       setState(() {
         _busy = false;
-        _flash = err ?? 'Preblast posted.';
+        _flash = err ?? l10n.schedulePreblastPosted;
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final e = widget.event;
     return Padding(
       padding: EdgeInsets.only(
@@ -753,7 +768,7 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
                 color: context.f3divider,
                 borderRadius: BorderRadius.circular(2)),
           ),
-          Text(e.orgName ?? e.locationName ?? 'Beatdown',
+          Text(e.orgName ?? e.locationName ?? l10n.scheduleBeatdownFallback,
               style: TextStyle(
                   color: context.f3textPrimary,
                   fontSize: 20,
@@ -763,14 +778,16 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
             [
               '${e.date.month}/${e.date.day}',
               if (e.startTime != null) e.startTime,
-              e.hasQ ? 'Q: ${e.qF3Name ?? "set"}' : 'Q needed',
-              if ((e.hcCount ?? 0) > 0) '${e.hcCount} HC',
+              e.hasQ
+                  ? l10n.scheduleQLabel(e.qF3Name ?? l10n.scheduleQSet)
+                  : l10n.scheduleQNeeded,
+              if ((e.hcCount ?? 0) > 0) l10n.scheduleHcCount(e.hcCount ?? 0),
             ].join(' · '),
             style: TextStyle(color: context.f3textSecondary, fontSize: 13),
           ),
           const SizedBox(height: 16),
           if ((e.preblast ?? '').isNotEmpty) ...[
-            Text('PREBLAST',
+            Text(l10n.schedulePreblastHeader,
                 style: TextStyle(
                     color: context.f3textMuted,
                     fontSize: 11,
@@ -783,7 +800,7 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
             const SizedBox(height: 16),
           ],
           if (!_linked)
-            Text('Sign in to F3 Nation (Settings) to HC or take the Q.',
+            Text(l10n.scheduleSignInToHc,
                 style: TextStyle(color: context.f3textMuted, fontSize: 12))
           else ...[
             SizedBox(
@@ -792,12 +809,12 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
                   ? OutlinedButton.icon(
                       onPressed: _busy ? null : _unhc,
                       icon: const Icon(Icons.person_remove_rounded, size: 18),
-                      label: const Text('Un-HC'),
+                      label: Text(l10n.scheduleUnHc),
                     )
                   : ElevatedButton.icon(
                       onPressed: _busy ? null : _hc,
                       icon: const Icon(Icons.how_to_reg_rounded),
-                      label: const Text('HC — I\'m in'),
+                      label: Text(l10n.scheduleHcImIn),
                     ),
             ),
             const SizedBox(height: 8),
@@ -807,7 +824,7 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
                   child: OutlinedButton.icon(
                     onPressed: _busy ? null : _takeQ,
                     icon: const Icon(Icons.sports_rounded, size: 18),
-                    label: const Text('Take Q'),
+                    label: Text(l10n.scheduleTakeQ),
                   ),
                 ),
               if (!e.hasQ) const SizedBox(width: 8),
@@ -815,8 +832,9 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
                 child: OutlinedButton.icon(
                   onPressed: _busy ? null : _postPreblast,
                   icon: const Icon(Icons.campaign_rounded, size: 18),
-                  label: Text(
-                      (e.preblast ?? '').isEmpty ? 'Post Preblast' : 'Edit Preblast'),
+                  label: Text((e.preblast ?? '').isEmpty
+                      ? l10n.schedulePostPreblast
+                      : l10n.scheduleEditPreblast),
                 ),
               ),
             ]),

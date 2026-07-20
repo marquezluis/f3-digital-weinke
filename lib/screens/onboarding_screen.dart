@@ -5,6 +5,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../l10n/app_localizations.dart';
 import '../services/app_profile_service.dart';
 import '../theme/app_theme.dart';
 import 'emergency_edit_screen.dart';
@@ -20,26 +21,26 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final _controller = PageController();
   int _page = 0;
 
-  static const _intro = [
-    (
-      icon: Icons.bolt_rounded,
-      title: 'Build a Beatdown',
-      body: 'Generate or hand-build a Weinke from the full F3 Exicon, '
-          'with Spartan AI as your Co-Q for audibles and prep.',
-    ),
-    (
-      icon: Icons.timer_rounded,
-      title: 'Run the Q',
-      body: 'A live, phase-aware timer walks you through the beatdown, '
-          'then turns it into a backblast you can share.',
-    ),
-    (
-      icon: Icons.groups_rounded,
-      title: 'Connect to F3 Nation',
-      body: 'HC to beatdowns, take the Q, post preblasts and backblasts, '
-          'and find AOs near you — all tied to your F3 account.',
-    ),
-  ];
+  List<({IconData icon, String title, String body})> _intro(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return [
+      (
+        icon: Icons.bolt_rounded,
+        title: l10n.onboardingIntro1Title,
+        body: l10n.onboardingIntro1Body,
+      ),
+      (
+        icon: Icons.timer_rounded,
+        title: l10n.onboardingIntro2Title,
+        body: l10n.onboardingIntro2Body,
+      ),
+      (
+        icon: Icons.groups_rounded,
+        title: l10n.onboardingIntro3Title,
+        body: l10n.onboardingIntro3Body,
+      ),
+    ];
+  }
 
   Future<void> _finish() async {
     await context.read<AppProfileService>().markIntroSeen();
@@ -54,7 +55,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isLast = _page == _intro.length; // last page = the setup page
+    final intro = _intro(context);
+    final isLast = _page == intro.length; // last page = the setup page
     return Scaffold(
       backgroundColor: context.f3bg,
       body: SafeArea(
@@ -64,7 +66,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               alignment: Alignment.centerRight,
               child: TextButton(
                 onPressed: _finish,
-                child: Text('Skip',
+                child: Text(AppLocalizations.of(context)!.onboardingSkip,
                     style: TextStyle(color: context.f3textMuted)),
               ),
             ),
@@ -73,7 +75,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 controller: _controller,
                 onPageChanged: (i) => setState(() => _page = i),
                 children: [
-                  ..._intro.map((p) => _IntroPage(
+                  ...intro.map((p) => _IntroPage(
                         icon: p.icon,
                         title: p.title,
                         body: p.body,
@@ -85,7 +87,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             // Dots
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(_intro.length + 1, (i) {
+              children: List.generate(intro.length + 1, (i) {
                 final active = i == _page;
                 return AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
@@ -115,7 +117,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       duration: const Duration(milliseconds: 250),
                       curve: Curves.easeOut,
                     ),
-                    child: const Text('Next'),
+                    child: Text(AppLocalizations.of(context)!.onboardingNext),
                   ),
                 ),
               )
@@ -176,20 +178,21 @@ class _SetupPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final profile = context.watch<AppProfileService>();
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('Optional setup',
+          Text(l10n.onboardingSetupTitle,
               textAlign: TextAlign.center,
               style: TextStyle(
                   color: context.f3textPrimary,
                   fontSize: 22,
                   fontWeight: FontWeight.w900)),
           const SizedBox(height: 6),
-          Text('You can do these now or later from Settings.',
+          Text(l10n.onboardingSetupSubtitle,
               textAlign: TextAlign.center,
               style: TextStyle(color: context.f3textMuted, fontSize: 13)),
           const SizedBox(height: 20),
@@ -207,9 +210,7 @@ class _SetupPage extends StatelessWidget {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'We\'ll ask for location access (to find AOs near you) '
-                    'and notification permission (for HC/Q reminders) the '
-                    'first time you use those features.',
+                    l10n.onboardingPermissionsNotice,
                     style: TextStyle(
                         color: context.f3textSecondary,
                         fontSize: 12,
@@ -222,10 +223,10 @@ class _SetupPage extends StatelessWidget {
           const SizedBox(height: 24),
           _SetupTile(
             icon: Icons.fingerprint_rounded,
-            title: 'App lock',
+            title: l10n.onboardingAppLockTitle,
             subtitle: profile.appLockEnabled
-                ? 'Enabled — biometric required to open'
-                : 'Require biometric / PIN to open the app',
+                ? l10n.onboardingAppLockEnabled
+                : l10n.onboardingAppLockSubtitle,
             trailing: profile.appLockEnabled
                 ? const Icon(Icons.check_circle_rounded,
                     color: Colors.green)
@@ -237,8 +238,8 @@ class _SetupPage extends StatelessWidget {
           const SizedBox(height: 10),
           _SetupTile(
             icon: Icons.emergency_rounded,
-            title: 'Emergency info',
-            subtitle: 'Medical + AO-site info, on your device',
+            title: l10n.onboardingEmergencyTitle,
+            subtitle: l10n.onboardingEmergencySubtitle,
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const EmergencyEditScreen()),
@@ -252,7 +253,7 @@ class _SetupPage extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 16),
             ),
             onPressed: onDone,
-            child: const Text('Enter the app'),
+            child: Text(l10n.onboardingEnterApp),
           ),
         ],
       ),

@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
+import '../l10n/app_localizations.dart';
 import '../models/f3_api_models.dart';
 import '../services/app_profile_service.dart';
 import '../services/auth_service.dart';
@@ -83,8 +84,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await context.read<AppProfileService>().setLocalAvatarPath(dest.path);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Photo failed: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(AppLocalizations.of(context)!.profilePhotoFailed('$e'))));
       }
     } finally {
       if (mounted) setState(() => _uploading = false);
@@ -92,6 +93,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _showAvatarSheet() {
+    final l10n = AppLocalizations.of(context)!;
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: context.f3card,
@@ -101,7 +103,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           children: [
             ListTile(
               leading: const Icon(Icons.photo_library_rounded),
-              title: const Text('Choose from library'),
+              title: Text(l10n.profileChooseFromLibrary),
               onTap: () {
                 Navigator.pop(context);
                 _pickAvatar(ImageSource.gallery);
@@ -109,7 +111,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.camera_alt_rounded),
-              title: const Text('Take a photo'),
+              title: Text(l10n.profileTakePhoto),
               onTap: () {
                 Navigator.pop(context);
                 _pickAvatar(ImageSource.camera);
@@ -134,12 +136,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   /// numeric F3 user id (`AppProfileService.authUserId`), per Tackle's
   /// guidance to use `POST /v1/user` rather than the user-token `/me/profile`.
   Future<void> _editProfile() async {
+    final l10n = AppLocalizations.of(context)!;
     final profile = context.read<AppProfileService>();
     final userId = int.tryParse(profile.authUserId);
     if (userId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text(
-              'Sign in to F3 Nation first, then pull to refresh here.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.profileSignInFirstToast)));
       return;
     }
     final f3NameCtrl = TextEditingController(text: _f3?.f3Name ?? '');
@@ -166,7 +168,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Edit F3 Nation Profile',
+            Text(l10n.profileEditTitle,
                 style: TextStyle(
                     color: context.f3textPrimary,
                     fontSize: 18,
@@ -174,31 +176,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 16),
             TextField(
                 controller: f3NameCtrl,
-                decoration: const InputDecoration(labelText: 'F3 Name')),
+                decoration: InputDecoration(labelText: l10n.profileF3NameField)),
             const SizedBox(height: 10),
             TextField(
                 controller: firstNameCtrl,
-                decoration: const InputDecoration(labelText: 'First Name')),
+                decoration: InputDecoration(labelText: l10n.profileFirstNameField)),
             const SizedBox(height: 10),
             TextField(
                 controller: lastNameCtrl,
-                decoration: const InputDecoration(labelText: 'Last Name')),
+                decoration: InputDecoration(labelText: l10n.profileLastNameField)),
             const SizedBox(height: 10),
             TextField(
                 controller: emailCtrl,
                 keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(labelText: 'Email')),
+                decoration: InputDecoration(labelText: l10n.profileEmailField)),
             const SizedBox(height: 10),
             TextField(
                 controller: phoneCtrl,
                 keyboardType: TextInputType.phone,
-                decoration: const InputDecoration(labelText: 'Phone')),
+                decoration: InputDecoration(labelText: l10n.profilePhoneField)),
             const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () => Navigator.pop(sheetContext, true),
-                child: const Text('Save'),
+                child: Text(l10n.profileSave),
               ),
             ),
           ],
@@ -242,20 +244,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _signOut() async {
+    final l10n = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: context.f3card,
-        title: const Text('Sign out?'),
-        content: const Text(
-            'This signs you out of F3 Nation and returns to the login screen.'),
+        title: Text(l10n.profileSignOutTitle),
+        content: Text(l10n.profileSignOutBody),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel')),
+              child: Text(l10n.profileCancel)),
           TextButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('Sign Out')),
+              child: Text(l10n.profileSignOut)),
         ],
       ),
     );
@@ -272,17 +274,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: context.f3bg,
       appBar: AppBar(
-        title: const Text('Profile'),
+        title: Text(l10n.profileTitle),
         backgroundColor: context.f3bg,
       ),
       body: Consumer2<AppProfileService, AuthService>(
         builder: (context, profile, auth, _) {
           final linked = _isLinked(auth);
           final name =
-              profile.displayName.isEmpty ? 'PAX' : profile.displayName;
+              profile.displayName.isEmpty ? l10n.rolePaxName : profile.displayName;
           return RefreshIndicator(
             onRefresh: _fetch,
             child: ListView(
@@ -365,18 +368,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 else if (!linked)
                   _InfoRow(
                     icon: Icons.link_off_rounded,
-                    label: 'Not linked to F3 Nation',
-                    value: 'Sign in from Settings to pull your profile, '
-                        'region, and emergency info.',
+                    label: l10n.profileNotLinked,
+                    value: l10n.profileNotLinkedDesc,
                   )
                 else if (_sessionExpired) ...[
                   _InfoRow(
                     icon: Icons.warning_rounded,
-                    label: 'F3 Nation session expired',
-                    value:
-                        'Your sign-in stopped working (this happens after '
-                        'extended testing/idle time). Sign out below, then '
-                        'sign in again to refresh it.',
+                    label: l10n.profileSessionExpired,
+                    value: l10n.profileSessionExpiredDesc,
                   ),
                   const SizedBox(height: 8),
                   SizedBox(
@@ -384,44 +383,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: OutlinedButton.icon(
                       onPressed: _signOut,
                       icon: const Icon(Icons.logout_rounded),
-                      label: const Text('Sign Out'),
+                      label: Text(l10n.profileSignOut),
                     ),
                   ),
                 ] else ...[
                   Row(children: [
-                    Expanded(child: _SectionLabel('F3 NATION')),
+                    Expanded(child: _SectionLabel(l10n.profileSectionF3Nation)),
                     TextButton.icon(
                       onPressed: _editProfile,
                       icon: const Icon(Icons.edit_rounded, size: 16),
-                      label: const Text('Edit'),
+                      label: Text(l10n.profileEdit),
                     ),
                   ]),
                   _InfoRow(
                       icon: Icons.badge_rounded,
-                      label: 'F3 Name',
+                      label: l10n.profileF3NameField,
                       value: _f3?.f3Name ?? name),
                   if ((_f3?.firstName ?? '').isNotEmpty ||
                       (_f3?.lastName ?? '').isNotEmpty)
                     _InfoRow(
                         icon: Icons.person_rounded,
-                        label: 'Name',
+                        label: l10n.profileNameField,
                         value:
                             '${_f3?.firstName ?? ''} ${_f3?.lastName ?? ''}'
                                 .trim()),
                   if ((_f3?.email ?? '').isNotEmpty)
                     _InfoRow(
                         icon: Icons.email_rounded,
-                        label: 'Email',
+                        label: l10n.profileEmailField,
                         value: _f3!.email),
                   if ((_f3?.phone ?? '').isNotEmpty)
                     _InfoRow(
                         icon: Icons.phone_rounded,
-                        label: 'Phone',
+                        label: l10n.profilePhoneField,
                         value: _f3!.phone!),
                   if ((_f3?.homeRegionName ?? '').isNotEmpty)
                     _InfoRow(
                         icon: Icons.map_rounded,
-                        label: 'Home Region',
+                        label: l10n.profileHomeRegionField,
                         value: _f3!.homeRegionName!),
                   const SizedBox(height: 8),
                   Material(
@@ -444,12 +443,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('Emergency info',
+                                Text(l10n.profileEmergencyInfo,
                                     style: TextStyle(
                                         color: context.f3textPrimary,
                                         fontWeight: FontWeight.w700,
                                         fontSize: 14)),
-                                Text('Medical + AO-site · stored on device',
+                                Text(l10n.profileEmergencyInfoSub,
                                     style: TextStyle(
                                         color: context.f3textSecondary,
                                         fontSize: 12)),
@@ -476,7 +475,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               color: F3Colors.accent, size: 20),
                           const SizedBox(width: 12),
                           Expanded(
-                            child: Text('Change region',
+                            child: Text(l10n.profileChangeRegion,
                                 style: TextStyle(
                                     color: context.f3textPrimary,
                                     fontWeight: FontWeight.w700,
@@ -494,7 +493,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: OutlinedButton.icon(
                       onPressed: _signOut,
                       icon: const Icon(Icons.logout_rounded),
-                      label: const Text('Sign Out'),
+                      label: Text(l10n.profileSignOut),
                     ),
                   ),
                 ],

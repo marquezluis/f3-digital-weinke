@@ -38,6 +38,7 @@ class HomeScreen extends StatelessWidget {
     final myF3Name = settingsSvc.myF3Name;
     final now = DateTime.now();
     final isGloom = now.hour < 9;
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       backgroundColor: context.f3bg,
@@ -114,7 +115,7 @@ class HomeScreen extends StatelessWidget {
                                             fontSize: 15,
                                             fontWeight: FontWeight.w600)),
                                     const SizedBox(height: 2),
-                                    Text(name.isEmpty ? 'Welcome' : name,
+                                    Text(name.isEmpty ? l10n.homeWelcomeFallback : name,
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                         style: TextStyle(
@@ -142,8 +143,12 @@ class HomeScreen extends StatelessWidget {
                     }),
                     const SizedBox(height: 10),
                     Text(
+                      // The rotating daily mottos (_dailyMotto) are
+                      // deliberately left English-only for now — 25 short
+                      // motivational lines is a large translation surface on
+                      // its own, scoped out of this pass.
                       isGloom
-                          ? 'SYITG — See You in the Gloom.'
+                          ? l10n.homeSyitg
                           : _dailyMotto(now),
                       style: TextStyle(
                         color: context.f3textSecondary,
@@ -269,7 +274,7 @@ class HomeScreen extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'CURRENT WEINKE — ${plan.allExercises.length} exercises',
+                                    l10n.homeCurrentWeinke(plan.allExercises.length),
                                     style: const TextStyle(
                                         color: F3Colors.accent,
                                         fontSize: 10,
@@ -307,7 +312,7 @@ class HomeScreen extends StatelessWidget {
                   children: [
                     Padding(
                       padding: EdgeInsets.only(bottom: 12),
-                      child: Text('QUICK ACTIONS',
+                      child: Text(l10n.homeQuickActions,
                           style: TextStyle(
                               color: context.f3textMuted,
                               fontSize: 11,
@@ -318,16 +323,16 @@ class HomeScreen extends StatelessWidget {
                     // Schedule has its own tab now, so no duplicate card here.
                     _QuickCard(
                       icon: Icons.bolt_rounded,
-                      title: 'Generate Beatdown',
-                      subtitle: 'Random plan from the full Exicon',
+                      title: l10n.homeGenerateBeatdown,
+                      subtitle: l10n.homeGenerateBeatdownSub,
                       color: F3Colors.accent,
                       onTap: () => _openWeinke(context),
                     ),
                     const SizedBox(height: 8),
                     _QuickCard(
                       icon: Icons.school_rounded,
-                      title: 'Q Field Guide',
-                      subtitle: 'Prep · cadence · COT · backblast · QSource',
+                      title: l10n.homeQFieldGuide,
+                      subtitle: l10n.homeQFieldGuideSub,
                       color: F3Colors.phaseCOT,
                       onTap: () => Navigator.push(
                         context,
@@ -340,10 +345,10 @@ class HomeScreen extends StatelessWidget {
                     Consumer<HistoryService>(
                       builder: (context, svc, _) => _QuickCard(
                         icon: Icons.history_rounded,
-                        title: 'Beatdown History',
+                        title: l10n.homeBeatdownHistory,
                         subtitle: svc.all.isEmpty
-                            ? 'No sessions yet — save your first beatdown'
-                            : '${svc.all.length} session${svc.all.length == 1 ? "" : "s"} · tap to view & share backblast',
+                            ? l10n.homeBeatdownHistoryEmpty
+                            : l10n.homeBeatdownHistorySub(svc.all.length),
                         color: F3Colors.phaseMary,
                         onTap: () => Navigator.push(
                           context,
@@ -355,8 +360,8 @@ class HomeScreen extends StatelessWidget {
                     const SizedBox(height: 8),
                     _QuickCard(
                       icon: Icons.explore_rounded,
-                      title: 'Browse AOs',
-                      subtitle: 'Find F3 Nation AOs near you',
+                      title: l10n.homeBrowseAos,
+                      subtitle: l10n.homeBrowseAosSub,
                       color: const Color(0xFF2196F3),
                       onTap: () => Navigator.push(
                         context,
@@ -582,6 +587,7 @@ class _LastBeatdownCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final exerciseCount =
         session.blocks.fold<int>(0, (sum, b) => sum + b.exerciseNames.length);
     final paxLabel = session.pax.isEmpty
@@ -596,7 +602,7 @@ class _LastBeatdownCard extends StatelessWidget {
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          Text('LAST BEATDOWN',
+          Text(l10n.homeLastBeatdown,
               style: TextStyle(
                   color: context.f3textMuted,
                   fontSize: 11,
@@ -609,7 +615,7 @@ class _LastBeatdownCard extends StatelessWidget {
         ]),
         const SizedBox(height: 8),
         Text(
-          session.title.isEmpty ? 'Beatdown' : session.title,
+          session.title.isEmpty ? l10n.homeBeatdownFallback : session.title,
           style: TextStyle(
               color: context.f3textPrimary,
               fontWeight: FontWeight.w800,
@@ -629,7 +635,7 @@ class _LastBeatdownCard extends StatelessWidget {
           Icon(Icons.fitness_center_rounded,
               color: context.f3textMuted, size: 14),
           const SizedBox(width: 3),
-          Text('$exerciseCount exercises',
+          Text(l10n.homeExercisesCount(exerciseCount),
               style: TextStyle(
                   color: context.f3textSecondary, fontSize: 13)),
           const SizedBox(width: 12),
@@ -666,7 +672,7 @@ class _FeaturedExerciseCard extends StatelessWidget {
         child: Row(children: [
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('EXERCISE OF THE DAY',
+              Text(AppLocalizations.of(context)!.homeExerciseOfDay,
                   style: TextStyle(
                       color: color,
                       fontSize: 11,
@@ -698,6 +704,7 @@ class _StreakCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
@@ -720,7 +727,7 @@ class _StreakCard extends StatelessWidget {
                     fontWeight: FontWeight.w900),
               ),
               TextSpan(
-                text: 'WEEK STREAK',
+                text: l10n.homeWeekStreakLabel,
                 style: TextStyle(
                     color: context.f3textPrimary,
                     fontSize: 16,
@@ -728,7 +735,7 @@ class _StreakCard extends StatelessWidget {
               ),
             ]),
           ),
-          Text('Consecutive weeks with a completed beatdown',
+          Text(l10n.homeStreakDesc,
               style: TextStyle(color: context.f3textSecondary, fontSize: 12)),
         ]),
       ]),
@@ -744,6 +751,7 @@ class _StatsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final totalBeatdowns = sessions.length;
     final uniquePax = sessions
         .expand((s) => s.pax)
@@ -763,39 +771,27 @@ class _StatsCard extends StatelessWidget {
             color: F3Colors.accent, size: 24),
         const SizedBox(width: 12),
         Expanded(
-          child: RichText(
-            text: TextSpan(children: [
-              TextSpan(
-                text: "You've led ",
+          // A single localized sentence, not RichText spans stitched from
+          // English fragments — Spanish/French word order doesn't match
+          // English's "led X across Y" structure, so per-fragment colored
+          // spans can't survive translation. Trade the two-tone styling for
+          // correct grammar.
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                l10n.homeStatsLed(totalPaxLed, totalBeatdowns),
                 style: TextStyle(
-                    color: context.f3textSecondary, fontSize: 13),
-              ),
-              TextSpan(
-                text: '$totalPaxLed PAX',
-                style: const TextStyle(
-                    color: F3Colors.accent,
+                    color: context.f3textSecondary,
                     fontSize: 13,
-                    fontWeight: FontWeight.w800),
-              ),
-              TextSpan(
-                text: ' across ',
-                style: TextStyle(
-                    color: context.f3textSecondary, fontSize: 13),
-              ),
-              TextSpan(
-                text: '$totalBeatdowns beatdown${totalBeatdowns == 1 ? "" : "s"}',
-                style: const TextStyle(
-                    color: F3Colors.accent,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800),
+                    fontWeight: FontWeight.w600),
               ),
               if (uniquePax > 0)
-                TextSpan(
-                  text: ' · $uniquePax unique PAX',
-                  style: TextStyle(
-                      color: context.f3textMuted, fontSize: 12),
+                Text(
+                  l10n.homeStatsUniquePax(uniquePax),
+                  style: TextStyle(color: context.f3textMuted, fontSize: 12),
                 ),
-            ]),
+            ],
           ),
         ),
       ]),
@@ -853,10 +849,11 @@ class _QuickStartRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('QUICK START',
+        Text(l10n.homeQuickStart,
             style: TextStyle(
                 color: context.f3textMuted,
                 fontSize: 11,
@@ -868,7 +865,7 @@ class _QuickStartRow extends StatelessWidget {
             Expanded(
               child: _StartChip(
                 icon: Icons.play_circle_rounded,
-                label: 'RESUME',
+                label: l10n.homeResume,
                 color: F3Colors.accent,
                 onTap: onResume,
               ),
@@ -878,7 +875,7 @@ class _QuickStartRow extends StatelessWidget {
           Expanded(
             child: _StartChip(
               icon: Icons.bolt_rounded,
-              label: 'RANDOM',
+              label: l10n.homeRandom,
               color: F3Colors.phaseThang,
               onTap: onRandom,
             ),
@@ -888,7 +885,7 @@ class _QuickStartRow extends StatelessWidget {
             Expanded(
               child: _StartChip(
                 icon: Icons.history_rounded,
-                label: 'LAST PLAN',
+                label: l10n.homeLastPlan,
                 color: F3Colors.phaseMary,
                 onTap: onLoadLast!,
               ),
@@ -952,18 +949,21 @@ class _CoreValues extends StatelessWidget {
         border:
             Border.all(color: F3Colors.accent.withValues(alpha: 0.2)),
       ),
-      child: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('THE THREE F\'S',
-            style: TextStyle(
-                color: F3Colors.accent,
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 1.5)),
-        SizedBox(height: 8),
-        _F('FITNESS',    'Free, peer-led outdoor workouts for men.'),
-        _F('FELLOWSHIP', 'Community forged through shared struggle.'),
-        _F('FAITH',      'Spiritual growth through accountability.'),
-      ]),
+      child: Builder(builder: (context) {
+        final l10n = AppLocalizations.of(context)!;
+        return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(l10n.homeCoreValuesTitle,
+              style: const TextStyle(
+                  color: F3Colors.accent,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.5)),
+          const SizedBox(height: 8),
+          _F(l10n.homeCoreFitness, l10n.homeCoreFitnessDesc),
+          _F(l10n.homeCoreFellowship, l10n.homeCoreFellowshipDesc),
+          _F(l10n.homeCoreFaith, l10n.homeCoreFaithDesc),
+        ]);
+      }),
     );
   }
 }
@@ -1048,6 +1048,7 @@ class _UpcomingBeatdownsSectionState extends State<_UpcomingBeatdownsSection> {
       );
     }
     final events = _events ?? [];
+    final l10n = AppLocalizations.of(context)!;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1059,7 +1060,7 @@ class _UpcomingBeatdownsSectionState extends State<_UpcomingBeatdownsSection> {
               Icon(Icons.calendar_month_rounded, size: 13, color: F3Colors.accent),
               const SizedBox(width: 6),
               Text(
-                'YOUR UPCOMING BEATDOWNS',
+                l10n.homeUpcomingBeatdowns,
                 style: TextStyle(
                   color: context.f3textMuted,
                   fontSize: 11,
@@ -1074,7 +1075,7 @@ class _UpcomingBeatdownsSectionState extends State<_UpcomingBeatdownsSection> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Text(
-              'Nothing HC\'d or Q\'d yet — find a beatdown on Schedule.',
+              l10n.homeNothingHcd,
               style: TextStyle(color: context.f3textMuted, fontSize: 12),
             ),
           )
@@ -1099,14 +1100,15 @@ class _UpcomingBeatdownsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final next = events.first;
     final count = events.length;
     final isToday = _isToday(next.date);
     final isTomorrow = _isTomorrow(next.date);
     final dayLabel = isToday
-        ? 'Today'
+        ? l10n.homeToday
         : isTomorrow
-            ? 'Tomorrow'
+            ? l10n.homeTomorrow
             : _shortDate(next.date);
     final aoName = next.orgName ?? next.locationName ?? next.name ?? 'AO';
 
@@ -1147,9 +1149,7 @@ class _UpcomingBeatdownsCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      count == 1
-                          ? 'You\'re HC\'d for 1 beatdown'
-                          : 'You\'re HC\'d for $count beatdowns',
+                      l10n.homeHcdCount(count),
                       style: TextStyle(
                         color: context.f3textPrimary,
                         fontSize: 14,
@@ -1160,7 +1160,7 @@ class _UpcomingBeatdownsCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      '$dayLabel · $aoName${next.userIsQ ? ' · You\'re Q' : ''}',
+                      '$dayLabel · $aoName${next.userIsQ ? ' · ${l10n.homeYoureQ}' : ''}',
                       style: TextStyle(color: context.f3textMuted, fontSize: 12),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -1173,18 +1173,18 @@ class _UpcomingBeatdownsCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              const Row(
+              Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    'See all',
-                    style: TextStyle(
+                    l10n.homeSeeAll,
+                    style: const TextStyle(
                       color: F3Colors.accent,
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                  Icon(Icons.chevron_right_rounded, color: F3Colors.accent, size: 18),
+                  const Icon(Icons.chevron_right_rounded, color: F3Colors.accent, size: 18),
                 ],
               ),
             ],
