@@ -22,6 +22,7 @@ import '../models/workout_settings.dart';
 import '../services/current_workout_service.dart';
 import '../services/exercise_service.dart';
 import '../services/history_service.dart';
+import 'timer_screen.dart';
 import '../services/music_launcher.dart';
 import '../services/timer_service.dart';
 import '../services/weinke_exporter.dart';
@@ -396,7 +397,11 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     }
 
     if (mounted) {
-      context.read<ValueNotifier<int>>().value = 3;
+      // Q Mode is now reached as a pushed route (Plan hub), not a tab index.
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const TimerScreen()),
+      );
     }
   }
 
@@ -455,9 +460,16 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                   child: CircularProgressIndicator(color: F3Colors.accent))
               : plan == null
                   ? _EmptyState(onGenerate: _generate, onTemplates: _showTemplates)
-                  : _PlanView(
-                      plan: plan,
-                      onSwap: (ex) => _swap(ex, plan),
+                  : Column(
+                      children: [
+                        _GenOptions(onChanged: _generate),
+                        Expanded(
+                          child: _PlanView(
+                            plan: plan,
+                            onSwap: (ex) => _swap(ex, plan),
+                          ),
+                        ),
+                      ],
                     ),
           // Bottom action area when a plan exists
           bottomNavigationBar: plan != null && !_generating
@@ -642,7 +654,7 @@ class _SwipableExerciseCard extends StatelessWidget {
         workoutSvc.removeExerciseFromDraftBlock(blockIndex, exercise.id);
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('${exercise.name} removed'),
-          duration: const Duration(seconds: 2),
+          duration: const Duration(seconds: 4),
           action: SnackBarAction(
             label: 'UNDO',
             onPressed: () =>
@@ -870,8 +882,8 @@ class _EmptyState extends StatelessWidget {
                     letterSpacing: 1)),
             const SizedBox(height: 12),
             Text(
-              '50 minutes. Disclaimer → Warm-O-Rama → The Thang → Mary → COT.\n'
-              'Exercises drawn from the full F3 Exicon.',
+              'A full beatdown: Disclaimer → Warm-O-Rama → The Thang → '
+              'Mary → COT.\nExercises drawn from the full F3 Exicon.',
               textAlign: TextAlign.center,
               style:
                   TextStyle(color: context.f3textSecondary, fontSize: 15, height: 1.5),
@@ -896,6 +908,98 @@ class _EmptyState extends StatelessWidget {
 }
 
 // ─── Plan view ────────────────────────────────────────────────────────────────
+
+/// Compact generation controls that live with the builder (moved out of
+/// Settings): equipment (coupon mode) as a dropdown, plus a multi-select
+/// intensity chip row. Changing either updates the shared WorkoutSettings and
+/// regenerates the plan via [onChanged].
+class _GenOptions extends StatelessWidget {
+  final VoidCallback onChanged;
+  const _GenOptions({required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    final svc = context.watch<SettingsService>();
+    final s = svc.settings;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      decoration: BoxDecoration(
+        color: context.f3bg,
+        border: Border(bottom: BorderSide(color: context.f3divider)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.fitness_center_rounded,
+                  size: 16, color: context.f3textMuted),
+              const SizedBox(width: 6),
+              Text('Equipment',
+                  style:
+                      TextStyle(color: context.f3textSecondary, fontSize: 13)),
+              const Spacer(),
+              DropdownButton<CouponMode>(
+                value: s.couponMode,
+                isDense: true,
+                underline: const SizedBox.shrink(),
+                style: TextStyle(
+                    color: context.f3textPrimary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600),
+                dropdownColor: context.f3card,
+                items: CouponMode.values
+                    .map((m) => DropdownMenuItem(
+                        value: m, child: Text(m.displayName)))
+                    .toList(),
+                onChanged: (m) {
+                  if (m == null) return;
+                  svc.update(s.copyWith(couponMode: m));
+                  onChanged();
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Wrap(
+            spacing: 6,
+            children: Intensity.values.map((i) {
+              final on = s.intensities.contains(i);
+              return FilterChip(
+                label: Text(i.displayName,
+                    style: const TextStyle(fontSize: 12)),
+                selected: on,
+                showCheckmark: false,
+                backgroundColor: context.f3elevated,
+                selectedColor:
+                    F3Colors.forIntensity(i.name).withValues(alpha: 0.22),
+                labelStyle: TextStyle(
+                    color: on
+                        ? F3Colors.forIntensity(i.name)
+                        : context.f3textSecondary),
+                side: BorderSide(
+                    color: on
+                        ? F3Colors.forIntensity(i.name)
+                        : context.f3divider),
+                onSelected: (sel) {
+                  final cur = Set<Intensity>.from(s.intensities);
+                  if (on) {
+                    if (cur.length > 1) cur.remove(i); // keep at least one
+                  } else {
+                    cur.add(i);
+                  }
+                  svc.update(s.copyWith(intensities: cur));
+                  onChanged();
+                },
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 class _PlanView extends StatelessWidget {
   final WorkoutPlan plan;

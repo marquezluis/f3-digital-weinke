@@ -12,6 +12,17 @@ import '../models/f3_api_models.dart';
 import '../services/f3_api_service.dart';
 import '../services/geo_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/filter_pill.dart';
+
+const _weekdays = [
+  'monday',
+  'tuesday',
+  'wednesday',
+  'thursday',
+  'friday',
+  'saturday',
+  'sunday',
+];
 
 class BrowseAosScreen extends StatefulWidget {
   const BrowseAosScreen({super.key});
@@ -30,6 +41,10 @@ class _BrowseAosScreenState extends State<BrowseAosScreen> {
   Position? _position;
   String _query = '';
 
+  String? _stateFilter;
+  String? _weekdayFilter;
+  String? _regionFilter;
+
   @override
   void initState() {
     super.initState();
@@ -47,14 +62,57 @@ class _BrowseAosScreenState extends State<BrowseAosScreen> {
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    final locations = await context.read<F3ApiService>().getMapLocations();
+    final api = context.read<F3ApiService>();
+    final locations = await api.getLocations();
+    final schedules = await api.getLocationSchedules();
+    final merged = locations.map((loc) {
+      final s = schedules[loc.id];
+      return loc.withSchedule(s?.schedule ?? const [], aoName: s?.aoName);
+    }).toList();
     if (!mounted) return;
     setState(() {
-      _locations = locations;
+      _locations = merged;
       _loading = false;
     });
     _findMe();
   }
+
+  // Cascading: picking a region narrows the state list to states that
+  // region actually has AOs in, and vice versa.
+  List<String> get _stateOptions {
+    final base = _regionFilter == null
+        ? _locations
+        : _locations.where((l) => l.regionName == _regionFilter);
+    return base
+        .map((l) => l.state)
+        .whereType<String>()
+        .where((s) => s.isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort();
+  }
+
+  List<String> get _regionOptions {
+    final base = _stateFilter == null
+        ? _locations
+        : _locations.where((l) => l.state == _stateFilter);
+    return base
+        .map((l) => l.regionName)
+        .whereType<String>()
+        .where((s) => s.isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort();
+  }
+
+  List<String> get _weekdayOptions => _weekdays
+      .where((day) => _locations.any((l) =>
+          l.schedule.any((w) => w.weekday.toLowerCase() == day)))
+      .map((day) => day[0].toUpperCase() + day.substring(1))
+      .toList();
+
+  bool get _hasActiveFilters =>
+      _stateFilter != null || _weekdayFilter != null || _regionFilter != null;
 
   Future<void> _findMe() async {
     setState(() {
@@ -91,6 +149,19 @@ class _BrowseAosScreenState extends State<BrowseAosScreen> {
           .where((loc) => loc.name.toLowerCase().contains(_query))
           .toList();
     }
+    if (_stateFilter != null) {
+      list = list.where((loc) => loc.state == _stateFilter).toList();
+    }
+    if (_regionFilter != null) {
+      list = list.where((loc) => loc.regionName == _regionFilter).toList();
+    }
+    if (_weekdayFilter != null) {
+      final day = _weekdayFilter!.toLowerCase();
+      list = list
+          .where((loc) =>
+              loc.schedule.any((w) => w.weekday.toLowerCase() == day))
+          .toList();
+    }
     final sorted = [...list];
     if (_position != null) {
       sorted.sort((a, b) {
@@ -113,6 +184,19 @@ class _BrowseAosScreenState extends State<BrowseAosScreen> {
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri);
     }
+  }
+
+  Future<void> _openDetails(F3Location loc) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: context.f3card,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) =>
+          _AoDetailSheet(location: loc, onOpenMaps: () => _openInMaps(loc)),
+    );
   }
 
   @override
@@ -166,6 +250,7 @@ class _BrowseAosScreenState extends State<BrowseAosScreen> {
                       ),
                     ),
                   ),
+                  if (_locations.isNotEmpty) _buildFilterBar(context),
                   if (_locationError != null)
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -187,7 +272,7 @@ class _BrowseAosScreenState extends State<BrowseAosScreen> {
                                 title: 'No AOs found',
                                 subtitle: _locations.isEmpty
                                     ? 'Couldn\'t load AOs — pull to refresh.'
-                                    : 'No AOs match "$_query".',
+                                    : 'No AOs match your search/filters.',
                               )
                             : ListView.separated(
                                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
@@ -200,9 +285,7 @@ class _BrowseAosScreenState extends State<BrowseAosScreen> {
                                   return _AoTile(
                                     location: loc,
                                     distanceMiles: distance,
-                                    onTap: loc.lat != null
-                                        ? () => _openInMaps(loc)
-                                        : null,
+                                    onTap: () => _openDetails(loc),
                                   );
                                 },
                               ),
@@ -210,6 +293,82 @@ class _BrowseAosScreenState extends State<BrowseAosScreen> {
                 ],
               ),
             ),
+    );
+  }
+
+  Widget _buildFilterBar(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(children: [
+          FilterPill(
+            label: _stateFilter ?? 'State',
+            active: _stateFilter != null,
+            onTap: () async {
+              final picked = await showFilterPickerSheet(context,
+                  title: 'Filter by state',
+                  options: _stateOptions,
+                  current: _stateFilter);
+              if (picked == null) return;
+              setState(() {
+                _stateFilter = picked.isEmpty ? null : picked;
+                // Drop the region filter if it no longer has any AOs in the
+                // newly-chosen state, so the two never silently AND into an
+                // always-empty result.
+                if (_regionFilter != null &&
+                    !_regionOptions.contains(_regionFilter)) {
+                  _regionFilter = null;
+                }
+              });
+            },
+          ),
+          const SizedBox(width: 8),
+          FilterPill(
+            label: _regionFilter ?? 'Region',
+            active: _regionFilter != null,
+            onTap: () async {
+              final picked = await showFilterPickerSheet(context,
+                  title: 'Filter by region',
+                  options: _regionOptions,
+                  current: _regionFilter);
+              if (picked == null) return;
+              setState(() {
+                _regionFilter = picked.isEmpty ? null : picked;
+                if (_stateFilter != null &&
+                    !_stateOptions.contains(_stateFilter)) {
+                  _stateFilter = null;
+                }
+              });
+            },
+          ),
+          const SizedBox(width: 8),
+          FilterPill(
+            label: _weekdayFilter ?? 'Day',
+            active: _weekdayFilter != null,
+            onTap: () async {
+              final picked = await showFilterPickerSheet(context,
+                  title: 'Filter by workout day',
+                  options: _weekdayOptions,
+                  current: _weekdayFilter);
+              if (picked == null) return;
+              setState(
+                  () => _weekdayFilter = picked.isEmpty ? null : picked);
+            },
+          ),
+          if (_hasActiveFilters) ...[
+            const SizedBox(width: 8),
+            TextButton(
+              onPressed: () => setState(() {
+                _stateFilter = null;
+                _regionFilter = null;
+                _weekdayFilter = null;
+              }),
+              child: const Text('Clear all'),
+            ),
+          ],
+        ]),
+      ),
     );
   }
 }
@@ -276,6 +435,33 @@ class _AoTile extends StatelessWidget {
                               color: context.f3textSecondary, fontSize: 12),
                         ),
                       ),
+                    if (location.schedule.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Text(
+                          location.schedule
+                              .map((w) =>
+                                  '${w.displayWeekday} ${w.displayTime}${w.eventTypeName != null ? ' · ${w.eventTypeName}' : ''}')
+                              .join(', '),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              color: F3Colors.accent,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600),
+                        ),
+                      )
+                    else
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Text(
+                          'No beatdowns scheduled yet',
+                          style: TextStyle(
+                              color: context.f3textMuted,
+                              fontSize: 12,
+                              fontStyle: FontStyle.italic),
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -295,12 +481,114 @@ class _AoTile extends StatelessWidget {
                       fontSize: 12,
                     ),
                   ),
-                )
-              else if (onTap == null)
-                Icon(Icons.route_rounded, color: context.f3textMuted, size: 18),
+                ),
+              Icon(Icons.chevron_right_rounded,
+                  color: context.f3textMuted, size: 20),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Shown on tapping an AO — mirrors the fields the F3 Nation admin's
+/// AOs/Locations/Events tables show (region, address, weekly schedule),
+/// plus the AO's and region's own org ids for cross-referencing elsewhere
+/// (e.g. a Slack channel-id lookup).
+class _AoDetailSheet extends StatelessWidget {
+  final F3Location location;
+  final VoidCallback onOpenMaps;
+  const _AoDetailSheet({required this.location, required this.onOpenMaps});
+
+  Widget _row(BuildContext context, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 90,
+            child: Text(label,
+                style: TextStyle(
+                    color: context.f3textMuted,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.6)),
+          ),
+          Expanded(
+            child: Text(value,
+                style:
+                    TextStyle(color: context.f3textPrimary, fontSize: 14)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final addressParts = [
+      if (location.street != null && location.street!.isNotEmpty)
+        location.street,
+      if (location.city != null && location.city!.isNotEmpty) location.city,
+      if (location.state != null && location.state!.isNotEmpty)
+        location.state,
+    ].join(', ');
+
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 20,
+        right: 20,
+        top: 16,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 40,
+            height: 4,
+            margin: const EdgeInsets.only(bottom: 16),
+            decoration: BoxDecoration(
+                color: context.f3divider,
+                borderRadius: BorderRadius.circular(2)),
+          ),
+          Text(location.aoName ?? location.name,
+              style: TextStyle(
+                  color: context.f3textPrimary,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900)),
+          const SizedBox(height: 16),
+          if (location.regionName != null)
+            _row(context, 'REGION', location.regionName!),
+          if (addressParts.isNotEmpty) _row(context, 'ADDRESS', addressParts),
+          if (location.description != null &&
+              location.description!.isNotEmpty)
+            _row(context, 'NOTES', location.description!),
+          if (location.schedule.isNotEmpty)
+            _row(
+              context,
+              'SCHEDULE',
+              location.schedule
+                  .map((w) =>
+                      '${w.displayWeekday} ${w.displayTime}${w.eventTypeName != null ? ' · ${w.eventTypeName}' : ''}')
+                  .join('\n'),
+            )
+          else
+            _row(context, 'SCHEDULE', 'No beatdowns scheduled yet'),
+          const SizedBox(height: 8),
+          if (location.lat != null)
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: onOpenMaps,
+                icon: const Icon(Icons.map_rounded, size: 18),
+                label: const Text('Open in Maps'),
+              ),
+            ),
+        ],
       ),
     );
   }

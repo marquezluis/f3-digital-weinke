@@ -148,8 +148,10 @@ class _ExerciseCardState extends State<ExerciseCard> {
               onLongPress: () => _onLongPress(context, svc),
               borderRadius: BorderRadius.circular(14),
               child: Container(
+                // No borderRadius here: the parent ClipRRect already rounds the
+                // corners, and a borderRadius can't coexist with this
+                // non-uniform (4px colored left accent) border.
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(14),
                   border: Border(
                     left: BorderSide(
                       color: isBlacklisted

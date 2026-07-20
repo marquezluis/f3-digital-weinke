@@ -18,8 +18,6 @@ class SettingsService extends ChangeNotifier {
   static const _keyAppRole         = 'app_role';
   static const _keyVoiceEnabled    = 'voice_enabled';
   static const _keyReducedMotion   = 'reduced_motion';
-  static const _keySlackWebhook    = 'slack_webhook_url';
-  static const _keySlackChannelId  = 'slack_channel_id';
   static const _keyNotifEnabled    = 'notif_enabled';
   static const _keyNotifWeekday    = 'notif_weekday';
   static const _keyNotifHour       = 'notif_hour';
@@ -48,12 +46,6 @@ class SettingsService extends ChangeNotifier {
 
   bool _reducedMotion = false;
   bool get reducedMotion => _reducedMotion;
-
-  String _slackWebhookUrl = '';
-  String get slackWebhookUrl => _slackWebhookUrl;
-
-  String _slackChannelId = '';
-  String get slackChannelId => _slackChannelId;
 
   bool _notifEnabled = false;
   bool get notifEnabled => _notifEnabled;
@@ -129,8 +121,6 @@ class SettingsService extends ChangeNotifier {
 
     _voiceEnabled    = prefs.getBool(_keyVoiceEnabled) ?? false;
     _reducedMotion   = prefs.getBool(_keyReducedMotion) ?? false;
-    _slackWebhookUrl  = prefs.getString(_keySlackWebhook) ?? '';
-    _slackChannelId   = prefs.getString(_keySlackChannelId) ?? '';
     _notifEnabled    = prefs.getBool(_keyNotifEnabled) ?? false;
     _notifWeekday    = prefs.getInt(_keyNotifWeekday) ?? 6;
     _notifHour       = prefs.getInt(_keyNotifHour) ?? 5;
@@ -255,20 +245,6 @@ class SettingsService extends ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_keyReducedMotion, value);
-  }
-
-  Future<void> updateSlackWebhookUrl(String url) async {
-    _slackWebhookUrl = url;
-    notifyListeners();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_keySlackWebhook, url);
-  }
-
-  Future<void> updateSlackChannelId(String channelId) async {
-    _slackChannelId = channelId;
-    notifyListeners();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_keySlackChannelId, channelId);
   }
 
   Future<void> updateNotifEnabled(bool value) async {

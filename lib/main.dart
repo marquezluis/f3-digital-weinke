@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'services/app_profile_service.dart';
 import 'services/auth_service.dart';
 import 'services/current_workout_service.dart';
+import 'services/emergency_service.dart';
 import 'services/exercise_service.dart';
 import 'services/history_service.dart';
 import 'services/notification_service.dart';
@@ -19,7 +20,9 @@ import 'services/spartan_service.dart';
 import 'config/app_config.dart';
 import 'screens/shell_screen.dart';
 import 'screens/local_login_screen.dart';
-import 'screens/welcome_screen.dart';
+import 'screens/login_gate_screen.dart';
+import 'screens/onboarding_screen.dart';
+import 'models/auth_models.dart';
 import 'theme/app_theme.dart';
 import 'l10n/app_localizations.dart';
 
@@ -113,6 +116,9 @@ class DigitalWeinke extends StatelessWidget {
         ChangeNotifierProvider<CurrentWorkoutService>(
           create: (_) => CurrentWorkoutService(),
         ),
+        ChangeNotifierProvider<EmergencyService>(
+          create: (_) => EmergencyService()..load(),
+        ),
         ChangeNotifierProvider<ValueNotifier<int>>(
           create: (_) => ValueNotifier<int>(0),
         ),
@@ -143,30 +149,33 @@ class _AppEntry extends StatefulWidget {
 }
 
 class _AppEntryState extends State<_AppEntry> {
-  bool _entered = false;
   bool _unlocked = false;
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<AppProfileService>(
-      builder: (context, profile, _) {
-        if (!profile.welcomeComplete) {
-          return WelcomeScreen(
-            onComplete: () => setState(() {
-              _entered = true;
-              _unlocked = true;
-            }),
-          );
+    return Consumer2<AppProfileService, AuthService>(
+      builder: (context, profile, auth, _) {
+        final hasF3 = auth.currentUser?.identities
+                .any((i) => i.provider == AuthProvider.f3nation) ??
+            false;
+
+        // SSO-required: without an F3 Nation session, the only way in is the
+        // login gate (which still exposes Emergency info with no sign-in).
+        if (!hasF3) {
+          _unlocked = false; // re-lock the local app-lock on next sign-in
+          return const LoginGateScreen();
         }
 
+        // First run after sign-in: intro + optional setup (biometric/emergency).
+        if (!profile.introSeen) {
+          return const OnboardingScreen();
+        }
+
+        // Optional local app-lock (biometric/PIN) layered on top of SSO.
         if (profile.appLockEnabled && !_unlocked) {
           return LocalLoginScreen(
             onUnlocked: () => setState(() => _unlocked = true),
           );
-        }
-
-        if (_entered || profile.welcomeComplete) {
-          return const ShellScreen();
         }
 
         return const ShellScreen();

@@ -10,11 +10,13 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import '../models/f3_api_models.dart';
-import '../services/app_profile_service.dart' hide AppRole;
+import '../services/app_profile_service.dart';
 import '../services/auth_service.dart';
 import '../services/f3_api_service.dart';
 import '../models/auth_models.dart';
 import '../theme/app_theme.dart';
+import '../widgets/org_picker.dart';
+import 'emergency_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -27,6 +29,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   F3UserProfile? _f3;
   bool _loading = false;
   bool _uploading = false;
+  // True when we had a token but the server still rejected the profile
+  // fetch — almost always a dead/expired F3 Nation session (the refresh
+  // token itself expired or was revoked), which silently falls back to a
+  // stale access token rather than surfacing the failure. The fix is a full
+  // sign-out + sign-in, not a retry.
+  bool _sessionExpired = false;
 
   bool _isLinked(AuthService auth) =>
       auth.currentUser?.identities
@@ -53,6 +61,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() {
       _f3 = f3;
       _loading = false;
+      _sessionExpired = token != null && f3 == null;
     });
   }
 
@@ -120,6 +129,147 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return null;
   }
 
+  /// Edits the signed-in PAX's own F3 Nation record — writes through the
+  /// app's trusted key (`F3ApiService.updateUserProfile`), identified by the
+  /// numeric F3 user id (`AppProfileService.authUserId`), per Tackle's
+  /// guidance to use `POST /v1/user` rather than the user-token `/me/profile`.
+  Future<void> _editProfile() async {
+    final profile = context.read<AppProfileService>();
+    final userId = int.tryParse(profile.authUserId);
+    if (userId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text(
+              'Sign in to F3 Nation first, then pull to refresh here.')));
+      return;
+    }
+    final f3NameCtrl = TextEditingController(text: _f3?.f3Name ?? '');
+    final firstNameCtrl = TextEditingController(text: _f3?.firstName ?? '');
+    final lastNameCtrl = TextEditingController(text: _f3?.lastName ?? '');
+    final emailCtrl = TextEditingController(text: _f3?.email ?? '');
+    final phoneCtrl = TextEditingController(text: _f3?.phone ?? '');
+
+    final saved = await showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: context.f3card,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) => Padding(
+        padding: EdgeInsets.only(
+          left: 20,
+          right: 20,
+          top: 20,
+          bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 20,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Edit F3 Nation Profile',
+                style: TextStyle(
+                    color: context.f3textPrimary,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800)),
+            const SizedBox(height: 16),
+            TextField(
+                controller: f3NameCtrl,
+                decoration: const InputDecoration(labelText: 'F3 Name')),
+            const SizedBox(height: 10),
+            TextField(
+                controller: firstNameCtrl,
+                decoration: const InputDecoration(labelText: 'First Name')),
+            const SizedBox(height: 10),
+            TextField(
+                controller: lastNameCtrl,
+                decoration: const InputDecoration(labelText: 'Last Name')),
+            const SizedBox(height: 10),
+            TextField(
+                controller: emailCtrl,
+                keyboardType: TextInputType.emailAddress,
+                decoration: const InputDecoration(labelText: 'Email')),
+            const SizedBox(height: 10),
+            TextField(
+                controller: phoneCtrl,
+                keyboardType: TextInputType.phone,
+                decoration: const InputDecoration(labelText: 'Phone')),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(sheetContext, true),
+                child: const Text('Save'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (saved != true || !mounted) return;
+
+    final api = context.read<F3ApiService>();
+    setState(() => _loading = true);
+    final err = await api.updateUserProfile(
+      userId: userId,
+      f3Name: f3NameCtrl.text.trim(),
+      firstName: firstNameCtrl.text.trim(),
+      lastName: lastNameCtrl.text.trim(),
+      email: emailCtrl.text.trim(),
+      phone: phoneCtrl.text.trim(),
+    );
+    if (!mounted) return;
+    if (err != null) {
+      setState(() => _loading = false);
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(err)));
+      return;
+    }
+    await _fetch();
+  }
+
+  Future<void> _changeRegion() async {
+    final api = context.read<F3ApiService>();
+    final picked =
+        await showOrgPickerSheet(context, fetchOrgs: api.getOrgs);
+    if (picked == null) return;
+    api.userOrgId = picked.id;
+    if (mounted) {
+      context.read<AppProfileService>().updateProfile(
+            role: AppRole.q,
+            region: picked.name,
+          );
+    }
+  }
+
+  Future<void> _signOut() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: context.f3card,
+        title: const Text('Sign out?'),
+        content: const Text(
+            'This signs you out of F3 Nation and returns to the login screen.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Sign Out')),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    await context.read<AuthService>().signOut();
+    // This screen was reached via Navigator.push (from Home/Settings), so it
+    // sits on top of the app's single Navigator as its own route. Swapping
+    // auth state makes the root (_AppEntry in main.dart) rebuild into
+    // LoginGateScreen underneath, but that alone doesn't pop this pushed
+    // route — without this, the user stays stuck looking at Profile's own
+    // "not linked" state instead of landing on the login screen.
+    if (mounted) Navigator.of(context).popUntil((route) => route.isFirst);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -139,6 +289,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
               padding: const EdgeInsets.all(20),
               children: [
                 // ── Avatar ────────────────────────────────────────────────
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: context.f3card,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: context.f3divider),
+                  ),
+                  child: Column(children: [
                 Center(
                   child: Stack(
                     children: [
@@ -198,6 +356,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         style: TextStyle(
                             color: context.f3textSecondary, fontSize: 14)),
                   ),
+                  ]),
+                ),
                 const SizedBox(height: 24),
 
                 if (_loading)
@@ -209,8 +369,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     value: 'Sign in from Settings to pull your profile, '
                         'region, and emergency info.',
                   )
-                else ...[
-                  _SectionLabel('F3 NATION'),
+                else if (_sessionExpired) ...[
+                  _InfoRow(
+                    icon: Icons.warning_rounded,
+                    label: 'F3 Nation session expired',
+                    value:
+                        'Your sign-in stopped working (this happens after '
+                        'extended testing/idle time). Sign out below, then '
+                        'sign in again to refresh it.',
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: _signOut,
+                      icon: const Icon(Icons.logout_rounded),
+                      label: const Text('Sign Out'),
+                    ),
+                  ),
+                ] else ...[
+                  Row(children: [
+                    Expanded(child: _SectionLabel('F3 NATION')),
+                    TextButton.icon(
+                      onPressed: _editProfile,
+                      icon: const Icon(Icons.edit_rounded, size: 16),
+                      label: const Text('Edit'),
+                    ),
+                  ]),
                   _InfoRow(
                       icon: Icons.badge_rounded,
                       label: 'F3 Name',
@@ -228,17 +413,89 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         icon: Icons.email_rounded,
                         label: 'Email',
                         value: _f3!.email),
+                  if ((_f3?.phone ?? '').isNotEmpty)
+                    _InfoRow(
+                        icon: Icons.phone_rounded,
+                        label: 'Phone',
+                        value: _f3!.phone!),
                   if ((_f3?.homeRegionName ?? '').isNotEmpty)
                     _InfoRow(
                         icon: Icons.map_rounded,
                         label: 'Home Region',
                         value: _f3!.homeRegionName!),
                   const SizedBox(height: 8),
-                  _InfoRow(
-                    icon: Icons.medical_services_rounded,
-                    label: 'Emergency info',
-                    value: 'Managed in the F3 Nation .me app. '
-                        'Editing here is coming soon.',
+                  Material(
+                    color: context.f3card,
+                    borderRadius: BorderRadius.circular(10),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(10),
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const EmergencyScreen()),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Row(children: [
+                          const Icon(Icons.medical_services_rounded,
+                              color: Colors.redAccent, size: 20),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Emergency info',
+                                    style: TextStyle(
+                                        color: context.f3textPrimary,
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 14)),
+                                Text('Medical + AO-site · stored on device',
+                                    style: TextStyle(
+                                        color: context.f3textSecondary,
+                                        fontSize: 12)),
+                              ],
+                            ),
+                          ),
+                          Icon(Icons.chevron_right_rounded,
+                              color: context.f3textMuted),
+                        ]),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Material(
+                    color: context.f3card,
+                    borderRadius: BorderRadius.circular(10),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(10),
+                      onTap: _changeRegion,
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Row(children: [
+                          const Icon(Icons.tune_rounded,
+                              color: F3Colors.accent, size: 20),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text('Change region',
+                                style: TextStyle(
+                                    color: context.f3textPrimary,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 14)),
+                          ),
+                          Icon(Icons.chevron_right_rounded,
+                              color: context.f3textMuted),
+                        ]),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: _signOut,
+                      icon: const Icon(Icons.logout_rounded),
+                      label: const Text('Sign Out'),
+                    ),
                   ),
                 ],
               ],

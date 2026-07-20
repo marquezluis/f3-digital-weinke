@@ -119,6 +119,10 @@ class _HeatmapView extends StatelessWidget {
               // Month labels
               SizedBox(
                 height: 16,
+                // Bounded width required: inside a horizontal scroll the Stack
+                // gets infinite width, and with only Positioned children it
+                // can't size itself. Match the grid width (14px per column).
+                width: totalWeeks * 14.0,
                 child: Stack(
                   children: monthCols.asMap().entries.map((entry) {
                     final col = entry.value;

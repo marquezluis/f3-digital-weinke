@@ -11,8 +11,6 @@ import 'package:provider/provider.dart';
 import '../models/app_version.dart';
 import 'package:share_plus/share_plus.dart';
 import '../models/auth_models.dart';
-import '../models/exercise.dart';
-import '../models/workout_settings.dart';
 import '../services/app_profile_service.dart' hide AppRole;
 import '../services/auth_service.dart';
 import '../services/history_service.dart';
@@ -23,11 +21,8 @@ import '../services/f3_api_service.dart';
 import '../services/settings_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/greeting.dart';
-import 'achievements_screen.dart';
-import 'browse_aos_screen.dart';
-import 'deck_of_pain_screen.dart';
-import 'heatmap_screen.dart';
 import 'profile_screen.dart';
+import 'emergency_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -42,52 +37,16 @@ class SettingsScreen extends StatelessWidget {
       ),
       body: Consumer<SettingsService>(
         builder: (context, service, _) {
-          final settings = service.settings;
           return ListView(
             padding: const EdgeInsets.all(20),
             children: [
               // ── Profile banner ────────────────────────────────────────────
-              _ProfileBanner(isQ: service.appRole == AppRole.q),
+              _ProfileBanner(isQ: true),
 
-              // ── Coupon Mode ───────────────────────────────────────────────
-              const _SectionHeader('COUPON / EQUIPMENT'),
-              const SizedBox(height: 8),
-              _SegmentedRow<CouponMode>(
-                options: CouponMode.values,
-                selected: settings.couponMode,
-                label: (m) => m.displayName,
-                onSelect: (m) =>
-                    service.update(settings.copyWith(couponMode: m)),
-              ),
-              const SizedBox(height: 8),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: Text(
-                  'Controls whether coupon (weighted) exercises appear in '
-                  'The Thang. "Mixed" splits it 50/50.',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ),
+              const SizedBox(height: 12),
+              const _F3NationAccountCard(),
 
-              const SizedBox(height: 28),
-
-              // ── App Role ──────────────────────────────────────────────────
-              const _SectionHeader('YOUR ROLE'),
-              const SizedBox(height: 8),
-              _SegmentedRow<AppRole>(
-                options: AppRole.values,
-                selected: service.appRole,
-                label: (r) => r == AppRole.q ? 'Q (Leader)' : 'PAX (Member)',
-                onSelect: (r) => service.updateRole(r),
-              ),
-              const SizedBox(height: 8),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: Text(
-                  'Adjusts the app interface. Qs get planning tools; PAX get a simplified view.',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ),
+              const SizedBox(height: 20),
 
               // Manual F3 name field only when we don't already have it from
               // the signed-in F3 Nation profile — no point asking twice.
@@ -152,138 +111,6 @@ class SettingsScreen extends StatelessWidget {
               ),
               const SizedBox(height: 28),
 
-              // ── Intensity ─────────────────────────────────────────────────
-              const _SectionHeader('INTENSITY LEVELS'),
-              const SizedBox(height: 8),
-              ...Intensity.values.map((intensity) {
-                final enabled = settings.intensities.contains(intensity);
-                final color = F3Colors.forIntensity(intensity.name);
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: GestureDetector(
-                    onTap: () {
-                      final current = Set<Intensity>.from(settings.intensities);
-                      if (enabled) {
-                        // Don't allow disabling all
-                        if (current.length > 1) current.remove(intensity);
-                      } else {
-                        current.add(intensity);
-                      }
-                      service.update(settings.copyWith(intensities: current));
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 18),
-                      decoration: BoxDecoration(
-                        color: enabled
-                            ? color.withValues(alpha: 0.12)
-                            : context.f3card,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: enabled
-                              ? color.withValues(alpha: 0.6)
-                              : context.f3divider,
-                          width: enabled ? 1.5 : 1,
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 10,
-                            height: 10,
-                            decoration: BoxDecoration(
-                              color: enabled ? color : context.f3textMuted,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Text(
-                              intensity.displayName,
-                              style: TextStyle(
-                                color: enabled
-                                    ? context.f3textPrimary
-                                    : context.f3textSecondary,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 17,
-                              ),
-                            ),
-                          ),
-                          if (enabled)
-                            Icon(Icons.check_rounded,
-                                color: color, size: 20),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              }),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: Text(
-                  'Select which difficulty levels to include. '
-                  'At least one must remain active.',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ),
-
-              const SizedBox(height: 28),
-
-              // -- F3 Nation Account ---------------------------------------------------
-              const _SectionHeader('F3 NATION ACCOUNT'),
-              const SizedBox(height: 8),
-              const _F3NationAccountCard(),
-              const SizedBox(height: 28),
-
-              // -- Slack Integration -------------------------------------------------
-              const _SectionHeader('SLACK INTEGRATION'),
-              const SizedBox(height: 8),
-              Consumer<F3ApiService>(
-                builder: (context, api, _) {
-                  if (api.isConfigured) {
-                    // API path: user pastes channel ID once; F3 Nation app delivers.
-                    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      TextFormField(
-                        initialValue: service.slackChannelId,
-                        decoration: const InputDecoration(
-                          labelText: 'Slack Channel ID',
-                          hintText: 'C0XXXXXXXX  (right-click channel → Copy link)',
-                          prefixIcon: Icon(Icons.tag_rounded),
-                        ),
-                        onChanged: (val) => service.updateSlackChannelId(val.trim()),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-                        child: Text(
-                          'Posts directly to your region\'s Slack via the F3 Nation app — no webhook setup needed.',
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                      ),
-                    ]);
-                  }
-                  // Fallback: manual webhook URL.
-                  return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    TextFormField(
-                      initialValue: service.slackWebhookUrl,
-                      decoration: const InputDecoration(
-                        labelText: 'Slack Webhook URL',
-                        hintText: 'Paste your Incoming Webhook URL here',
-                        prefixIcon: Icon(Icons.link_rounded),
-                      ),
-                      onChanged: (val) => service.updateSlackWebhookUrl(val.trim()),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-                      child: Text(
-                        'Enables the "Post to Slack" button on the backblast screen.',
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    ),
-                  ]);
-                },
-              ),
-              const SizedBox(height: 28),
-
               // ── Music ─────────────────────────────────────────────────────
               const _SectionHeader('MUSIC'),
               const SizedBox(height: 8),
@@ -344,43 +171,16 @@ class SettingsScreen extends StatelessWidget {
               ],
               const SizedBox(height: 28),
 
-              // ── Explore ───────────────────────────────────────────────────
-              const _SectionHeader('EXPLORE'),
+              // ── Safety ────────────────────────────────────────────────────
+              const _SectionHeader('SAFETY'),
               const SizedBox(height: 8),
               _NavTile(
-                icon: Icons.whatshot_rounded,
-                title: 'Activity Heatmap',
-                subtitle: '52-week workout calendar',
-                color: F3Colors.phaseThang,
+                icon: Icons.emergency_rounded,
+                title: 'Emergency Info',
+                subtitle: 'Medical + AO-site info · works without sign-in',
+                color: Colors.redAccent,
                 onTap: () => Navigator.push(context,
-                    MaterialPageRoute(builder: (_) => const HeatmapScreen())),
-              ),
-              const SizedBox(height: 8),
-              _NavTile(
-                icon: Icons.emoji_events_rounded,
-                title: 'Achievements',
-                subtitle: 'Badges earned from your history',
-                color: const Color(0xFFFFD700),
-                onTap: () => Navigator.push(context,
-                    MaterialPageRoute(builder: (_) => const AchievementsScreen())),
-              ),
-              const SizedBox(height: 8),
-              _NavTile(
-                icon: Icons.explore_rounded,
-                title: 'Browse AOs',
-                subtitle: 'Find F3 Nation AOs near you',
-                color: const Color(0xFF2196F3),
-                onTap: () => Navigator.push(context,
-                    MaterialPageRoute(builder: (_) => const BrowseAosScreen())),
-              ),
-              const SizedBox(height: 8),
-              _NavTile(
-                icon: Icons.style_rounded,
-                title: 'Deck of Pain',
-                subtitle: 'Draw a card, do the work',
-                color: const Color(0xFFE53935),
-                onTap: () => Navigator.push(context,
-                    MaterialPageRoute(builder: (_) => const DeckOfPainScreen())),
+                    MaterialPageRoute(builder: (_) => const EmergencyScreen())),
               ),
               const SizedBox(height: 28),
 
@@ -416,6 +216,7 @@ class SettingsScreen extends StatelessWidget {
                   final region    = context.read<RegionService>();
                   final messenger = ScaffoldMessenger.of(context);
                   final data = await Clipboard.getData(Clipboard.kTextPlain);
+                  if (!messenger.mounted) return;
                   final raw = data?.text ?? '';
                   if (raw.isEmpty) {
                     messenger.showSnackBar(
@@ -430,10 +231,12 @@ class SettingsScreen extends StatelessWidget {
                       history: history,
                       region: region,
                     );
+                    if (!messenger.mounted) return;
                     messenger.showSnackBar(
                       const SnackBar(content: Text('Backup imported successfully!')),
                     );
                   } catch (e) {
+                    if (!messenger.mounted) return;
                     messenger.showSnackBar(
                       SnackBar(content: Text('Import failed: $e')),
                     );
@@ -563,17 +366,30 @@ class _ProfileBanner extends StatefulWidget {
 
 class _ProfileBannerState extends State<_ProfileBanner> {
   bool _synced = false;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _syncFromF3());
-  }
+  bool _syncing = false;
 
   bool _isLinked(AuthService auth) =>
       auth.currentUser?.identities
           .any((i) => i.provider == AuthProvider.f3nation) ??
       false;
+
+  /// Schedules a sync if we're linked and haven't synced yet this session.
+  /// Called from `build()` (via a post-frame callback, guarded by
+  /// `_syncing`) rather than only once from `initState` — `SettingsScreen`
+  /// is built once at app startup inside the tab shell's `IndexedStack` and
+  /// never rebuilt from scratch, so an initState-only trigger can race
+  /// `AuthService` still restoring its persisted session: if `_isLinked`
+  /// reads false at that first-frame moment, the one-shot call bails and
+  /// never retries. Reacting to the `Consumer2` rebuild instead catches the
+  /// moment linked flips true, whenever that actually happens.
+  void _maybeSync(bool linked) {
+    if (!linked || _synced || _syncing) return;
+    _syncing = true;
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) => _syncFromF3().whenComplete(() {
+              if (mounted) _syncing = false;
+            }));
+  }
 
   /// When the account is linked, quietly refresh the local profile from the
   /// F3 Nation database each time Settings opens — their DB is the source of
@@ -594,6 +410,10 @@ class _ProfileBannerState extends State<_ProfileBanner> {
       region: f3.homeRegionName,
       avatarUrl: f3.avatarUrl,
       homeRegionId: f3.homeRegionId,
+      // The real F3 Nation numeric user id — every write (HC, take-Q,
+      // preblast, Schedule's calendar query) needs this, not the local
+      // guest-account id `authUserId` defaults to before this ever ran.
+      f3UserId: f3.id,
     );
     // Feed the per-user region into the API client so upcoming beatdowns and
     // Slack routing target this PAX's own region, not the build default.
@@ -605,47 +425,51 @@ class _ProfileBannerState extends State<_ProfileBanner> {
   Widget build(BuildContext context) {
     return Consumer2<AppProfileService, AuthService>(
       builder: (context, profile, auth, _) {
+        _maybeSync(_isLinked(auth));
         final name =
             profile.displayName.isEmpty ? 'PAX' : profile.displayName;
         final linked = _isLinked(auth);
         final banner = Container(
-          padding: const EdgeInsets.all(16),
           margin: const EdgeInsets.only(bottom: 24),
-          decoration: BoxDecoration(
+          child: Material(
             color: context.f3card,
             borderRadius: BorderRadius.circular(14),
-            border:
-                Border.all(color: F3Colors.accent.withValues(alpha: 0.3)),
-          ),
-          child: Row(children: [
-            // Avatar: local photo → F3 Nation avatar → shield. Tap to open
-            // the full profile.
-            GestureDetector(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(14),
               onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const ProfileScreen()),
               ),
-              child: () {
-                ImageProvider? img;
-                if (profile.localAvatarPath.isNotEmpty &&
-                    File(profile.localAvatarPath).existsSync()) {
-                  img = FileImage(File(profile.localAvatarPath));
-                } else if (profile.avatarUrl.isNotEmpty) {
-                  img = NetworkImage(profile.avatarUrl);
-                }
-                return CircleAvatar(
-                  radius: 26,
-                  backgroundColor: F3Colors.accent.withValues(alpha: 0.14),
-                  foregroundImage: img,
-                  onForegroundImageError:
-                      img != null ? (e, s) {} : null,
-                  child: img == null
-                      ? const Icon(Icons.shield_rounded,
-                          color: F3Colors.accent, size: 26)
-                      : null,
-                );
-              }(),
-            ),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                      color: F3Colors.accent.withValues(alpha: 0.3)),
+                ),
+                child: Row(children: [
+            // Avatar: local photo → F3 Nation avatar → shield. The whole
+            // card (not just this image) opens the full profile — see the
+            // InkWell wrapping `banner` below.
+            () {
+              ImageProvider? img;
+              if (profile.localAvatarPath.isNotEmpty &&
+                  File(profile.localAvatarPath).existsSync()) {
+                img = FileImage(File(profile.localAvatarPath));
+              } else if (profile.avatarUrl.isNotEmpty) {
+                img = NetworkImage(profile.avatarUrl);
+              }
+              return CircleAvatar(
+                radius: 26,
+                backgroundColor: F3Colors.accent.withValues(alpha: 0.14),
+                foregroundImage: img,
+                onForegroundImageError: img != null ? (e, s) {} : null,
+                child: img == null
+                    ? const Icon(Icons.shield_rounded,
+                        color: F3Colors.accent, size: 26)
+                    : null,
+              );
+            }(),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
@@ -709,7 +533,10 @@ class _ProfileBannerState extends State<_ProfileBanner> {
                     letterSpacing: 1),
               ),
             ),
-          ]),
+                ]),
+              ),
+            ),
+          ),
         );
 
         // Pull down on the banner to force a re-sync from the F3 Nation DB.
@@ -750,7 +577,9 @@ class _F3NationAccountCardState extends State<_F3NationAccountCard> {
     setState(() => _busy = true);
     try {
       if (linked) {
-        await auth.unlinkF3Nation();
+        // SSO-required: signing out of F3 signs out of the app entirely and
+        // returns to the login gate (clears the local user + F3 tokens).
+        await auth.signOut();
       } else {
         await auth.signInWithF3Nation();
         // Celebrate the moment a PAX first links their real F3 identity.
@@ -833,90 +662,36 @@ class _F3NationAccountCardState extends State<_F3NationAccountCard> {
                   ),
                 ),
               ]),
-              const SizedBox(height: 10),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: _busy ? null : () => _toggle(auth, linked),
-                  icon: _busy
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Icon(
-                          linked ? Icons.logout_rounded : Icons.login_rounded),
-                  label: Text(_busy
-                      ? 'Working… (check your browser)'
-                      : linked
-                          ? 'Unlink Account'
-                          : 'Sign in with F3 Nation'),
+              if (!linked) ...[
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: _busy ? null : () => _toggle(auth, linked),
+                    icon: _busy
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.login_rounded),
+                    label: Text(
+                        _busy ? 'Working… (check your browser)' : 'Sign in with F3 Nation'),
+                  ),
                 ),
-              ),
+              ],
               const SizedBox(height: 8),
               Text(
-                'Links your Digital Weinke profile to your F3 Nation account '
-                '(auth2.f3nation.com).',
+                linked
+                    ? 'Sign out and region switching are on your Profile screen.'
+                    : 'Links your Digital Weinke profile to your F3 Nation account '
+                        '(auth2.f3nation.com).',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ],
           ),
         );
       },
-    );
-  }
-}
-
-class _SegmentedRow<T> extends StatelessWidget {
-  final List<T> options;
-  final T selected;
-  final String Function(T) label;
-  final void Function(T) onSelect;
-
-  const _SegmentedRow({
-    required this.options,
-    required this.selected,
-    required this.label,
-    required this.onSelect,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: options.map((opt) {
-        final isSelected = opt == selected;
-        return Expanded(
-          child: Padding(
-            padding: const EdgeInsets.only(right: 6),
-            child: GestureDetector(
-              onTap: () => onSelect(opt),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? F3Colors.accent.withValues(alpha: 0.15)
-                      : context.f3card,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: isSelected ? F3Colors.accent : context.f3divider,
-                    width: isSelected ? 1.5 : 1,
-                  ),
-                ),
-                child: Text(
-                  label(opt),
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: isSelected ? F3Colors.accent : context.f3textSecondary,
-                    fontWeight:
-                        isSelected ? FontWeight.w700 : FontWeight.w500,
-                    fontSize: 12,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        );
-      }).toList(),
     );
   }
 }

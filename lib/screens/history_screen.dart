@@ -13,8 +13,6 @@ import '../services/auth_service.dart';
 import '../services/history_service.dart';
 import '../services/backblast_formatter.dart';
 import '../services/f3_api_service.dart';
-import '../services/settings_service.dart';
-import '../services/slack_service.dart';
 import '../theme/app_theme.dart';
 
 /// The Q's choice in the publish event picker: an existing scheduled instance,
@@ -391,7 +389,6 @@ class BackblastScreen extends StatefulWidget {
 class _BackblastScreenState extends State<BackblastScreen> {
   late String _backblast;
   bool _copied = false;
-  bool _posting = false;
   bool _publishing = false;
 
   bool _isF3Linked() =>
@@ -404,40 +401,6 @@ class _BackblastScreenState extends State<BackblastScreen> {
   void initState() {
     super.initState();
     _backblast = BackblastFormatter.format(widget.entry);
-  }
-
-  Future<void> _postToSlack(WorkoutHistory entry) async {
-    final settings = context.read<SettingsService>();
-    final api = context.read<F3ApiService>();
-    String? error;
-
-    setState(() => _posting = true);
-
-    if (api.isConfigured && settings.slackChannelId.isNotEmpty) {
-      final orgId = api.orgId ?? '';
-      if (orgId.isEmpty) {
-        error = 'F3_API_ORG_ID not set — contact your app admin.';
-      } else {
-        error = await api.postSlackMessage(
-          regionOrgId: orgId,
-          channelId: settings.slackChannelId,
-          text: _backblast,
-        );
-      }
-    } else if (settings.slackWebhookUrl.isNotEmpty) {
-      error = await SlackService.postBackblast(settings.slackWebhookUrl, entry);
-    } else {
-      error = 'No Slack channel configured. Add one in Settings → Slack Integration.';
-    }
-
-    if (!mounted) return;
-    setState(() => _posting = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(error ?? 'Posted to Slack!'),
-        duration: const Duration(seconds: 3),
-      ),
-    );
   }
 
   /// Publish this backblast to F3 Nation: pick (or create) the event
@@ -475,10 +438,17 @@ class _BackblastScreenState extends State<BackblastScreen> {
         return;
       }
 
-      // 2. Write the backblast + counts onto the instance.
+      // 2. Write the backblast + counts onto the instance. When updating an
+      // existing event, its own AO-level org must be reused — the region
+      // orgId only applies when creating a brand-new unscheduled event.
+      final existing = chosen.instance;
+      final d = existing?.date ?? entry.date;
+      final startDate =
+          '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
       final err = await api.publishBackblast(
-        eventInstanceId: chosen.instance?.numericId,
-        orgId: orgId,
+        eventInstanceId: existing?.numericId,
+        orgId: existing?.orgId?.toString() ?? orgId,
+        startDate: startDate,
         backblast: _backblast,
         paxCount: entry.totalCount,
         fngCount: entry.fngCount,
@@ -807,67 +777,26 @@ class _BackblastScreenState extends State<BackblastScreen> {
                         ],
                       ),
                       const SizedBox(height: 10),
-                      Consumer2<SettingsService, F3ApiService>(
-                        builder: (_, svc, api, __) {
-                          final canPost = (api.isConfigured && svc.slackChannelId.isNotEmpty)
-                              || svc.slackWebhookUrl.isNotEmpty;
-                          final canPublish = _isF3Linked();
-
-                          return Column(children: [
-                            // Publish to F3 Nation — writes the real event +
-                            // attendance, the primary action when signed in.
-                            if (canPublish) ...[
-                              SizedBox(
-                                width: double.infinity,
-                                height: 48,
-                                child: ElevatedButton.icon(
-                                  onPressed:
-                                      _publishing ? null : () => _publish(entry),
-                                  icon: _publishing
-                                      ? const SizedBox(
-                                          width: 16,
-                                          height: 16,
-                                          child: CircularProgressIndicator(
-                                              color: Colors.white,
-                                              strokeWidth: 2))
-                                      : const Icon(Icons.cloud_upload_rounded,
-                                          size: 18),
-                                  label: Text(_publishing
-                                      ? 'PUBLISHING…'
-                                      : 'PUBLISH TO F3 NATION'),
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                            ],
-                            if (canPost)
-                              SizedBox(
-                                width: double.infinity,
-                                height: 48,
-                                child: OutlinedButton.icon(
-                                  onPressed: _posting
-                                      ? null
-                                      : () => _postToSlack(entry),
-                                  icon: _posting
-                                      ? const SizedBox(
-                                          width: 16,
-                                          height: 16,
-                                          child: CircularProgressIndicator(
-                                              strokeWidth: 2),
-                                        )
-                                      : const Icon(Icons.send_rounded,
-                                          size: 18),
-                                  label: Text(
-                                      _posting ? 'POSTING…' : 'POST TO SLACK'),
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: const Color(0xFF4A154B),
-                                    side: const BorderSide(
-                                        color: Color(0xFF4A154B)),
-                                  ),
-                                ),
-                              ),
-                          ]);
-                        },
-                      ),
+                      if (_isF3Linked())
+                        SizedBox(
+                          width: double.infinity,
+                          height: 48,
+                          child: ElevatedButton.icon(
+                            onPressed:
+                                _publishing ? null : () => _publish(entry),
+                            icon: _publishing
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                        color: Colors.white, strokeWidth: 2))
+                                : const Icon(Icons.cloud_upload_rounded,
+                                    size: 18),
+                            label: Text(_publishing
+                                ? 'PUBLISHING…'
+                                : 'PUBLISH TO F3 NATION'),
+                          ),
+                        ),
                     ],
                   ),
                 ),

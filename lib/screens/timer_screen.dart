@@ -22,6 +22,7 @@ import '../theme/app_theme.dart';
 import '../widgets/phase_segment_bar.dart';
 import '../widgets/save_session_sheet.dart';
 import '../models/workout_history.dart';
+import 'workout_screen.dart';
 
 class TimerScreen extends StatefulWidget {
   const TimerScreen({super.key});
@@ -216,7 +217,11 @@ class _TimerScreenState extends State<TimerScreen> {
               backgroundColor: context.f3bg,
             ),
             body: _EmptyState(
-              onGoToWeinke: () => context.read<ValueNotifier<int>>().value = 1,
+              // Weinke builder is a pushed route now, not a tab index.
+              onGoToWeinke: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const WorkoutScreen()),
+              ),
             ),
           );
         }

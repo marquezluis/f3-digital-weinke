@@ -44,15 +44,26 @@ class WorkoutBlock {
     );
   }
 
-  WorkoutBlock copyWithExercises(List<Exercise> newExercises) => WorkoutBlock(
+  WorkoutBlock copyWithExercises(List<Exercise> newExercises,
+          {int? durationMinutes}) =>
+      WorkoutBlock(
         label: label,
         category: category,
         exercises: newExercises,
-        durationMinutes: durationMinutes,
+        durationMinutes: durationMinutes ?? this.durationMinutes,
         notes: notes,
         rounds: rounds,
         exerciseNotes: exerciseNotes,
       );
+
+  /// Duration scaled to a new exercise count, holding per-exercise time
+  /// constant (so adding/removing exercises moves the plan's total time).
+  /// Falls back to ~5 min/exercise when the block was previously empty.
+  int scaledDurationFor(int newExerciseCount) {
+    final oldCount = exercises.length;
+    final perExercise = oldCount > 0 ? durationMinutes / oldCount : 5.0;
+    return (perExercise * newExerciseCount).round();
+  }
 
   WorkoutBlock copyWithLabel(String newLabel) => WorkoutBlock(
         label: newLabel,

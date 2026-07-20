@@ -147,6 +147,9 @@ class LocalAuthService extends AuthService {
                   _f3ClientSecret.isNotEmpty ? _f3ClientSecret : null,
               issuer: _f3Issuer,
               scopes: _f3Scopes,
+              // Force the account chooser / credential prompt so a new sign-in
+              // never silently reuses the previous user's session.
+              promptValues: const ['login'],
             ),
           )
           // Safety net: if the browser flow dies without ever calling back
@@ -233,6 +236,15 @@ class LocalAuthService extends AuthService {
 
     final refreshToken = await _secureStorage.read(key: _keyF3RefreshToken);
     if (refreshToken == null) return accessToken; // best effort, may be expired
+
+    // A refresh needs a client id. Without one, AppAuth's native token request
+    // throws an IllegalArgumentException ("clientId cannot be null or empty")
+    // on Android's main thread — an *uncatchable* crash that kills the whole
+    // app (our Dart try/catch below can't intercept it). Bail out with the
+    // stored token instead. This also covers the case where a token is left in
+    // secure storage from a build that had OAuth configured, but the current
+    // build was compiled without F3_OAUTH_CLIENT_ID.
+    if (_f3ClientId.isEmpty) return accessToken;
 
     try {
       final result = await _appAuth.token(

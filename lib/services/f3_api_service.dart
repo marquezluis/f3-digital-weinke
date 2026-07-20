@@ -70,7 +70,8 @@ class F3ApiService extends ChangeNotifier {
       if (res.statusCode == 200) {
         return json.decode(res.body) as Map<String, dynamic>;
       }
-    } catch (_) {}
+    } catch (_) {
+    }
     return null;
   }
 
@@ -87,8 +88,12 @@ class F3ApiService extends ChangeNotifier {
         if (body is Map && body['eventInstances'] is List) {
           return body['eventInstances'] as List;
         }
+        if (body is Map && body['events'] is List) {
+          return body['events'] as List;
+        }
       }
-    } catch (_) {}
+    } catch (_) {
+    }
     return null;
   }
 
@@ -132,6 +137,33 @@ class F3ApiService extends ChangeNotifier {
     return _myProfile;
   }
 
+  /// Updates the signed-in PAX's own F3 Nation user record. Uses the app's
+  /// trusted API key (`POST /v1/user`), not the user's own token — Tackle's
+  /// guidance: `/v1/me/profile` (PATCH) is user-token self-service, but a
+  /// third-party app should write through its own trusted key instead. Only
+  /// non-null fields are sent, so callers can update just what changed.
+  /// Returns null on success, else an error string.
+  Future<String?> updateUserProfile({
+    required int userId,
+    String? f3Name,
+    String? firstName,
+    String? lastName,
+    String? email,
+    String? phone,
+  }) async {
+    final payload = <String, dynamic>{
+      'id': userId,
+      if (f3Name != null) 'f3Name': f3Name,
+      if (firstName != null) 'firstName': firstName,
+      if (lastName != null) 'lastName': lastName,
+      if (email != null) 'email': email,
+      if (phone != null) 'phone': phone,
+    };
+    final res = await _post('/v1/user', payload);
+    if (res.status == 200 || res.status == 201) return null;
+    return 'Profile update failed (${res.status}): ${res.body}';
+  }
+
   Future<F3UserProfile?> findPaxByF3Name(String f3Name) async {
     final data =
         await _get('/v1/user/f3name/${Uri.encodeComponent(f3Name)}');
@@ -141,16 +173,11 @@ class F3ApiService extends ChangeNotifier {
 
   // ── Locations / AOs ───────────────────────────────────────────────────────
 
+  /// All active AOs nationwide (Browse AOs is a national/GPS-sorted browse,
+  /// not scoped to the signed-in user's region). The response is wrapped in
+  /// a `locations` key, not a bare list or `data`/`eventInstances`/`events`.
   Future<List<F3Location>> getLocations() async {
-    final data = await _getList('/v1/location');
-    if (data == null) return [];
-    return data
-        .map((e) => F3Location.fromJson(e as Map<String, dynamic>))
-        .toList();
-  }
-
-  Future<List<F3Location>> getMapLocations() async {
-    final data = await _get('/v1/map/location/events-and-locations');
+    final data = await _get('/v1/location?pageSize=5000');
     if (data == null) return [];
     final list = data['locations'] as List<dynamic>? ?? [];
     return list
@@ -158,13 +185,65 @@ class F3ApiService extends ChangeNotifier {
         .toList();
   }
 
+  /// Recurring weekly workout series, keyed by `locationId` — sourced from
+  /// `GET /v1/event` (the recurring-series entity; distinct from
+  /// `/v1/event-instance`, which is one dated occurrence). This is the same
+  /// data the F3 Nation admin's "Events" table shows (AO, Location, Day of
+  /// Week). Also carries each location's AO display name, which
+  /// `/v1/location` itself doesn't expose.
+  Future<Map<String, ({List<F3WeeklyWorkout> schedule, String? aoName})>>
+      getLocationSchedules() async {
+    final data = await _get('/v1/event?pageSize=10000');
+    if (data == null) return {};
+    final events = data['events'] as List<dynamic>? ?? [];
+    final result = <String, ({List<F3WeeklyWorkout> schedule, String? aoName})>{};
+    for (final e in events) {
+      if (e is! Map) continue;
+      final locationId = e['locationId']?.toString();
+      final weekday = e['dayOfWeek']?.toString();
+      final time = e['startTime']?.toString();
+      if (locationId == null || weekday == null || time == null) continue;
+      final types = e['eventTypes'];
+      String? typeName;
+      if (types is List && types.isNotEmpty && types.first is Map) {
+        typeName = (types.first as Map)['eventTypeName']?.toString();
+      }
+      final parents = e['parents'];
+      String? aoName;
+      if (parents is List && parents.isNotEmpty && parents.first is Map) {
+        aoName = (parents.first as Map)['parentName']?.toString();
+      }
+      final existing = result[locationId];
+      final schedule = [
+        ...?existing?.schedule,
+        F3WeeklyWorkout(weekday: weekday, time: time, eventTypeName: typeName),
+      ];
+      result[locationId] =
+          (schedule: schedule, aoName: aoName ?? existing?.aoName);
+    }
+    return result;
+  }
+
   // ── Events / Beatdowns ────────────────────────────────────────────────────
 
+  /// [userId] is required by the API (`regionOrgId` + `userId` together
+  /// select the signed-in PAX's calendar) — without it the endpoint 400s
+  /// and this silently falls back to an empty list. Recurring series now
+  /// generate instances far into the future (seen out past a year), so this
+  /// pins `startDate` to [from] (date-only — still includes that day's
+  /// events even if their time already passed) to avoid pulling and paging
+  /// through a huge, mostly-irrelevant backlog. Defaults to today for the
+  /// Schedule list view; the calendar view passes the viewed month's start
+  /// (including past months, so backblasts can still be added after the
+  /// fact for days that already happened).
   Future<List<F3EventInstance>> getUpcomingBeatdowns(
-      {String? userAccessToken}) async {
-    final path = orgId != null
-        ? '/v1/event-instance/calendar-home-schedule?orgId=$orgId'
-        : '/v1/event-instance/calendar-home-schedule';
+      {String? userAccessToken, int? userId, DateTime? from, int limit = 200}) async {
+    if (orgId == null || userId == null) return [];
+    final d = from ?? DateTime.now();
+    final startDate =
+        '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+    final path =
+        '/v1/event-instance/calendar-home-schedule?regionOrgId=$orgId&userId=$userId&startDate=$startDate&limit=$limit';
     final data = await _getList(path, bearerOverride: userAccessToken);
     if (data == null) return [];
     return data
@@ -174,7 +253,7 @@ class F3ApiService extends ChangeNotifier {
 
   Future<List<F3EventInstance>> getOpenQSlots() async {
     final path = orgId != null
-        ? '/v1/event-instance/without-q?orgId=$orgId'
+        ? '/v1/event-instance/without-q?regionOrgId=$orgId'
         : '/v1/event-instance/without-q';
     final data = await _getList(path);
     if (data == null) return [];
@@ -185,45 +264,15 @@ class F3ApiService extends ChangeNotifier {
 
   // ── Orgs / Regions ────────────────────────────────────────────────────────
 
+  /// All regions nationwide (492 as of 2026-07 — small enough to load in one
+  /// call and search client-side; the endpoint defaults to `pageSize=10`
+  /// without this override).
   Future<List<F3Org>> getOrgs() async {
-    final data = await _getList('/v1/org');
+    final data = await _getList('/v1/org?pageSize=5000');
     if (data == null) return [];
     return data
         .map((e) => F3Org.fromJson(e as Map<String, dynamic>))
         .toList();
-  }
-
-  // ── Slack messaging ───────────────────────────────────────────────────────
-
-  /// Posts a message to a region's Slack channel via the F3 Nation Slack app.
-  /// [regionOrgId] is the org ID for the region (from F3_API_ORG_ID dart-define).
-  /// [channelId]   is the Slack channel ID (e.g. C0XXXXXXXX), user-configured.
-  /// Returns null on success, or an error string on failure.
-  Future<String?> postSlackMessage({
-    required String regionOrgId,
-    required String channelId,
-    required String text,
-  }) async {
-    if (!isConfigured) return 'F3 Nation API key not configured.';
-    try {
-      final res = await http
-          .post(
-            Uri.parse('$_base/v1/slack/message'),
-            headers: _headers(),
-            body: json.encode({
-              'regionOrgId': regionOrgId,
-              'slackChannelId': channelId,
-              'text': text,
-              'mrkdwn': true,
-              'username': 'Digital Weinke',
-            }),
-          )
-          .timeout(const Duration(seconds: 15));
-      if (res.statusCode == 200 || res.statusCode == 201) return null;
-      return 'API error ${res.statusCode}: ${res.body}';
-    } catch (e) {
-      return 'Network error: $e';
-    }
   }
 
   // ── Publish flow (backblast + attendance to F3 Nation) ────────────────────
@@ -251,11 +300,17 @@ class F3ApiService extends ChangeNotifier {
   }
 
   /// Writes the backblast text + counts onto an event instance. Pass
-  /// [eventInstanceId] to update an existing one. Uses the app API key (the
-  /// trusted-app write model). Returns null on success, else an error string.
+  /// [eventInstanceId] to update an existing one — in that case [orgId] must
+  /// be that event's own AO-level org (never the signed-in user's region, or
+  /// the write reassigns the event to the region). Leave [eventInstanceId]
+  /// null to create a brand-new unscheduled event, in which case [orgId] is
+  /// the AO to create it under. [startDate] (`YYYY-MM-DD`) is required by the
+  /// API in both cases. Uses the app API key (the trusted-app write model).
+  /// Returns null on success, else an error string.
   Future<String?> publishBackblast({
     int? eventInstanceId,
     required String orgId,
+    required String startDate,
     required String backblast,
     required int paxCount,
     required int fngCount,
@@ -264,7 +319,9 @@ class F3ApiService extends ChangeNotifier {
     final payload = <String, dynamic>{
       if (eventInstanceId != null) 'id': eventInstanceId,
       'orgId': int.tryParse(orgId) ?? orgId,
+      'startDate': startDate,
       'backblast': backblast,
+      'backblastTs': DateTime.now().millisecondsSinceEpoch,
       'paxCount': paxCount,
       'fngCount': fngCount,
       if (eventTypeId != null) 'eventTypeId': int.tryParse(eventTypeId),
@@ -298,7 +355,6 @@ class F3ApiService extends ChangeNotifier {
   Future<String?> signUpForEvent({
     required int eventInstanceId,
     required int userId,
-    required String userAccessToken,
   }) async {
     final res = await _post(
       '/v1/attendance',
@@ -307,7 +363,6 @@ class F3ApiService extends ChangeNotifier {
         'userId': userId,
         'attendanceTypeIds': [attendanceTypePax],
       },
-      bearerOverride: userAccessToken,
     );
     if (res.status == 200 || res.status == 201) return null;
     return 'Sign-up failed (${res.status}): ${res.body}';
@@ -317,12 +372,10 @@ class F3ApiService extends ChangeNotifier {
   Future<String?> withdrawFromEvent({
     required int eventInstanceId,
     required int userId,
-    required String userAccessToken,
   }) async {
     final res = await _post(
       '/v1/attendance/remove-planned',
       {'eventInstanceId': eventInstanceId, 'userId': userId},
-      bearerOverride: userAccessToken,
     );
     if (res.status == 200 || res.status == 201) return null;
     return 'Withdraw failed (${res.status}): ${res.body}';
@@ -332,27 +385,32 @@ class F3ApiService extends ChangeNotifier {
   Future<String?> takeQ({
     required int eventInstanceId,
     required int userId,
-    required String userAccessToken,
   }) async {
     final res = await _post(
       '/v1/attendance/take-q',
       {'eventInstanceId': eventInstanceId, 'userId': userId},
-      bearerOverride: userAccessToken,
     );
     if (res.status == 200 || res.status == 201) return null;
     return 'Take-Q failed (${res.status}): ${res.body}';
   }
 
-  /// Post/update the preblast (the plan announced before a beatdown).
+  /// Post/update the preblast (the plan announced before a beatdown). [orgId]
+  /// must be the event's own AO-level org, not the signed-in user's region —
+  /// sending the region org here reassigns the event to it. [startDate]
+  /// (`YYYY-MM-DD`) is required by the API even on an update of an existing
+  /// event.
   Future<String?> postPreblast({
     required int eventInstanceId,
     required String orgId,
+    required String startDate,
     required String preblast,
   }) async {
     final res = await _post('/v1/event-instance', {
       'id': eventInstanceId,
       'orgId': int.tryParse(orgId) ?? orgId,
+      'startDate': startDate,
       'preblast': preblast,
+      'preblastTs': DateTime.now().millisecondsSinceEpoch,
       'isActive': true,
     });
     if (res.status == 200 || res.status == 201) return null;

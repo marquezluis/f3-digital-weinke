@@ -92,7 +92,8 @@ class CurrentWorkoutService extends ChangeNotifier {
     if (blockIndex < 0 || blockIndex >= newBlocks.length) return;
     final block = newBlocks[blockIndex];
     final updated = block.exercises.where((e) => e.id != exerciseId).toList();
-    newBlocks[blockIndex] = block.copyWithExercises(updated);
+    newBlocks[blockIndex] = block.copyWithExercises(updated,
+        durationMinutes: block.scaledDurationFor(updated.length));
     _draftPlan = WorkoutPlan(
       id: _draftPlan!.id,
       generatedAt: _draftPlan!.generatedAt,
@@ -112,7 +113,8 @@ class CurrentWorkoutService extends ChangeNotifier {
     final copy = block.exercises[exerciseIndex];
     final updated = List<Exercise>.from(block.exercises)
       ..insert(exerciseIndex + 1, copy);
-    newBlocks[blockIndex] = block.copyWithExercises(updated);
+    newBlocks[blockIndex] = block.copyWithExercises(updated,
+        durationMinutes: block.scaledDurationFor(updated.length));
     _draftPlan = WorkoutPlan(
       id: _draftPlan!.id,
       generatedAt: _draftPlan!.generatedAt,
@@ -164,9 +166,9 @@ class CurrentWorkoutService extends ChangeNotifier {
     if (blockIndex < 0 || blockIndex >= newBlocks.length) return;
     final block = newBlocks[blockIndex];
     if (block.exercises.any((e) => e.id == exercise.id)) return;
-    newBlocks[blockIndex] = block.copyWithExercises(
-      List<Exercise>.from(block.exercises)..add(exercise),
-    );
+    final updated = List<Exercise>.from(block.exercises)..add(exercise);
+    newBlocks[blockIndex] = block.copyWithExercises(updated,
+        durationMinutes: block.scaledDurationFor(updated.length));
     _draftPlan = WorkoutPlan(
       id: _draftPlan!.id,
       generatedAt: _draftPlan!.generatedAt,

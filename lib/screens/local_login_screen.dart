@@ -1,5 +1,7 @@
 // lib/screens/local_login_screen.dart
-// Returning-user local unlock screen while OAuth/account auth is not ready.
+// Optional local biometric/PIN lock layered on top of an active F3 Nation
+// SSO session (see _AppEntry in main.dart) — re-shown each time the app is
+// reopened while `profile.appLockEnabled` is true.
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -7,6 +9,7 @@ import 'package:provider/provider.dart';
 import '../services/app_profile_service.dart';
 import '../services/local_app_lock_service.dart';
 import '../theme/app_theme.dart';
+import 'emergency_screen.dart';
 
 class LocalLoginScreen extends StatefulWidget {
   final VoidCallback onUnlocked;
@@ -142,7 +145,7 @@ class _LocalLoginScreenState extends State<LocalLoginScreen> {
                       SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          'This is local device protection, not an online account. OAuth can be added later without changing this screen.',
+                          'This local lock protects your signed-in F3 Nation session on this device.',
                           style: TextStyle(
                             color: context.f3textSecondary,
                             fontSize: 13,
@@ -182,6 +185,29 @@ class _LocalLoginScreenState extends State<LocalLoginScreen> {
                           )
                         : const Icon(Icons.lock_open_rounded),
                     label: Text(_checking ? 'UNLOCKING...' : 'UNLOCK APP'),
+                  ),
+                ),
+                const SizedBox(height: 28),
+                Divider(color: context.f3divider),
+                const SizedBox(height: 16),
+                // Life-safety: reachable without unlocking — a bystander or
+                // medic can't wait on the owner's biometric/PIN. Deliberately
+                // full-width and as prominent as UNLOCK, not a minor link.
+                SizedBox(
+                  width: double.infinity,
+                  height: 54,
+                  child: OutlinedButton.icon(
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const EmergencyScreen()),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.redAccent,
+                      side: const BorderSide(color: Colors.redAccent, width: 1.5),
+                    ),
+                    icon: const Icon(Icons.emergency_rounded),
+                    label: const Text('EMERGENCY INFO'),
                   ),
                 ),
               ],

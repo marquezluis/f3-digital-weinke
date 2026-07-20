@@ -16,6 +16,7 @@ import '../services/app_profile_service.dart' hide AppRole;
 import '../services/current_workout_service.dart';
 import '../services/exercise_service.dart';
 import '../services/history_service.dart';
+import '../services/notification_service.dart';
 import '../utils/greeting.dart';
 import '../services/settings_service.dart';
 import '../services/f3_api_service.dart';
@@ -24,19 +25,16 @@ import '../widgets/exercise_detail_sheet.dart';
 import '../theme/app_theme.dart';
 import 'history_screen.dart';
 import 'profile_screen.dart';
-import 'schedule_screen.dart';
-import '../widgets/version_footer.dart';
+import 'workout_screen.dart';
 import 'qsource_screen.dart';
+import 'browse_aos_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final service = context.read<ExerciseService>();
-    final counts = service.categoryCounts;
     final settingsSvc = context.watch<SettingsService>();
-    final appRole = settingsSvc.appRole;
     final myF3Name = settingsSvc.myF3Name;
     final now = DateTime.now();
     final isGloom = now.hour < 9;
@@ -53,82 +51,96 @@ class HomeScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Wordmark + avatar row
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Expanded(
-                          child: RichText(
-                            text: TextSpan(children: [
-                              TextSpan(
-                                text: 'DIGITAL ',
-                                style: TextStyle(
-                                  color: context.f3textPrimary,
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: 2,
-                                  height: 1,
-                                ),
-                              ),
-                              TextSpan(
-                                text: 'WEINKE',
-                                style: TextStyle(
-                                  color: F3Colors.accent,
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: 2,
-                                  height: 1,
+                    // Brand wordmark
+                    RichText(
+                      text: TextSpan(children: [
+                        TextSpan(
+                          text: 'DIGITAL ',
+                          style: TextStyle(
+                              color: context.f3textPrimary,
+                              fontSize: 22,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 2,
+                              height: 1),
+                        ),
+                        const TextSpan(
+                          text: 'WEINKE',
+                          style: TextStyle(
+                              color: F3Colors.accent,
+                              fontSize: 22,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 2,
+                              height: 1),
+                        ),
+                      ]),
+                    ),
+                    const SizedBox(height: 16),
+                    // Welcome card — the personal hello, front and center.
+                    Builder(builder: (context) {
+                      final profileName =
+                          context.watch<AppProfileService>().displayName;
+                      final region =
+                          context.watch<AppProfileService>().region;
+                      final name =
+                          myF3Name.isNotEmpty ? myF3Name : profileName;
+                      final greeting =
+                          greetingFor(AppLocalizations.of(context)!, now);
+                      return Material(
+                        color: context.f3card,
+                        borderRadius: BorderRadius.circular(18),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(18),
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const ProfileScreen()),
+                          ),
+                          child: Container(
+                            padding: const EdgeInsets.all(18),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(18),
+                              border: Border.all(color: context.f3divider),
+                            ),
+                            child: Row(children: [
+                              const _HomeAvatar(size: 68),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('$greeting,',
+                                        style: TextStyle(
+                                            color: context.f3textSecondary,
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w600)),
+                                    const SizedBox(height: 2),
+                                    Text(name.isEmpty ? 'Welcome' : name,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                            color: context.f3textPrimary,
+                                            fontSize: 26,
+                                            fontWeight: FontWeight.w900,
+                                            height: 1.1)),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                        region.isNotEmpty
+                                            ? '$region · ${_formatDate(now)}'
+                                            : _formatDate(now),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                            color: context.f3textMuted,
+                                            fontSize: 12)),
+                                  ],
                                 ),
                               ),
                             ]),
                           ),
                         ),
-                        // Tap the avatar to jump to your profile & settings.
-                        const _HomeAvatar(),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
-                    // Big, friendly greeting — the personal hello.
-                    Builder(builder: (context) {
-                      final profileName =
-                          context.watch<AppProfileService>().displayName;
-                      final name =
-                          myF3Name.isNotEmpty ? myF3Name : profileName;
-                      final greeting =
-                          greetingFor(AppLocalizations.of(context)!, now);
-                      return RichText(
-                        text: TextSpan(children: [
-                          TextSpan(
-                            text: name.isEmpty ? greeting : '$greeting,\n',
-                            style: TextStyle(
-                              color: context.f3textSecondary,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              height: 1.3,
-                            ),
-                          ),
-                          if (name.isNotEmpty)
-                            TextSpan(
-                              text: name,
-                              style: TextStyle(
-                                color: context.f3textPrimary,
-                                fontSize: 28,
-                                fontWeight: FontWeight.w900,
-                                height: 1.1,
-                              ),
-                            ),
-                        ]),
                       );
                     }),
-                    const SizedBox(height: 6),
-                    Text(
-                      _formatDate(now),
-                      style: TextStyle(
-                        color: context.f3textMuted,
-                        fontSize: 12,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 10),
                     Text(
                       isGloom
                           ? 'SYITG — See You in the Gloom.'
@@ -155,19 +167,9 @@ class HomeScreen extends StatelessWidget {
               ),
             ),
 
-            // ── 50-min timeline preview ───────────────────────────────────
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
-              sliver: SliverToBoxAdapter(
-                  child: _TimelineCard()),
-            ),
-
-            // ── Exicon stats ──────────────────────────────────────────────
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-              sliver: SliverToBoxAdapter(
-                  child: _StatsRow(counts: counts, total: service.all.length)),
-            ),
+            // Home is a launchpad: the 50-min timeline preview and the Exicon
+            // exercise-count stats moved off here — that content belongs on
+            // the Plan/Exicon surfaces, not the daily home screen.
 
             // ── Insight cards ─────────────────────────────────────────────
             SliverPadding(
@@ -204,9 +206,8 @@ class HomeScreen extends StatelessWidget {
               ),
             ),
 
-            // ── Quick start row (Q role only) ─────────────────────────────
-            if (appRole == AppRole.q)
-              SliverPadding(
+            // ── Quick start row ───────────────────────────────────────────
+            SliverPadding(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
                 sliver: SliverToBoxAdapter(
                   child: Consumer2<HistoryService, CurrentWorkoutService>(
@@ -217,10 +218,10 @@ class HomeScreen extends StatelessWidget {
                       return _QuickStartRow(
                         hasDraft: workoutSvc.hasDraftPlan,
                         lastSession: lastSession,
-                        onResume: () => _nav(context, 1),
+                        onResume: () => _openWeinke(context),
                         onRandom: () {
                           context.read<CurrentWorkoutService>().clearDraft();
-                          _nav(context, 1);
+                          _openWeinke(context);
                         },
                         onLoadLast: lastSession == null
                             ? null
@@ -233,8 +234,7 @@ class HomeScreen extends StatelessWidget {
               ),
 
             // ── Current plan sneak-peek ───────────────────────────────────
-            if (appRole == AppRole.q)
-              SliverPadding(
+            SliverPadding(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                 sliver: SliverToBoxAdapter(
                   child: Consumer<CurrentWorkoutService>(
@@ -251,7 +251,7 @@ class HomeScreen extends StatelessWidget {
                           ? ' +${plan.allExercises.length - 4} more'
                           : '';
                       return GestureDetector(
-                        onTap: () => _nav(context, 1),
+                        onTap: () => _openWeinke(context),
                         child: Container(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 14, vertical: 12),
@@ -298,14 +298,6 @@ class HomeScreen extends StatelessWidget {
                 ),
               ),
 
-            // ── Recent exercises carousel ─────────────────────────────────
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(0, 16, 0, 0),
-              sliver: SliverToBoxAdapter(
-                child: _RecentExercisesCarousel(),
-              ),
-            ),
-
             // ── Quick actions ─────────────────────────────────────────────
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
@@ -322,35 +314,16 @@ class HomeScreen extends StatelessWidget {
                               fontWeight: FontWeight.w700,
                               letterSpacing: 1.5)),
                     ),
-                    // Trimmed to the essentials — Exicon, Live Timer, and
-                    // Spartan Co-Q each have a dedicated nav tab, so they don't
-                    // need to also crowd the home page.
-                    // Schedule — upcoming beatdowns, HC, preblast. Only shown
-                    // when connected to F3 Nation (needs the API).
-                    if (context.watch<F3ApiService>().isConfigured) ...[
-                      _QuickCard(
-                        icon: Icons.event_available_rounded,
-                        title: 'Schedule',
-                        subtitle: 'Upcoming beatdowns · HC · preblast',
-                        color: const Color(0xFF2196F3),
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) => const ScheduleScreen()),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                    ],
-                    if (appRole == AppRole.q) ...[
-                      _QuickCard(
-                        icon: Icons.bolt_rounded,
-                        title: 'Generate Beatdown',
-                        subtitle: 'Random 50-min plan from the Exicon',
-                        color: F3Colors.accent,
-                        onTap: () => _nav(context, 1),
-                      ),
-                      const SizedBox(height: 8),
-                    ],
+                    // Recent-exercises carousel moved to the Exicon library.
+                    // Schedule has its own tab now, so no duplicate card here.
+                    _QuickCard(
+                      icon: Icons.bolt_rounded,
+                      title: 'Generate Beatdown',
+                      subtitle: 'Random plan from the full Exicon',
+                      color: F3Colors.accent,
+                      onTap: () => _openWeinke(context),
+                    ),
+                    const SizedBox(height: 8),
                     _QuickCard(
                       icon: Icons.school_rounded,
                       title: 'Q Field Guide',
@@ -379,6 +352,18 @@ class HomeScreen extends StatelessWidget {
                         ),
                       ),
                     ),
+                    const SizedBox(height: 8),
+                    _QuickCard(
+                      icon: Icons.explore_rounded,
+                      title: 'Browse AOs',
+                      subtitle: 'Find F3 Nation AOs near you',
+                      color: const Color(0xFF2196F3),
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const BrowseAosScreen()),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -389,19 +374,21 @@ class HomeScreen extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(16, 24, 16, 32),
               sliver: SliverToBoxAdapter(child: _CoreValues()),
             ),
-
-            // ── Version & Credits ─────────────────────────────────────────
-            const SliverToBoxAdapter(
-              child: VersionFooter(),
-            ),
+            // Version & credits live in the You tab (Settings → About) now,
+            // not on the home launchpad.
           ],
         ),
       ),
     );
   }
 
-  void _nav(BuildContext context, int index) {
-    context.read<ValueNotifier<int>>().value = index;
+  // Weinke builder is a pushed route now (lives under the Plan tab), so the
+  // home shortcuts open it directly rather than switching tabs.
+  void _openWeinke(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const WorkoutScreen()),
+    );
   }
 
   String _formatDate(DateTime dt) {
@@ -477,139 +464,16 @@ String _isoWeekKey(DateTime d) {
   return '${thursday.year}-$week';
 }
 
-// ─── 50-minute timeline card ──────────────────────────────────────────────────
-
-class _TimelineCard extends StatelessWidget {
-  static const _phases = [
-    ('DISCLAIMER',   '1m',  F3Colors.phaseDisclaimer),
-    ('WARM-O-RAMA',  '7m',  F3Colors.phaseWarmup),
-    ('THE THANG',    '32m', F3Colors.phaseThang),
-    ('MARY',         '6m',  F3Colors.phaseMary),
-    ('COT',          '4m',  F3Colors.phaseCOT),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: context.f3card,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: context.f3divider),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('50-MINUTE TIMELINE',
-              style: TextStyle(
-                  color: context.f3textMuted,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.5)),
-          const SizedBox(height: 10),
-          Row(
-            children: _phases.map((p) {
-              final flex = p.$2 == '32m' ? 32 : p.$2 == '7m' ? 7 :
-                           p.$2 == '6m' ? 6 : p.$2 == '4m' ? 4 : 1;
-              return Expanded(
-                flex: flex,
-                child: Padding(
-                  padding: const EdgeInsets.only(right: 2),
-                  child: Container(
-                    height: 6,
-                    decoration: BoxDecoration(
-                      color: p.$3,
-                      borderRadius: BorderRadius.circular(3),
-                    ),
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: _phases.map((p) => Expanded(
-              flex: p.$2 == '32m' ? 32 : p.$2 == '7m' ? 7 :
-                   p.$2 == '6m' ? 6 : p.$2 == '4m' ? 4 : 1,
-              child: Text(p.$2,
-                  style: TextStyle(
-                      color: p.$3, fontSize: 9, fontWeight: FontWeight.w700)),
-            )).toList(),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─── Stats row ────────────────────────────────────────────────────────────────
-
-class _StatsRow extends StatelessWidget {
-  final Map<ExerciseCategory, int> counts;
-  final int total;
-
-  const _StatsRow({required this.counts, required this.total});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: context.f3card,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: context.f3divider),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(children: [
-            Text('EXICON LOADED',
-                style: TextStyle(
-                    color: context.f3textMuted,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.5)),
-            const Spacer(),
-            Text('$total exercises',
-                style: const TextStyle(
-                    color: F3Colors.accent,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700)),
-          ]),
-          const SizedBox(height: 12),
-          Row(
-            children: ExerciseCategory.values.map((cat) {
-              final color = F3Colors.forCategory(cat.name);
-              return Expanded(
-                child: Column(children: [
-                  Text('${counts[cat] ?? 0}',
-                      style: TextStyle(
-                          color: color,
-                          fontSize: 24,
-                          fontWeight: FontWeight.w900)),
-                  Text(cat.shortName,
-                      style: TextStyle(
-                          color: context.f3textMuted, fontSize: 10),
-                      overflow: TextOverflow.ellipsis),
-                ]),
-              );
-            }).toList(),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 // ─── Quick action card ────────────────────────────────────────────────────────
 
 // ─── Home avatar ──────────────────────────────────────────────────────────────
 
 /// Circular profile avatar in the home header. Shows the F3 Nation avatar
-/// when synced, else the user's initial, else a shield. Tapping it jumps to
-/// Settings (where the profile & account live).
+/// when synced, else the user's initial, else a shield. Purely visual — the
+/// whole welcome card it sits in (not just this avatar) opens the profile.
 class _HomeAvatar extends StatelessWidget {
-  const _HomeAvatar();
+  final double size;
+  const _HomeAvatar({this.size = 48});
 
   @override
   Widget build(BuildContext context) {
@@ -625,35 +489,29 @@ class _HomeAvatar extends StatelessWidget {
         } else if (profile.avatarUrl.isNotEmpty) {
           img = NetworkImage(profile.avatarUrl);
         }
-        return GestureDetector(
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const ProfileScreen()),
+        return Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: F3Colors.accent.withValues(alpha: 0.14),
+            border: Border.all(
+                color: F3Colors.accent.withValues(alpha: 0.5), width: 2),
+            image: img != null
+                ? DecorationImage(image: img, fit: BoxFit.cover)
+                : null,
           ),
-          child: Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: F3Colors.accent.withValues(alpha: 0.14),
-              border:
-                  Border.all(color: F3Colors.accent.withValues(alpha: 0.5), width: 2),
-              image: img != null
-                  ? DecorationImage(image: img, fit: BoxFit.cover)
-                  : null,
-            ),
-            alignment: Alignment.center,
-            child: img != null
-                ? null
-                : (initial.isNotEmpty
-                    ? Text(initial,
-                        style: const TextStyle(
-                            color: F3Colors.accent,
-                            fontWeight: FontWeight.w900,
-                            fontSize: 20))
-                    : const Icon(Icons.shield_rounded,
-                        color: F3Colors.accent, size: 24)),
-          ),
+          alignment: Alignment.center,
+          child: img != null
+              ? null
+              : (initial.isNotEmpty
+                  ? Text(initial,
+                      style: TextStyle(
+                          color: F3Colors.accent,
+                          fontWeight: FontWeight.w900,
+                          fontSize: size * 0.42))
+                  : Icon(Icons.shield_rounded,
+                      color: F3Colors.accent, size: size * 0.5)),
         );
       },
     );
@@ -972,7 +830,10 @@ void _loadLastSession(BuildContext context, WorkoutHistory session) {
     settings: const WorkoutSettings(),
   );
   context.read<CurrentWorkoutService>().setDraftPlan(plan);
-  context.read<ValueNotifier<int>>().value = 1;
+  Navigator.push(
+    context,
+    MaterialPageRoute(builder: (_) => const WorkoutScreen()),
+  );
 }
 
 class _QuickStartRow extends StatelessWidget {
@@ -1132,97 +993,6 @@ class _F extends StatelessWidget {
   }
 }
 
-// ─── Recent exercises carousel ────────────────────────────────────────────────
-
-class _RecentExercisesCarousel extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final history = context.read<HistoryService>();
-    final exerciseSvc = context.read<ExerciseService>();
-
-    final seen = <String>{};
-    final recentNames = <String>[];
-    for (final session in history.all.where((h) => !h.isTemplate).take(3)) {
-      for (final block in session.blocks) {
-        for (final name in block.exerciseNames) {
-          if (seen.add(name)) recentNames.add(name);
-          if (recentNames.length >= 10) break;
-        }
-        if (recentNames.length >= 10) break;
-      }
-      if (recentNames.length >= 10) break;
-    }
-
-    if (recentNames.isEmpty) return const SizedBox.shrink();
-
-    Exercise? findByName(String name) {
-      try { return exerciseSvc.all.firstWhere((e) => e.name == name); }
-      catch (_) { return null; }
-    }
-
-    final exercises = recentNames
-        .map(findByName)
-        .whereType<Exercise>()
-        .take(8)
-        .toList();
-
-    if (exercises.isEmpty) return const SizedBox.shrink();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
-          child: Text(
-            'RECENTLY USED',
-            style: TextStyle(
-              color: context.f3textMuted,
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1.5,
-            ),
-          ),
-        ),
-        SizedBox(
-          height: 38,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: exercises.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 8),
-            itemBuilder: (context, i) {
-              final ex = exercises[i];
-              final color = F3Colors.forCategory(ex.category.name);
-              return GestureDetector(
-                onTap: () => ExerciseDetailSheet.show(context, ex),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: color.withValues(alpha: 0.4)),
-                  ),
-                  child: Text(
-                    ex.name,
-                    style: TextStyle(
-                      color: color,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// ── Upcoming Beatdowns (F3 Nation API) ───────────────────────────────────────
-
 class _UpcomingBeatdownsSection extends StatefulWidget {
   const _UpcomingBeatdownsSection();
 
@@ -1242,12 +1012,31 @@ class _UpcomingBeatdownsSectionState extends State<_UpcomingBeatdownsSection> {
 
   Future<void> _fetch() async {
     final api = context.read<F3ApiService>();
-    final events = await api.getUpcomingBeatdowns();
+    final profile = context.read<AppProfileService>();
+    final userId = int.tryParse(profile.authUserId);
+    final events = await api.getUpcomingBeatdowns(userId: userId);
+    // Only the ones the PAX is actually HC'd or Q'd for — not every
+    // beatdown in the region (that's what Schedule is for).
+    final mine = events.where((e) => e.userAttending || e.userIsQ).toList();
     if (!mounted) return;
     setState(() {
-      _events = events.take(7).toList();
+      _events = mine.take(7).toList();
       _loading = false;
     });
+    // Keep day-before/hour-before (and post-event backblast, if Q'd)
+    // reminders in sync with the real HC/Q state — reconciles against
+    // whatever was scheduled before, so un-HC'ing elsewhere (Slack, the
+    // webapp) still cancels the stale reminder.
+    await NotificationService().reconcileEventReminders(mine
+        .where((e) => e.numericId != null)
+        .map((e) => (
+              id: e.numericId!,
+              dateTime: e.dateTime,
+              title: e.orgName ?? e.locationName ?? 'Beatdown',
+              isQ: e.userIsQ,
+              hasPreblast: (e.preblast ?? '').isNotEmpty,
+            ))
+        .toList());
   }
 
   @override
@@ -1259,7 +1048,6 @@ class _UpcomingBeatdownsSectionState extends State<_UpcomingBeatdownsSection> {
       );
     }
     final events = _events ?? [];
-    if (events.isEmpty) return const SizedBox.shrink();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1271,7 +1059,7 @@ class _UpcomingBeatdownsSectionState extends State<_UpcomingBeatdownsSection> {
               Icon(Icons.calendar_month_rounded, size: 13, color: F3Colors.accent),
               const SizedBox(width: 6),
               Text(
-                'UPCOMING BEATDOWNS',
+                'YOUR UPCOMING BEATDOWNS',
                 style: TextStyle(
                   color: context.f3textMuted,
                   fontSize: 11,
@@ -1282,16 +1070,25 @@ class _UpcomingBeatdownsSectionState extends State<_UpcomingBeatdownsSection> {
             ],
           ),
         ),
-        SizedBox(
-          height: 108,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-            itemCount: events.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 10),
-            itemBuilder: (context, i) => _BeatdownChip(event: events[i]),
+        if (events.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Text(
+              'Nothing HC\'d or Q\'d yet — find a beatdown on Schedule.',
+              style: TextStyle(color: context.f3textMuted, fontSize: 12),
+            ),
+          )
+        else
+          SizedBox(
+            height: 108,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+              itemCount: events.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 10),
+              itemBuilder: (context, i) => _BeatdownChip(event: events[i]),
+            ),
           ),
-        ),
       ],
     );
   }

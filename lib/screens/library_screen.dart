@@ -216,9 +216,9 @@ class _LibraryScreenState extends State<LibraryScreen>
           ),
         ],
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(108),
+          preferredSize: const Size.fromHeight(116),
           child: SizedBox(
-            height: 108,
+            height: 116,
             width: double.infinity,
             child: ColoredBox(
               color: context.f3bg,

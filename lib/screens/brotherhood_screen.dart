@@ -11,6 +11,8 @@ import '../services/region_service.dart';
 import '../services/app_profile_service.dart';
 import '../services/f3_api_service.dart';
 import '../theme/app_theme.dart';
+import 'heatmap_screen.dart';
+import 'achievements_screen.dart';
 
 class BrotherhoodScreen extends StatefulWidget {
   const BrotherhoodScreen({super.key});
@@ -140,6 +142,40 @@ class _BrotherhoodScreenState extends State<BrotherhoodScreen> {
                     ...region.recentAttendance
                         .take(6)
                         .map((entry) => _BeatdownTile(entry: entry)),
+
+                  // ── Your Stats ────────────────────────────────────────────
+                  const SizedBox(height: 24),
+                  const _SectionHeader(title: 'YOUR STATS'),
+                  const SizedBox(height: 8),
+                  Material(
+                    color: context.f3card,
+                    borderRadius: BorderRadius.circular(12),
+                    child: Column(children: [
+                      ListTile(
+                        leading: const Icon(Icons.whatshot_rounded,
+                            color: F3Colors.phaseThang),
+                        title: const Text('Activity Heatmap'),
+                        subtitle: const Text('52-week workout calendar'),
+                        trailing: const Icon(Icons.chevron_right_rounded),
+                        onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const HeatmapScreen())),
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.emoji_events_rounded,
+                            color: Color(0xFFFFD700)),
+                        title: const Text('Achievements'),
+                        subtitle:
+                            const Text('Badges earned from your history'),
+                        trailing: const Icon(Icons.chevron_right_rounded),
+                        onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const AchievementsScreen())),
+                      ),
+                    ]),
+                  ),
                 ],
               );
             },

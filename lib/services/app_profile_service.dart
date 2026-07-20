@@ -36,6 +36,7 @@ enum AppRole {
 
 class AppProfileService extends ChangeNotifier {
   static const _keyWelcomeComplete = 'welcome_complete';
+  static const _keyIntroSeen = 'intro_seen';
   static const _keyDisplayName = 'profile_display_name';
   static const _keyHomeAo = 'profile_home_ao';
   static const _keyRegion = 'profile_region';
@@ -48,6 +49,7 @@ class AppProfileService extends ChangeNotifier {
 
   SharedPreferences? _prefs;
   bool _welcomeComplete = false;
+  bool _introSeen = false;
   String _displayName = '';
   String _homeAo = '';
   String _region = '';
@@ -59,6 +61,14 @@ class AppProfileService extends ChangeNotifier {
   String _localAvatarPath = '';
 
   bool get welcomeComplete => _welcomeComplete;
+  bool get introSeen => _introSeen;
+
+  Future<void> markIntroSeen() async {
+    _introSeen = true;
+    _prefs ??= await SharedPreferences.getInstance();
+    await _prefs!.setBool(_keyIntroSeen, true);
+    notifyListeners();
+  }
   String get displayName => _displayName;
   String get homeAo => _homeAo;
   String get region => _region;
@@ -93,6 +103,7 @@ class AppProfileService extends ChangeNotifier {
   Future<void> load() async {
     _prefs = await SharedPreferences.getInstance();
     _welcomeComplete = _prefs!.getBool(_keyWelcomeComplete) ?? false;
+    _introSeen = _prefs!.getBool(_keyIntroSeen) ?? false;
     _displayName = _prefs!.getString(_keyDisplayName) ?? '';
     _homeAo = _prefs!.getString(_keyHomeAo) ?? '';
     _region = _prefs!.getString(_keyRegion) ?? '';

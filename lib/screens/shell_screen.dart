@@ -1,98 +1,77 @@
 // lib/screens/shell_screen.dart
-// Bottom-navigation shell — 7 tabs, Q Mode at center (index 3).
+// Bottom-navigation shell — 5 intent-based tabs:
+//   0 Home · 1 Plan · 2 Schedule · 3 Community · 4 You
+// Plan hosts the Q toolkit (Weinke/Q Mode/Exicon/Spartan); Community is the
+// PAX/brotherhood surface (future messaging home); You is profile + settings.
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/current_workout_service.dart';
 import '../theme/app_theme.dart';
 import 'home_screen.dart';
-import 'workout_screen.dart';
-import 'library_screen.dart';
-import 'timer_screen.dart';
-import 'spartan_chat_screen.dart';
+import 'plan_hub_screen.dart';
+import 'schedule_screen.dart';
 import 'brotherhood_screen.dart';
 import 'settings_screen.dart';
+import 'spartan_chat_screen.dart';
 
 class ShellScreen extends StatelessWidget {
   const ShellScreen({super.key});
 
   static const _screens = [
     HomeScreen(),         // 0 — Home
-    WorkoutScreen(),      // 1 — Weinke
-    LibraryScreen(),      // 2 — Exicon
-    TimerScreen(),        // 3 — Q Mode (center)
-    SpartanChatScreen(),  // 4 — Spartan
-    BrotherhoodScreen(),  // 5 — PAX
-    SettingsScreen(),     // 6 — Settings
+    PlanHubScreen(),      // 1 — Plan (Weinke / Q Mode / Exicon / Spartan)
+    ScheduleScreen(),     // 2 — Schedule
+    BrotherhoodScreen(),  // 3 — Community (PAX + future messaging)
+    SettingsScreen(),     // 4 — You (profile + settings)
   ];
 
   @override
   Widget build(BuildContext context) {
-    final exerciseCount = context
+    final draftCount = context
             .watch<CurrentWorkoutService>()
             .draftPlan
             ?.allExercises
             .length ??
         0;
 
-    const destinations = [
-      NavigationDestination(
-        icon: Icon(Icons.home_outlined),
-        selectedIcon: Icon(Icons.home_rounded),
-        label: 'Home',
-      ),
-      NavigationDestination(
-        icon: Icon(Icons.fitness_center_outlined),
-        selectedIcon: Icon(Icons.fitness_center_rounded),
-        label: 'Weinke',
-      ),
-      NavigationDestination(
-        icon: Icon(Icons.menu_book_outlined),
-        selectedIcon: Icon(Icons.menu_book_rounded),
-        label: 'Exicon',
-      ),
-      NavigationDestination(
-        icon: Icon(Icons.play_circle_outline_rounded),
-        selectedIcon: Icon(Icons.play_circle_rounded),
-        label: 'Q Mode',
-      ),
-      NavigationDestination(
-        icon: Icon(Icons.shield_outlined),
-        selectedIcon: Icon(Icons.shield_rounded),
-        label: 'Spartan',
-      ),
-      NavigationDestination(
-        icon: Icon(Icons.groups_outlined),
-        selectedIcon: Icon(Icons.groups_rounded),
-        label: 'PAX',
-      ),
-      NavigationDestination(
-        icon: Icon(Icons.tune_outlined),
-        selectedIcon: Icon(Icons.tune_rounded),
-        label: 'Settings',
-      ),
-    ];
-
     return ValueListenableBuilder<int>(
       valueListenable: context.read<ValueNotifier<int>>(),
       builder: (context, index, _) {
-        // Weinke badge wired in separately to avoid rebuilding destinations list.
-        final destinations7 = [
-          destinations[0],
+        final destinations = [
+          const NavigationDestination(
+            icon: Icon(Icons.home_outlined),
+            selectedIcon: Icon(Icons.home_rounded),
+            label: 'Home',
+          ),
           NavigationDestination(
             icon: Badge(
-              isLabelVisible: exerciseCount > 0,
-              label: Text('$exerciseCount'),
+              isLabelVisible: draftCount > 0,
+              label: Text('$draftCount'),
               child: const Icon(Icons.fitness_center_outlined),
             ),
             selectedIcon: Badge(
-              isLabelVisible: exerciseCount > 0,
-              label: Text('$exerciseCount'),
+              isLabelVisible: draftCount > 0,
+              label: Text('$draftCount'),
               child: const Icon(Icons.fitness_center_rounded),
             ),
-            label: 'Weinke',
+            label: 'Plan',
           ),
-          ...destinations.sublist(2),
+          const NavigationDestination(
+            icon: Icon(Icons.event_outlined),
+            selectedIcon: Icon(Icons.event_rounded),
+            label: 'Schedule',
+          ),
+          const NavigationDestination(
+            icon: Icon(Icons.groups_outlined),
+            selectedIcon: Icon(Icons.groups_rounded),
+            label: 'Community',
+          ),
+          const NavigationDestination(
+            icon: Icon(Icons.person_outline_rounded),
+            selectedIcon: Icon(Icons.person_rounded),
+            label: 'You',
+          ),
         ];
 
         return Scaffold(
@@ -101,17 +80,31 @@ class ShellScreen extends StatelessWidget {
             index: index,
             children: _screens,
           ),
+          // Spartan Co-Q reachable from every main tab.
+          floatingActionButton: FloatingActionButton(
+            heroTag: 'spartanFab',
+            backgroundColor: F3Colors.catCoupon,
+            foregroundColor: Colors.white,
+            tooltip: 'Spartan Co-Q',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const SpartanChatScreen()),
+            ),
+            child: const Icon(Icons.shield_rounded),
+          ),
           bottomNavigationBar: Container(
             decoration: BoxDecoration(
-              border: Border(top: BorderSide(color: context.f3divider, width: 0.5)),
+              border: Border(
+                  top: BorderSide(color: context.f3divider, width: 0.5)),
             ),
             child: NavigationBar(
               selectedIndex: index,
               onDestinationSelected: (i) {
                 context.read<ValueNotifier<int>>().value = i;
               },
-              destinations: destinations7,
-              labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
+              destinations: destinations,
+              labelBehavior:
+                  NavigationDestinationLabelBehavior.onlyShowSelected,
             ),
           ),
         );
