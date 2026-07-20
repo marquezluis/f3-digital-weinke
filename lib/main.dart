@@ -5,6 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 import 'services/app_profile_service.dart';
 import 'services/auth_service.dart';
 import 'services/current_workout_service.dart';
@@ -27,6 +28,21 @@ import 'theme/app_theme.dart';
 import 'l10n/app_localizations.dart';
 
 void main() async {
+  // Baked in at build time via --dart-define(-from-file). Empty by default —
+  // SentryFlutter.init() no-ops with an empty DSN, so this is safe to leave
+  // unset until a Sentry project exists.
+  const sentryDsn = String.fromEnvironment('SENTRY_DSN');
+
+  await SentryFlutter.init(
+    (options) {
+      options.dsn = sentryDsn;
+      options.tracesSampleRate = 0.2;
+    },
+    appRunner: _runApp,
+  );
+}
+
+Future<void> _runApp() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await SystemChrome.setPreferredOrientations([

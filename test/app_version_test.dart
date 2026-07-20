@@ -6,9 +6,9 @@ import 'package:f3_nation_app/models/app_version.dart';
 
 void main() {
   test('current version is represented in release notes', () {
-    expect(AppVersion.versionName, '2.0.0');
-    expect(AppVersion.buildNumber, '4');
-    expect(AppVersion.displayName, 'Digital Weinke v2.0.0');
+    expect(AppVersion.versionName, '2.4.0');
+    expect(AppVersion.buildNumber, '12');
+    expect(AppVersion.displayName, 'Digital Weinke v2.4.0');
     expect(AppVersion.releases.first.version, AppVersion.versionName);
   });
 

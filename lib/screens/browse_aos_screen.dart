@@ -496,21 +496,25 @@ class _BrowseAosScreenState extends State<BrowseAosScreen> {
                           point: LatLng(loc.lat!, loc.lon!),
                           width: 30,
                           height: 30,
-                          child: GestureDetector(
-                            onTap: () => _openDetails(loc),
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: F3Colors.accent,
-                                shape: BoxShape.circle,
-                                border: Border.all(color: Colors.white, width: 1.5),
-                              ),
-                              alignment: Alignment.center,
-                              child: Text(
-                                '${_mapNumber(loc)}',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w800,
+                          child: Semantics(
+                            button: true,
+                            label: loc.name,
+                            child: GestureDetector(
+                              onTap: () => _openDetails(loc),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: F3Colors.accent,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Colors.white, width: 1.5),
+                                ),
+                                alignment: Alignment.center,
+                                child: Text(
+                                  '${_mapNumber(loc)}',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w800,
+                                  ),
                                 ),
                               ),
                             ),
@@ -549,23 +553,26 @@ class _BrowseAosScreenState extends State<BrowseAosScreen> {
               Positioned(
                 bottom: 8,
                 right: 8,
-                child: Material(
-                  color: context.f3card,
-                  shape: const CircleBorder(),
-                  elevation: 3,
-                  child: InkWell(
-                    customBorder: const CircleBorder(),
-                    onTap: _recenterOnMe,
-                    child: Padding(
-                      padding: const EdgeInsets.all(10),
-                      child: _locating
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.my_location_rounded,
-                              color: F3Colors.accent, size: 20),
+                child: Tooltip(
+                  message: AppLocalizations.of(context)!.browseAosRefreshLocation,
+                  child: Material(
+                    color: context.f3card,
+                    shape: const CircleBorder(),
+                    elevation: 3,
+                    child: InkWell(
+                      customBorder: const CircleBorder(),
+                      onTap: _recenterOnMe,
+                      child: Padding(
+                        padding: const EdgeInsets.all(10),
+                        child: _locating
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(Icons.my_location_rounded,
+                                color: F3Colors.accent, size: 20),
+                      ),
                     ),
                   ),
                 ),
@@ -696,27 +703,34 @@ class _AoTile extends StatelessWidget {
           ),
           child: Row(
             children: [
-              GestureDetector(
-                onTap: mapNumber != null ? onTapNumber : null,
-                child: Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: F3Colors.accent.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(10),
+              Semantics(
+                button: mapNumber != null,
+                label: mapNumber != null
+                    ? AppLocalizations.of(context)!
+                        .browseAosShowOnMap(location.name)
+                    : null,
+                child: GestureDetector(
+                  onTap: mapNumber != null ? onTapNumber : null,
+                  child: Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: F3Colors.accent.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    alignment: Alignment.center,
+                    child: mapNumber != null
+                        ? Text(
+                            '$mapNumber',
+                            style: const TextStyle(
+                              color: F3Colors.accent,
+                              fontSize: 17,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          )
+                        : const Icon(Icons.shield_rounded,
+                            color: F3Colors.accent, size: 22),
                   ),
-                  alignment: Alignment.center,
-                  child: mapNumber != null
-                      ? Text(
-                          '$mapNumber',
-                          style: const TextStyle(
-                            color: F3Colors.accent,
-                            fontSize: 17,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        )
-                      : const Icon(Icons.shield_rounded,
-                          color: F3Colors.accent, size: 22),
                 ),
               ),
               const SizedBox(width: 12),

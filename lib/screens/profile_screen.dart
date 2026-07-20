@@ -321,7 +321,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       Positioned(
                         right: 0,
                         bottom: 0,
-                        child: Material(
+                        child: Tooltip(
+                          message: AppLocalizations.of(context)!.profileChangePhoto,
+                          child: Material(
                           color: F3Colors.accent,
                           shape: const CircleBorder(),
                           child: InkWell(
@@ -339,6 +341,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   : const Icon(Icons.camera_alt_rounded,
                                       color: Colors.white, size: 18),
                             ),
+                          ),
                           ),
                         ),
                       ),

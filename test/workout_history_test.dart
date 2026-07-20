@@ -176,14 +176,18 @@ void main() {
       );
     });
 
-    test('contains title', () {
+    test('header uses AO name, falling back to title when AO is blank', () {
       final text = BackblastFormatter.format(full);
-      expect(text, contains('Saturday Storm'));
+      expect(text, contains('Backblast! Shovel Flag Park'));
+
+      final noAo = full.copyWith(ao: '');
+      final noAoText = BackblastFormatter.format(noAo);
+      expect(noAoText, contains('Backblast! Saturday Storm'));
     });
 
     test('contains date', () {
       final text = BackblastFormatter.format(full);
-      expect(text, contains('Mar 15 2025'));
+      expect(text, contains('DATE: 2025-03-15'));
     });
 
     test('contains AO', () {
@@ -204,19 +208,19 @@ void main() {
 
     test('FNG count shown as number when > 0', () {
       final text = BackblastFormatter.format(full);
-      expect(text, contains('FNG: 1'));
+      expect(text, contains('FNGs: 1'));
     });
 
     test('FNG shown as None when 0', () {
       final h = full.copyWith(fngCount: 0);
       final text = BackblastFormatter.format(h);
-      expect(text, contains('FNG: None'));
+      expect(text, contains('FNGs: None'));
     });
 
     test('count includes FNG', () {
       // pax = 2, fng = 1 → total = 3
       final text = BackblastFormatter.format(full);
-      expect(text, contains('Count: 3'));
+      expect(text, contains('COUNT: 3'));
     });
 
     test('warmup exercises appear', () {
@@ -261,7 +265,7 @@ void main() {
       expect(text, contains('Q: —'));
     });
 
-    test('exercise list truncates at 8 with ellipsis', () {
+    test('exercise list is not truncated', () {
       final manyExercises = List.generate(10, (i) => 'Exercise$i');
       final h = WorkoutHistory(
         id: 'trunc',
@@ -277,11 +281,8 @@ void main() {
         ],
       );
       final text = BackblastFormatter.format(h);
-      expect(text, contains('…'));
-      // Only first 8 should appear as separate tokens
       expect(text, contains('Exercise0'));
-      expect(text, contains('Exercise7'));
-      expect(text, isNot(contains('Exercise9')));
+      expect(text, contains('Exercise9'));
     });
 
     test('empty blocks falls back to placeholder line', () {
@@ -291,14 +292,17 @@ void main() {
       expect(text, contains('No workout plan recorded'));
     });
 
-    test('footer present', () {
-      final text = BackblastFormatter.format(full);
-      expect(text, contains('Digital Weinke'));
+    test('COT section present with content', () {
+      final h = full.copyWith(cot: 'Count-o-rama, name-o-rama, prayers.');
+      final text = BackblastFormatter.format(h);
+      expect(text, contains('COT:'));
+      expect(text, contains('Count-o-rama, name-o-rama, prayers.'));
     });
 
-    test('disclaimer/COT line present', () {
+    test('announcements section present with content', () {
       final text = BackblastFormatter.format(full);
-      expect(text, contains('Disclaimer given'));
+      expect(text, contains('ANNOUNCEMENTS:'));
+      expect(text, contains('Cold and windy but zero quitters.'));
     });
   });
 }

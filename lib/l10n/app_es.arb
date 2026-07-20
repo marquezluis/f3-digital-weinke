@@ -182,8 +182,10 @@
   "browseAosFilterByState": "Filtrar por estado",
   "browseAosFilterByRegion": "Filtrar por región",
   "browseAosFilterByDay": "Filtrar por día de entrenamiento",
+  "browseAosShowOnMap": "Mostrar {name} en el mapa",
 
   "profileTitle": "Perfil",
+  "profileChangePhoto": "Cambiar foto",
   "profileChooseFromLibrary": "Elegir de la galería",
   "profileTakePhoto": "Tomar una foto",
   "profilePhotoFailed": "Error con la foto: {error}",

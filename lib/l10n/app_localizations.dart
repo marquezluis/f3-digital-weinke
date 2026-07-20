@@ -1150,11 +1150,23 @@ abstract class AppLocalizations {
   /// **'Filter by workout day'**
   String get browseAosFilterByDay;
 
+  /// No description provided for @browseAosShowOnMap.
+  ///
+  /// In en, this message translates to:
+  /// **'Show {name} on the map'**
+  String browseAosShowOnMap(String name);
+
   /// No description provided for @profileTitle.
   ///
   /// In en, this message translates to:
   /// **'Profile'**
   String get profileTitle;
+
+  /// No description provided for @profileChangePhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Change photo'**
+  String get profileChangePhoto;
 
   /// No description provided for @profileChooseFromLibrary.
   ///

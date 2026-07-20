@@ -618,7 +618,15 @@ class AppLocalizationsFr extends AppLocalizations {
   String get browseAosFilterByDay => 'Filtrer par jour d\'entraînement';
 
   @override
+  String browseAosShowOnMap(String name) {
+    return 'Afficher $name sur la carte';
+  }
+
+  @override
   String get profileTitle => 'Profil';
+
+  @override
+  String get profileChangePhoto => 'Changer la photo';
 
   @override
   String get profileChooseFromLibrary => 'Choisir depuis la galerie';

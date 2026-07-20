@@ -323,8 +323,13 @@
   "browseAosFilterByState": "Filter by state",
   "browseAosFilterByRegion": "Filter by region",
   "browseAosFilterByDay": "Filter by workout day",
+  "browseAosShowOnMap": "Show {name} on the map",
+  "@browseAosShowOnMap": {
+    "placeholders": { "name": { "type": "String" } }
+  },
 
   "profileTitle": "Profile",
+  "profileChangePhoto": "Change photo",
   "profileChooseFromLibrary": "Choose from library",
   "profileTakePhoto": "Take a photo",
   "profilePhotoFailed": "Photo failed: {error}",

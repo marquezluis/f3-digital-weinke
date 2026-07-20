@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Digital Weinke — Privacy Policy</title>
+<style>
+  :root{ color-scheme: light dark; }
+  body{
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    max-width: 720px; margin: 0 auto; padding: 40px 20px 80px; line-height: 1.6;
+    color: #1c1f24; background: #fff;
+  }
+  @media (prefers-color-scheme: dark){ body{ color:#e4e6e8; background:#14161a; } a{ color:#7fb8ff; } }
+  h1{ font-size: 28px; margin-bottom: 4px; }
+  .updated{ color: #666; font-size: 14px; margin-bottom: 32px; }
+  h2{ font-size: 19px; margin-top: 40px; border-bottom: 1px solid #ddd; padding-bottom: 6px; }
+  table{ width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 15px; }
+  th, td{ text-align: left; padding: 8px 10px; border-bottom: 1px solid #ddd; vertical-align: top; }
+  th{ font-size: 13px; text-transform: uppercase; letter-spacing: .03em; color: #666; }
+  code{ font-size: 0.9em; background: rgba(127,127,127,.15); padding: 1px 5px; border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<h1>Digital Weinke — Privacy Policy</h1>
+<p class="updated">Last updated: July 20, 2026</p>
+
+<p>Digital Weinke ("the app") is an unofficial companion app for F3 Nation,
+built to help PAX plan, run, and log F3 workouts (beatdowns). This page
+explains what the app collects, why, and where it goes.</p>
+
+<h2>What the app collects</h2>
+<table>
+  <thead><tr><th>Data</th><th>Why</th><th>Where it goes</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>F3 Nation identity (name, email, phone if provided)</td>
+      <td>Signing in with your existing F3 Nation account</td>
+      <td>Authenticated directly with F3 Nation's own servers (<code>auth2.f3nation.com</code>) via OAuth. Digital Weinke never sees your password.</td>
+    </tr>
+    <tr>
+      <td>Precise location (while the app is open)</td>
+      <td>Sorting nearby AOs on the Browse AOs map</td>
+      <td>Stays on your device — used only to sort/center the map. Never transmitted or stored anywhere.</td>
+    </tr>
+    <tr>
+      <td>Profile photo</td>
+      <td>Displaying your avatar in the app</td>
+      <td>Stored only on your device. Never uploaded.</td>
+    </tr>
+    <tr>
+      <td>Emergency info (blood type, allergies, conditions, medications, emergency contact)</td>
+      <td>Available on-screen in an emergency, even without signing in</td>
+      <td>Stored only on your device, encrypted (iOS Keychain / Android Keystore). Never transmitted anywhere.</td>
+    </tr>
+    <tr>
+      <td>Workout history, plans, and settings</td>
+      <td>So the app remembers what you've done and how you like it configured</td>
+      <td>Stored only on your device.</td>
+    </tr>
+    <tr>
+      <td>Schedule, attendance, and backblast data you choose to publish</td>
+      <td>Posting your Q credit, attendance, and backblasts back to F3 Nation</td>
+      <td>Sent to F3 Nation's own API (<code>api.f3nation.com</code>) — this is F3 Nation's system of record, not a third party.</td>
+    </tr>
+    <tr>
+      <td>Messages you send to the Spartan AI assistant</td>
+      <td>Getting Q-prep suggestions and workout ideas</td>
+      <td>Sent to Google's Generative AI API (Gemini) to generate a response. Not stored by Digital Weinke.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>What we don't do</h2>
+<p>No ads, no analytics trackers, no selling or sharing data with data
+brokers, no background location tracking. Biometric unlock (Face ID / Touch
+ID / fingerprint) is handled entirely by your device's operating system —
+Digital Weinke never receives or stores any biometric data itself.</p>
+
+<h2>Your controls</h2>
+<p>You can sign out of your F3 Nation account at any time from Settings,
+which removes your stored sign-in tokens from the device. Uninstalling the
+app removes all locally stored data, including workout history, emergency
+info, and your profile photo.</p>
+
+<h2>Children's privacy</h2>
+<p>Digital Weinke is intended for adult F3 Nation members and is not
+directed at children.</p>
+
+<h2>Changes to this policy</h2>
+<p>If what the app collects changes, this page will be updated and the
+"last updated" date above will change accordingly.</p>
+
+<h2>Contact</h2>
+<p>Questions about this policy: <a href="mailto:luis@luismarquez.dev">luis@luismarquez.dev</a></p>
+
+</body>
+</html>
