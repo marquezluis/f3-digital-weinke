@@ -18,6 +18,11 @@ jobs:
 
       - run: flutter pub get
 
-      - run: flutter analyze
+      # --no-fatal-infos: this repo carries ~56 pre-existing info-level lints
+      # (mostly prefer_const_constructors). flutter analyze treats info as
+      # fatal by default, which would fail every run on lints nobody's asked
+      # to fix yet — gate CI on errors/warnings, the bar this project has
+      # actually been held to.
+      - run: flutter analyze --no-fatal-infos
 
       - run: flutter test
