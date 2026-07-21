@@ -251,6 +251,38 @@ class F3EventInstance {
   }
 }
 
+/// One PAX's planned attendance on an event instance — who's HC'd, and in
+/// what role (PAX / Q / Co-Q). From GET /v1/attendance/event-instance/{id}.
+class F3AttendanceRecord {
+  static const typeIdPax = 1;
+  static const typeIdQ = 2;
+  static const typeIdCoQ = 3;
+
+  final String? f3Name;
+  final List<int> typeIds;
+
+  const F3AttendanceRecord({this.f3Name, this.typeIds = const []});
+
+  bool get isQ => typeIds.contains(typeIdQ);
+  bool get isCoQ => typeIds.contains(typeIdCoQ);
+
+  factory F3AttendanceRecord.fromJson(Map<String, dynamic> json) {
+    final user = json['user'] as Map<String, dynamic>?;
+    final types = json['attendanceTypes'];
+    final ids = types is List
+        ? types
+            .map((t) => t is Map ? t['id'] : null)
+            .whereType<num>()
+            .map((n) => n.toInt())
+            .toList()
+        : const <int>[];
+    return F3AttendanceRecord(
+      f3Name: user?['f3Name'] as String?,
+      typeIds: ids,
+    );
+  }
+}
+
 class F3Org {
   final String id;
   final String name;
@@ -265,9 +297,12 @@ class F3Org {
   });
 
   factory F3Org.fromJson(Map<String, dynamic> json) => F3Org(
-        id: json['id'] as String? ?? '',
+        // /v1/org sends id/parentId as numbers and the type field as
+        // "orgType", not "type" — this was crashing on every real fetch
+        // (String? cast on an int) until caught live against staging.
+        id: (json['id'] ?? '').toString(),
         name: json['name'] as String? ?? '',
-        type: json['type'] as String? ?? '',
-        parentId: json['parentId'] as String?,
+        type: json['orgType'] as String? ?? '',
+        parentId: json['parentId']?.toString(),
       );
 }

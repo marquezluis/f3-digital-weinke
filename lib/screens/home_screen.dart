@@ -21,6 +21,7 @@ import '../utils/greeting.dart';
 import '../services/settings_service.dart';
 import '../services/f3_api_service.dart';
 import '../models/f3_api_models.dart';
+import 'schedule_screen.dart' show MineFilter;
 import '../widgets/exercise_detail_sheet.dart';
 import '../theme/app_theme.dart';
 import 'history_screen.dart';
@@ -1116,7 +1117,12 @@ class _UpcomingBeatdownsCard extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: () => context.read<ValueNotifier<int>>().value = 2, // Schedule tab
+        onTap: () {
+          // Pre-set Schedule's "mine" filter to the combined HC'd-or-Q'd
+          // set — matches what this card's own count badge already shows.
+          context.read<ValueNotifier<MineFilter?>>().value = MineFilter.hcOrQ;
+          context.read<ValueNotifier<int>>().value = 2; // Schedule tab
+        },
         child: Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(

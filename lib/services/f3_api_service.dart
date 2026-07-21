@@ -43,6 +43,29 @@ class F3ApiService extends ChangeNotifier {
 
   bool get isConfigured => _apiKey.isNotEmpty;
 
+  // Set when a call authenticated with the signed-in PAX's own F3 Nation
+  // token (bearerOverride, not the app's shared key) comes back 401 — a
+  // genuine dead session (revoked/expired refresh token), never a network
+  // failure or timeout, and never a 401 on an app-key call (that would mean
+  // the app's own key is broken, not the user's — a different problem
+  // re-signing in wouldn't fix). See _AppEntryState in main.dart for where
+  // this routes back to the login gate.
+  bool _sessionInvalid = false;
+  bool get sessionInvalid => _sessionInvalid;
+
+  void _markSessionInvalid() {
+    if (_sessionInvalid) return;
+    _sessionInvalid = true;
+    notifyListeners();
+  }
+
+  /// Called after a successful re-sign-in so the flag doesn't stick forever.
+  void clearSessionInvalid() {
+    if (!_sessionInvalid) return;
+    _sessionInvalid = false;
+    notifyListeners();
+  }
+
   F3UserProfile? _myProfile;
   F3UserProfile? get myProfile => _myProfile;
 
@@ -70,6 +93,9 @@ class F3ApiService extends ChangeNotifier {
       if (res.statusCode == 200) {
         return json.decode(res.body) as Map<String, dynamic>;
       }
+      if (res.statusCode == 401 && bearerOverride != null) {
+        _markSessionInvalid();
+      }
     } catch (_) {
     }
     return null;
@@ -81,6 +107,9 @@ class F3ApiService extends ChangeNotifier {
       final res = await http
           .get(Uri.parse('$_base$path'), headers: _headers(bearerOverride))
           .timeout(const Duration(seconds: 10));
+      if (res.statusCode == 401 && bearerOverride != null) {
+        _markSessionInvalid();
+      }
       if (res.statusCode == 200) {
         final body = json.decode(res.body);
         if (body is List) return body;
@@ -118,6 +147,9 @@ class F3ApiService extends ChangeNotifier {
             body: json.encode(payload),
           )
           .timeout(const Duration(seconds: 15));
+      if (res.statusCode == 401 && bearerOverride != null) {
+        _markSessionInvalid();
+      }
       dynamic decoded;
       try {
         decoded = res.body.isNotEmpty ? json.decode(res.body) : null;
@@ -182,13 +214,55 @@ class F3ApiService extends ChangeNotifier {
   /// All active AOs nationwide (Browse AOs is a national/GPS-sorted browse,
   /// not scoped to the signed-in user's region). The response is wrapped in
   /// a `locations` key, not a bare list or `data`/`eventInstances`/`events`.
-  Future<List<F3Location>> getLocations() async {
+  List<F3Location>? _cachedLocations;
+
+  Future<List<F3Location>> getLocations({bool forceRefresh = false}) async {
+    if (_cachedLocations != null && !forceRefresh) return _cachedLocations!;
     final data = await _get('/v1/location?pageSize=5000');
-    if (data == null) return [];
+    if (data == null) return _cachedLocations ?? [];
     final list = data['locations'] as List<dynamic>? ?? [];
-    return list
+    final locations = list
         .map((e) => F3Location.fromJson(e as Map<String, dynamic>))
         .toList();
+    _cachedLocations = locations;
+    return locations;
+  }
+
+  Map<int, F3Location>? _cachedAoLocations;
+
+  /// Maps each AO's org id to its physical location (lat/lon + address).
+  /// Neither `/v1/event-instance` nor `/v1/location` alone carries this —
+  /// `/v1/location`'s own `orgId` is the *region*, not the AO — so this
+  /// joins `/v1/event`'s `parents[].parentId` (the AO org id) against
+  /// `/v1/location` on `locationId`. Used for a "get directions" action on
+  /// a Schedule event, which only has the AO org id to work with.
+  Future<Map<int, F3Location>> getAoLocations({bool forceRefresh = false}) async {
+    if (_cachedAoLocations != null && !forceRefresh) return _cachedAoLocations!;
+    final results = await Future.wait([
+      getLocations(forceRefresh: forceRefresh),
+      _get('/v1/event?pageSize=10000'),
+    ]);
+    final locations = results[0] as List<F3Location>;
+    final locById = {for (final l in locations) l.id: l};
+    final eventData = results[1] as Map<String, dynamic>?;
+    final events = eventData?['events'] as List<dynamic>? ?? [];
+    final map = <int, F3Location>{};
+    for (final e in events) {
+      if (e is! Map) continue;
+      final loc = locById[e['locationId']?.toString()];
+      if (loc == null) continue;
+      final parents = e['parents'];
+      if (parents is! List) continue;
+      for (final p in parents) {
+        if (p is! Map) continue;
+        final aoOrgId = p['parentId'] is int
+            ? p['parentId'] as int
+            : int.tryParse(p['parentId']?.toString() ?? '');
+        if (aoOrgId != null) map[aoOrgId] = loc;
+      }
+    }
+    _cachedAoLocations = map;
+    return map;
   }
 
   /// Recurring weekly workout series, keyed by `locationId` — sourced from
@@ -257,6 +331,21 @@ class F3ApiService extends ChangeNotifier {
         .toList();
   }
 
+  /// Who's HC'd (planned attendance) for one event instance — names + role
+  /// (PAX/Q/Co-Q). The API deliberately allows any authenticated caller to
+  /// read this ("for preblast visibility"), so the app's own key works here
+  /// same as the other read endpoints.
+  Future<List<F3AttendanceRecord>> getAttendanceForEvent(
+      int eventInstanceId) async {
+    final data =
+        await _get('/v1/attendance/event-instance/$eventInstanceId?isPlanned=true');
+    final list = data?['attendance'] as List?;
+    if (list == null) return [];
+    return list
+        .map((e) => F3AttendanceRecord.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
   Future<List<F3EventInstance>> getOpenQSlots() async {
     final path = orgId != null
         ? '/v1/event-instance/without-q?regionOrgId=$orgId'
@@ -270,15 +359,31 @@ class F3ApiService extends ChangeNotifier {
 
   // ── Orgs / Regions ────────────────────────────────────────────────────────
 
+  List<F3Org>? _cachedOrgs;
+
   /// All regions nationwide (492 as of 2026-07 — small enough to load in one
   /// call and search client-side; the endpoint defaults to `pageSize=10`
-  /// without this override).
-  Future<List<F3Org>> getOrgs() async {
+  /// without this override). `/v1/org` has no server-side name/search filter
+  /// (confirmed: `name`/`search`/`q` params are silently ignored, `total`
+  /// stays 492 regardless) so there's no cheaper query to make per-keystroke
+  /// — caching the one full fetch is what actually avoids the repeat ~220KB
+  /// pull every time the region picker sheet is reopened.
+  Future<List<F3Org>> getOrgs({bool forceRefresh = false}) async {
+    if (_cachedOrgs != null && !forceRefresh) return _cachedOrgs!;
     final data = await _getList('/v1/org?pageSize=5000');
-    if (data == null) return [];
-    return data
-        .map((e) => F3Org.fromJson(e as Map<String, dynamic>))
-        .toList();
+    if (data == null) return _cachedOrgs ?? [];
+    try {
+      final orgs = data
+          .map((e) => F3Org.fromJson(e as Map<String, dynamic>))
+          .toList();
+      _cachedOrgs = orgs;
+      return orgs;
+    } catch (_) {
+      // Matches this file's return-empty-on-failure contract instead of
+      // letting a shape-drift bug hang the region picker mid-load (see
+      // F3Org.fromJson — this already bit us once against real staging data).
+      return _cachedOrgs ?? [];
+    }
   }
 
   // ── Publish flow (backblast + attendance to F3 Nation) ────────────────────
@@ -405,6 +510,16 @@ class F3ApiService extends ChangeNotifier {
   /// sending the region org here reassigns the event to it. [startDate]
   /// (`YYYY-MM-DD`) is required by the API even on an update of an existing
   /// event.
+  ///
+  /// Also sends `preblastRich` — per Moneyball (2026-07-20), the API's
+  /// `hasPreblast` flag (used by the slackbot's reminder nag and by other
+  /// consumers) is computed server-side as `preblastRich IS NOT NULL`, not
+  /// from the plain `preblast` column. Without this, a preblast posted here
+  /// would display fine inside Digital Weinke but read as "no preblast" to
+  /// Slack and anything else trusting that flag. Sent as a minimal valid
+  /// Slack rich_text block wrapping the plain text (matching the format
+  /// slackbot itself populates) — best-effort pending confirmation from
+  /// Moneyball that this exact shape is what downstream consumers expect.
   Future<String?> postPreblast({
     required int eventInstanceId,
     required String orgId,
@@ -416,6 +531,17 @@ class F3ApiService extends ChangeNotifier {
       'orgId': int.tryParse(orgId) ?? orgId,
       'startDate': startDate,
       'preblast': preblast,
+      'preblastRich': {
+        'type': 'rich_text',
+        'elements': [
+          {
+            'type': 'rich_text_section',
+            'elements': [
+              {'type': 'text', 'text': preblast},
+            ],
+          },
+        ],
+      },
       'preblastTs': DateTime.now().millisecondsSinceEpoch,
       'isActive': true,
     });

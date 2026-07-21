@@ -18,6 +18,7 @@ import '../services/f3_api_service.dart';
 import '../services/geo_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/filter_pill.dart';
+import 'schedule_screen.dart';
 
 /// Hard cap on markers drawn at once — a safety net for whatever's in the
 /// viewport at very low zoom (zoomed out to see a whole state/country).
@@ -309,8 +310,21 @@ class _BrowseAosScreenState extends State<BrowseAosScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (_) =>
-          _AoDetailSheet(location: loc, onOpenMaps: () => _openInMaps(loc)),
+      builder: (_) => _AoDetailSheet(
+        location: loc,
+        onOpenMaps: () => _openInMaps(loc),
+        onSeeBeatdowns: () {
+          Navigator.pop(context); // close the sheet before navigating
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ScheduleScreen(
+                initialAoFilter: loc.aoName ?? loc.name,
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 
@@ -822,7 +836,12 @@ class _AoTile extends StatelessWidget {
 class _AoDetailSheet extends StatelessWidget {
   final F3Location location;
   final VoidCallback onOpenMaps;
-  const _AoDetailSheet({required this.location, required this.onOpenMaps});
+  final VoidCallback onSeeBeatdowns;
+  const _AoDetailSheet({
+    required this.location,
+    required this.onOpenMaps,
+    required this.onSeeBeatdowns,
+  });
 
   Widget _row(BuildContext context, String label, String value) {
     return Padding(
@@ -904,7 +923,16 @@ class _AoDetailSheet extends StatelessWidget {
           else
             _row(context, l10n.browseAosSchedule, l10n.browseAosNoBeatdownsScheduled),
           const SizedBox(height: 8),
-          if (location.lat != null)
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: onSeeBeatdowns,
+              icon: const Icon(Icons.event_rounded, size: 18),
+              label: Text(l10n.browseAosSeeBeatdowns),
+            ),
+          ),
+          if (location.lat != null) ...[
+            const SizedBox(height: 8),
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
@@ -913,6 +941,7 @@ class _AoDetailSheet extends StatelessWidget {
                 label: Text(l10n.browseAosOpenInMaps),
               ),
             ),
+          ],
         ],
       ),
     );

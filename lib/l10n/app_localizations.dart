@@ -778,6 +778,12 @@ abstract class AppLocalizations {
   /// **'NEXT 7 DAYS'**
   String get scheduleNext7Days;
 
+  /// No description provided for @scheduleUpcomingFiltered.
+  ///
+  /// In en, this message translates to:
+  /// **'UPCOMING'**
+  String get scheduleUpcomingFiltered;
+
   /// No description provided for @scheduleTapDateHint.
   ///
   /// In en, this message translates to:
@@ -819,6 +825,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Filter by type'**
   String get scheduleFilterByType;
+
+  /// No description provided for @scheduleFilterAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get scheduleFilterAll;
+
+  /// No description provided for @scheduleFilterMine.
+  ///
+  /// In en, this message translates to:
+  /// **'Mine'**
+  String get scheduleFilterMine;
+
+  /// No description provided for @scheduleFilterMineTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter by involvement'**
+  String get scheduleFilterMineTitle;
+
+  /// No description provided for @scheduleFilterMineHc.
+  ///
+  /// In en, this message translates to:
+  /// **'I\'m HC\'d'**
+  String get scheduleFilterMineHc;
+
+  /// No description provided for @scheduleFilterMineQ.
+  ///
+  /// In en, this message translates to:
+  /// **'I\'m Q\'ing'**
+  String get scheduleFilterMineQ;
+
+  /// No description provided for @scheduleFilterMineHcOrQ.
+  ///
+  /// In en, this message translates to:
+  /// **'I\'m HC\'d or Q\'ing'**
+  String get scheduleFilterMineHcOrQ;
 
   /// No description provided for @scheduleClearAll.
   ///
@@ -897,6 +939,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count} HC'**
   String scheduleHcCount(int count);
+
+  /// No description provided for @scheduleWhosIn.
+  ///
+  /// In en, this message translates to:
+  /// **'WHO\'S IN'**
+  String get scheduleWhosIn;
+
+  /// No description provided for @scheduleDirectionsTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Get directions to this AO'**
+  String get scheduleDirectionsTooltip;
+
+  /// No description provided for @scheduleShareTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Share this beatdown'**
+  String get scheduleShareTooltip;
+
+  /// No description provided for @scheduleShareTagline.
+  ///
+  /// In en, this message translates to:
+  /// **'Shared from Digital Weinke — the F3 Nation app'**
+  String get scheduleShareTagline;
 
   /// No description provided for @scheduleApiNotConfiguredTitle.
   ///
@@ -981,6 +1047,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The plan, the theme, coupons, what to expect...'**
   String get schedulePreblastHint;
+
+  /// No description provided for @schedulePreblastPlanLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'The Plan'**
+  String get schedulePreblastPlanLabel;
+
+  /// No description provided for @schedulePreblastPlanHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Warmup, THE THANG, Mary — what are you running?'**
+  String get schedulePreblastPlanHint;
+
+  /// No description provided for @schedulePreblastVq.
+  ///
+  /// In en, this message translates to:
+  /// **'This is my first time Q\'ing here (VQ)'**
+  String get schedulePreblastVq;
+
+  /// No description provided for @schedulePreblastCoupon.
+  ///
+  /// In en, this message translates to:
+  /// **'Coupon needed'**
+  String get schedulePreblastCoupon;
+
+  /// No description provided for @schedulePreblastCouponNotesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. bring your own, or grab one at the flag'**
+  String get schedulePreblastCouponNotesHint;
+
+  /// No description provided for @schedulePreblastAutoFilled.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-filled from this beatdown — date, time, Q, and HCs are added automatically.'**
+  String get schedulePreblastAutoFilled;
 
   /// No description provided for @scheduleCancel.
   ///
@@ -1131,6 +1233,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Open in Maps'**
   String get browseAosOpenInMaps;
+
+  /// No description provided for @browseAosSeeBeatdowns.
+  ///
+  /// In en, this message translates to:
+  /// **'See beatdowns'**
+  String get browseAosSeeBeatdowns;
 
   /// No description provided for @browseAosFilterByState.
   ///

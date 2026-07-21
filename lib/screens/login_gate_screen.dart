@@ -43,6 +43,7 @@ class _LoginGateScreenState extends State<LoginGateScreen> {
 
     try {
       final user = await auth.signInWithF3Nation();
+      api.clearSessionInvalid(); // a fresh sign-in supersedes any prior dead-session flag
       F3UserProfile? f3;
       final token = await auth.getF3AccessToken();
       if (token != null) {

@@ -7,6 +7,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../l10n/app_localizations.dart';
 import '../models/auth_models.dart';
 import '../models/f3_api_models.dart';
@@ -18,8 +20,17 @@ import '../theme/app_theme.dart';
 import '../widgets/filter_pill.dart';
 import '../widgets/month_calendar.dart';
 
+/// "Involvement" filter — whether the signed-in PAX is HC'd, Q'ing, or
+/// either. Public (not `_`-prefixed) so Home's upcoming-beatdowns card can
+/// reference it when pre-setting the filter via the shared ValueNotifier.
+enum MineFilter { hc, q, hcOrQ }
+
 class ScheduleScreen extends StatefulWidget {
-  const ScheduleScreen({super.key});
+  // Pre-sets the AO filter and jumps straight to the filtered agenda —
+  // used by Browse AOs' "See beatdowns" button.
+  final String? initialAoFilter;
+
+  const ScheduleScreen({super.key, this.initialAoFilter});
 
   @override
   State<ScheduleScreen> createState() => _ScheduleScreenState();
@@ -28,24 +39,51 @@ class ScheduleScreen extends StatefulWidget {
 class _ScheduleScreenState extends State<ScheduleScreen> {
   bool _loading = true;
   List<F3EventInstance> _events = []; // today + next 7 days, for the agenda
+  // The same fetch as _events but kept un-trimmed (the API already returns
+  // up to 200 upcoming events with no end-date filter) — lets a filtered
+  // view show weeks out instead of only what fits in the next 7 days.
+  List<F3EventInstance> _allUpcoming = [];
 
   String? _aoFilter;
   String? _typeFilter;
+  MineFilter? _mineFilter;
+
+  @override
+  void initState() {
+    _aoFilter = widget.initialAoFilter;
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _load();
+      _loadCalendarMonth();
+    });
+    // Schedule lives in ShellScreen's IndexedStack (kept alive across tab
+    // switches, initState never refires) — Home's "see all" link sets this
+    // notifier instead of a constructor param so it still reaches an
+    // already-live Schedule instance.
+    context.read<ValueNotifier<MineFilter?>>().addListener(_onMineFilterRequested);
+  }
+
+  @override
+  void dispose() {
+    context
+        .read<ValueNotifier<MineFilter?>>()
+        .removeListener(_onMineFilterRequested);
+    super.dispose();
+  }
+
+  void _onMineFilterRequested() {
+    final notifier = context.read<ValueNotifier<MineFilter?>>();
+    final requested = notifier.value;
+    if (requested == null) return;
+    setState(() => _mineFilter = requested);
+    notifier.value = null; // consume once — don't re-apply on a later tab switch
+  }
 
   DateTime _calendarMonth = DateTime(DateTime.now().year, DateTime.now().month);
   // Null = default agenda (next 7 days); set once a calendar date is tapped.
   DateTime? _selectedDay;
   bool _loadingCalendar = false;
   List<F3EventInstance> _calendarEvents = []; // whichever month is displayed
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _load();
-      _loadCalendarMonth();
-    });
-  }
 
   /// "Today" action: jumps the calendar back to the current month and clears
   /// any selected date, returning to the default 7-day agenda.
@@ -154,13 +192,23 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       final d = DateTime(e.date.year, e.date.month, e.date.day);
       return !d.isBefore(todayStart) && d.isBefore(windowEnd);
     }).toList();
+    // A filtered view (AO/type/mine) can otherwise show whatever the
+    // ~200-event over-fetch happens to reach — for a sparse AO that could be
+    // years out. Cap the filtered source to a sane forward window; the plain
+    // 7-day agenda above is unaffected since it reads _events, not this.
+    final filteredCap = todayStart.add(const Duration(days: 90));
+    final capped = events.where((e) {
+      final d = DateTime(e.date.year, e.date.month, e.date.day);
+      return d.isBefore(filteredCap);
+    }).toList();
     setState(() {
       _events = windowed;
+      _allUpcoming = capped;
       _loading = false;
     });
   }
 
-  List<String> get _aoOptions => _events
+  List<String> get _aoOptions => _allUpcoming
       .map((e) => e.orgName)
       .whereType<String>()
       .where((s) => s.isNotEmpty)
@@ -168,7 +216,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       .toList()
     ..sort();
 
-  List<String> get _typeOptions => _events
+  List<String> get _typeOptions => _allUpcoming
       .map((e) => e.eventTypeName)
       .whereType<String>()
       .where((s) => s.isNotEmpty)
@@ -176,15 +224,32 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       .toList()
     ..sort();
 
-  List<F3EventInstance> get _filteredEvents => _events.where((e) {
-        if (_aoFilter != null && e.orgName != _aoFilter) return false;
-        if (_typeFilter != null && e.eventTypeName != _typeFilter) {
-          return false;
-        }
-        return true;
-      }).toList();
+  bool _matchesFilters(F3EventInstance e) {
+    if (_aoFilter != null && e.orgName != _aoFilter) return false;
+    if (_typeFilter != null && e.eventTypeName != _typeFilter) return false;
+    switch (_mineFilter) {
+      case null:
+        break;
+      case MineFilter.hc:
+        if (!e.userAttending) return false;
+      case MineFilter.q:
+        if (!e.userIsQ) return false;
+      case MineFilter.hcOrQ:
+        if (!e.userAttending && !e.userIsQ) return false;
+    }
+    return true;
+  }
 
-  bool get _hasActiveFilters => _aoFilter != null || _typeFilter != null;
+  List<F3EventInstance> get _filteredEvents =>
+      _events.where(_matchesFilters).toList();
+
+  // Same filter, applied to the un-trimmed fetch — used once a filter is
+  // active, so the result isn't artificially capped to the next 7 days.
+  List<F3EventInstance> get _filteredUpcoming =>
+      _allUpcoming.where(_matchesFilters).toList();
+
+  bool get _hasActiveFilters =>
+      _aoFilter != null || _typeFilter != null || _mineFilter != null;
 
   Future<void> _pickFromList(
       {required String title,
@@ -260,6 +325,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                   const Divider(height: 32, thickness: 1),
                   if (_selectedDay != null)
                     _buildSelectedDaySection(context)
+                  else if (_hasActiveFilters)
+                    _buildFilteredAgenda(context)
                   else
                     _buildWeekAgenda(context),
                 ],
@@ -378,6 +445,97 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     );
   }
 
+  /// An AO or type filter is active: instead of the fixed 7-day window,
+  /// show every match from the same over-fetched upcoming-events batch,
+  /// grouped by date — however many weeks out that goes. The default
+  /// unfiltered agenda (_buildWeekAgenda) is untouched by this.
+  Widget _buildFilteredAgenda(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final today = DateTime.now();
+    final todayStart = DateTime(today.year, today.month, today.day);
+    final matches = _filteredUpcoming;
+    final byDay = <DateTime, List<F3EventInstance>>{};
+    for (final e in matches) {
+      final d = DateTime(e.date.year, e.date.month, e.date.day);
+      (byDay[d] ??= []).add(e);
+    }
+    final days = byDay.keys.toList()..sort();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(4, 4, 4, 2),
+          child: Row(children: [
+            const Icon(Icons.filter_alt_rounded,
+                size: 13, color: F3Colors.accent),
+            const SizedBox(width: 6),
+            Text(l10n.scheduleUpcomingFiltered,
+                style: TextStyle(
+                    color: context.f3textMuted,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.5)),
+          ]),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(4, 2, 4, 12),
+          child: Text(l10n.scheduleTapDateHint,
+              style: TextStyle(color: context.f3textMuted, fontSize: 12)),
+        ),
+        if (_allUpcoming.isNotEmpty) _buildFilterBar(context),
+        const SizedBox(height: 14),
+        if (_loading)
+          const Padding(
+            padding: EdgeInsets.all(24),
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else if (days.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 24),
+            child: Center(
+              child: Text(l10n.scheduleNoMatches,
+                  style: TextStyle(color: context.f3textMuted, fontSize: 13)),
+            ),
+          )
+        else
+          ...days.map((day) {
+            final dayEvents = byDay[day]!;
+            final isLast = day == days.last;
+            final offset = day.difference(todayStart).inDays;
+            return Column(children: [
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4, top: 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _dayLabel(day, offset),
+                      style: TextStyle(
+                          color: context.f3textMuted,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1),
+                    ),
+                    const SizedBox(height: 8),
+                    ...dayEvents.map((e) => Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child:
+                              _EventCard(event: e, onTap: () => _openEvent(e)),
+                        )),
+                  ],
+                ),
+              ),
+              if (!isLast)
+                Divider(
+                    height: 1,
+                    color: context.f3divider.withValues(alpha: 0.5)),
+            ]);
+          }),
+      ],
+    );
+  }
+
   /// A calendar date was tapped: show just that day, with a way back to the
   /// default 7-day agenda (tapping the same date again does the same thing).
   Widget _buildSelectedDaySection(BuildContext context) {
@@ -486,12 +644,19 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               onPicked: (v) => setState(() => _typeFilter = v),
             ),
           ),
+          const SizedBox(width: 8),
+          FilterPill(
+            label: _mineFilterLabel(l10n),
+            active: _mineFilter != null,
+            onTap: _pickMineFilter,
+          ),
           if (_hasActiveFilters) ...[
             const SizedBox(width: 8),
             TextButton(
               onPressed: () => setState(() {
                 _aoFilter = null;
                 _typeFilter = null;
+                _mineFilter = null;
               }),
               child: Text(l10n.scheduleClearAll),
             ),
@@ -499,6 +664,74 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         ]),
       ),
     );
+  }
+
+  String _mineFilterLabel(AppLocalizations l10n) {
+    switch (_mineFilter) {
+      case null:
+        return l10n.scheduleFilterMine;
+      case MineFilter.hc:
+        return l10n.scheduleFilterMineHc;
+      case MineFilter.q:
+        return l10n.scheduleFilterMineQ;
+      case MineFilter.hcOrQ:
+        return l10n.scheduleFilterMineHcOrQ;
+    }
+  }
+
+  /// Not a data-driven string list like AO/Type, so this doesn't reuse
+  /// showFilterPickerSheet (shared with Browse AOs) — a small dedicated
+  /// sheet for this one enum-shaped filter.
+  Future<void> _pickMineFilter() async {
+    final l10n = AppLocalizations.of(context)!;
+    final picked = await showModalBottomSheet<MineFilter?>(
+      context: context,
+      backgroundColor: context.f3card,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+              child: Text(l10n.scheduleFilterMineTitle,
+                  style: TextStyle(
+                      color: context.f3textPrimary,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800)),
+            ),
+            ListTile(
+              title: Text(l10n.scheduleFilterAll,
+                  style: TextStyle(color: context.f3textPrimary)),
+              trailing: _mineFilter == null
+                  ? const Icon(Icons.check_rounded, color: F3Colors.accent)
+                  : null,
+              onTap: () => Navigator.pop(sheetContext, null),
+            ),
+            for (final option in MineFilter.values)
+              ListTile(
+                title: Text(
+                  switch (option) {
+                    MineFilter.hc => l10n.scheduleFilterMineHc,
+                    MineFilter.q => l10n.scheduleFilterMineQ,
+                    MineFilter.hcOrQ => l10n.scheduleFilterMineHcOrQ,
+                  },
+                  style: TextStyle(color: context.f3textPrimary),
+                ),
+                trailing: _mineFilter == option
+                    ? const Icon(Icons.check_rounded, color: F3Colors.accent)
+                    : null,
+                onTap: () => Navigator.pop(sheetContext, option),
+              ),
+            const SizedBox(height: 12),
+          ],
+        ),
+      ),
+    );
+    if (!mounted) return;
+    setState(() => _mineFilter = picked);
   }
 }
 
@@ -605,6 +838,67 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
   bool _busy = false;
   String? _flash;
   late bool _attending = widget.event.userAttending;
+  List<F3AttendanceRecord>? _attendance; // null while loading
+  F3Location? _location; // null while loading or if unresolved
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAttendance();
+    _loadLocation();
+  }
+
+  Future<void> _loadAttendance() async {
+    final id = widget.event.numericId;
+    if (id == null) return;
+    final records = await context.read<F3ApiService>().getAttendanceForEvent(id);
+    if (mounted) setState(() => _attendance = records);
+  }
+
+  Future<void> _loadLocation() async {
+    final orgId = widget.event.orgId;
+    if (orgId == null) return;
+    final locations = await context.read<F3ApiService>().getAoLocations();
+    if (mounted) setState(() => _location = locations[orgId]);
+  }
+
+  Future<void> _getDirections() async {
+    final loc = _location;
+    if (loc == null) return;
+    final Uri uri;
+    if (loc.lat != null && loc.lon != null) {
+      uri = Uri.parse(
+          'geo:${loc.lat},${loc.lon}?q=${loc.lat},${loc.lon}(${Uri.encodeComponent(loc.aoName ?? loc.name)})');
+    } else {
+      final address =
+          [loc.street, loc.city, loc.state].where((s) => (s ?? '').isNotEmpty).join(', ');
+      if (address.isEmpty) return;
+      uri = Uri.parse('geo:0,0?q=${Uri.encodeComponent(address)}');
+    }
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    }
+  }
+
+  void _share() {
+    final e = widget.event;
+    final l10n = AppLocalizations.of(context)!;
+    final where = e.orgName ?? e.locationName ?? l10n.scheduleBeatdownFallback;
+    final lines = [
+      where,
+      [
+        '${e.date.month}/${e.date.day}',
+        if (e.startTime != null) e.startTime,
+      ].join(' · '),
+      e.hasQ
+          ? l10n.scheduleQLabel(e.qF3Name ?? l10n.scheduleQSet)
+          : l10n.scheduleQNeeded,
+      if ((e.preblast ?? '').isNotEmpty) ...['', e.preblast!],
+      '',
+      l10n.scheduleShareTagline,
+    ];
+    Share.share(lines.join('\n'), subject: where);
+  }
 
   bool get _linked =>
       context.read<AuthService>().currentUser?.identities.any(
@@ -696,42 +990,42 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
 
   Future<void> _postPreblast() async {
     final l10n = AppLocalizations.of(context)!;
-    final ctrl = TextEditingController(text: widget.event.preblast ?? '');
-    final text = await showDialog<String>(
+    final e = widget.event;
+    final myName = context.read<AppProfileService>().displayName;
+    final draft = await showModalBottomSheet<_PreblastDraft>(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: context.f3card,
-        title: Text(l10n.schedulePostPreblast),
-        content: TextField(
-          controller: ctrl,
-          maxLines: 5,
-          autofocus: true,
-          style: TextStyle(color: context.f3textPrimary),
-          decoration: InputDecoration(hintText: l10n.schedulePreblastHint),
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(l10n.scheduleCancel)),
-          TextButton(
-              onPressed: () => Navigator.pop(context, ctrl.text.trim()),
-              child: Text(l10n.schedulePost)),
-        ],
+      isScrollControlled: true,
+      backgroundColor: context.f3card,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => _PreblastComposerSheet(
+        event: e,
+        attendance: _attendance ?? const [],
+        myF3Name: myName,
+        initialPlan: e.preblast ?? '',
       ),
     );
-    if (text == null || text.isEmpty || !mounted) return;
+    if (draft == null || draft.plan.trim().isEmpty || !mounted) return;
+
     final api = context.read<F3ApiService>();
-    final id = widget.event.numericId;
-    final eventOrgId = widget.event.orgId;
+    final id = e.numericId;
+    final eventOrgId = e.orgId;
     final c = await _creds();
     if (id == null || eventOrgId == null || c.token == null) {
       setState(() => _flash = l10n.scheduleSignInToPostPreblast);
       return;
     }
     setState(() => _busy = true);
-    final d = widget.event.date;
+    final d = e.date;
     final startDate =
         '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+    final text = _assemblePreblast(
+      event: e,
+      attendance: _attendance ?? const [],
+      myF3Name: myName,
+      draft: draft,
+    );
     final err = await api.postPreblast(
         eventInstanceId: id,
         orgId: '$eventOrgId',
@@ -743,6 +1037,42 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
         _flash = err ?? l10n.schedulePreblastPosted;
       });
     }
+  }
+
+  /// Assembles the real F3 Nation preblast format (matches what slackbot
+  /// produces) from auto-filled event data plus the Q's own free-text
+  /// inputs — the Q only ever has to type the plan and, optionally, coupon
+  /// notes; everything else (date/time/where/Q/HC list) is already known.
+  /// Note: F3's Slack preblast also includes a "#ao-slug" channel reference
+  /// under "Where" — there's no channel-slug field available client-side, so
+  /// this only prints the AO/location name.
+  String _assemblePreblast({
+    required F3EventInstance event,
+    required List<F3AttendanceRecord> attendance,
+    required String myF3Name,
+    required _PreblastDraft draft,
+  }) {
+    final where = event.orgName ?? event.locationName ?? 'the AO';
+    final q = (event.qF3Name?.isNotEmpty ?? false) ? event.qF3Name! : myF3Name;
+    final hcNames = attendance.map((a) => '@${a.f3Name ?? '?'}').join(' ');
+    final buf = StringBuffer()
+      ..writeln('Preblast: $where')
+      ..writeln('Date: ${DateFormat('EEE, MMMM d').format(event.date)}');
+    if ((event.startTime ?? '').isNotEmpty) {
+      buf.writeln('Time: ${event.startTime}');
+    }
+    buf
+      ..writeln('Where: $where')
+      ..writeln('Event Type: ${event.eventTypeName ?? 'Bootcamp'}');
+    if (draft.vq) buf.writeln('Event Tag: VQ');
+    if (q.isNotEmpty) buf.writeln('Q: @$q');
+    buf.writeln('HC Count: ${attendance.length}');
+    if (hcNames.isNotEmpty) buf.writeln('HCs: $hcNames');
+    buf
+      ..writeln()
+      ..writeln('THE PLAN: ${draft.plan.trim()}')
+      ..writeln('COUPON: ${draft.couponNeeded ? 'Yes${draft.couponNotes.trim().isNotEmpty ? ' — ${draft.couponNotes.trim()}' : ''}' : 'No'}');
+    return buf.toString().trimRight();
   }
 
   @override
@@ -768,11 +1098,42 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
                 color: context.f3divider,
                 borderRadius: BorderRadius.circular(2)),
           ),
-          Text(e.orgName ?? e.locationName ?? l10n.scheduleBeatdownFallback,
-              style: TextStyle(
-                  color: context.f3textPrimary,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w900)),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Text(
+                    e.orgName ?? e.locationName ?? l10n.scheduleBeatdownFallback,
+                    style: TextStyle(
+                        color: context.f3textPrimary,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900)),
+              ),
+              if (_location != null) ...[
+                Tooltip(
+                  message: l10n.scheduleDirectionsTooltip,
+                  child: IconButton(
+                    onPressed: _getDirections,
+                    icon: const Icon(Icons.directions_rounded, size: 20),
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                ),
+                const SizedBox(width: 4),
+              ],
+              Tooltip(
+                message: l10n.scheduleShareTooltip,
+                child: IconButton(
+                  onPressed: _share,
+                  icon: const Icon(Icons.ios_share_rounded, size: 20),
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 4),
           Text(
             [
@@ -785,6 +1146,37 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
             ].join(' · '),
             style: TextStyle(color: context.f3textSecondary, fontSize: 13),
           ),
+          if ((_attendance ?? const []).isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Text(l10n.scheduleWhosIn,
+                style: TextStyle(
+                    color: context.f3textMuted,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.2)),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: _attendance!.map((a) {
+                final name = a.f3Name ?? '?';
+                final label = a.isQ
+                    ? '$name (Q)'
+                    : a.isCoQ
+                        ? '$name (Co-Q)'
+                        : name;
+                return Chip(
+                  label: Text(label, style: const TextStyle(fontSize: 12)),
+                  visualDensity: VisualDensity.compact,
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  backgroundColor: a.isQ || a.isCoQ
+                      ? F3Colors.accent.withValues(alpha: 0.15)
+                      : context.f3card,
+                  side: BorderSide(color: context.f3divider),
+                );
+              }).toList(),
+            ),
+          ],
           const SizedBox(height: 16),
           if ((e.preblast ?? '').isNotEmpty) ...[
             Text(l10n.schedulePreblastHeader,
@@ -852,6 +1244,199 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
             const Center(child: CircularProgressIndicator()),
           ],
         ],
+      ),
+    );
+  }
+}
+
+// ── Structured preblast composer ────────────────────────────────────────────
+// The Q only has to type the plan (and, optionally, coupon notes) — every
+// other field the real F3 Nation preblast format requires (date, time,
+// where, event type, Q, HC list) is already known from the event and its
+// live attendance, so it's shown read-only and assembled automatically.
+
+class _PreblastDraft {
+  final String plan;
+  final bool vq;
+  final bool couponNeeded;
+  final String couponNotes;
+  const _PreblastDraft({
+    required this.plan,
+    required this.vq,
+    required this.couponNeeded,
+    required this.couponNotes,
+  });
+}
+
+class _PreblastComposerSheet extends StatefulWidget {
+  final F3EventInstance event;
+  final List<F3AttendanceRecord> attendance;
+  final String myF3Name;
+  final String initialPlan;
+
+  const _PreblastComposerSheet({
+    required this.event,
+    required this.attendance,
+    required this.myF3Name,
+    required this.initialPlan,
+  });
+
+  @override
+  State<_PreblastComposerSheet> createState() => _PreblastComposerSheetState();
+}
+
+class _PreblastComposerSheetState extends State<_PreblastComposerSheet> {
+  late final _planCtrl = TextEditingController(text: widget.initialPlan);
+  late final _couponNotesCtrl = TextEditingController();
+  bool _vq = false;
+  bool _couponNeeded = false;
+
+  @override
+  void dispose() {
+    _planCtrl.dispose();
+    _couponNotesCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final e = widget.event;
+    final where = e.orgName ?? e.locationName ?? l10n.scheduleBeatdownFallback;
+    final q = (e.qF3Name?.isNotEmpty ?? false) ? e.qF3Name! : widget.myF3Name;
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 20,
+        right: 20,
+        top: 16,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                    color: context.f3divider,
+                    borderRadius: BorderRadius.circular(2)),
+              ),
+            ),
+            Text(l10n.schedulePostPreblast,
+                style: TextStyle(
+                    color: context.f3textPrimary,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900)),
+            const SizedBox(height: 4),
+            Text(l10n.schedulePreblastAutoFilled,
+                style: TextStyle(color: context.f3textMuted, fontSize: 12)),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: context.f3elevated,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                [
+                  where,
+                  DateFormat('EEE, MMMM d').format(e.date),
+                  if ((e.startTime ?? '').isNotEmpty) e.startTime,
+                  'Q: ${q.isEmpty ? '—' : q}',
+                  l10n.scheduleHcCount(widget.attendance.length),
+                ].join(' · '),
+                style: TextStyle(color: context.f3textSecondary, fontSize: 12.5),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(l10n.schedulePreblastPlanLabel,
+                style: TextStyle(
+                    color: context.f3textSecondary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700)),
+            const SizedBox(height: 6),
+            TextField(
+              controller: _planCtrl,
+              maxLines: 5,
+              autofocus: true,
+              style: TextStyle(color: context.f3textPrimary),
+              decoration: InputDecoration(
+                hintText: l10n.schedulePreblastPlanHint,
+                filled: true,
+                fillColor: context.f3elevated,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            CheckboxListTile(
+              value: _vq,
+              onChanged: (v) => setState(() => _vq = v ?? false),
+              title: Text(l10n.schedulePreblastVq,
+                  style: TextStyle(color: context.f3textPrimary, fontSize: 14)),
+              controlAffinity: ListTileControlAffinity.leading,
+              contentPadding: EdgeInsets.zero,
+              dense: true,
+            ),
+            CheckboxListTile(
+              value: _couponNeeded,
+              onChanged: (v) => setState(() => _couponNeeded = v ?? false),
+              title: Text(l10n.schedulePreblastCoupon,
+                  style: TextStyle(color: context.f3textPrimary, fontSize: 14)),
+              controlAffinity: ListTileControlAffinity.leading,
+              contentPadding: EdgeInsets.zero,
+              dense: true,
+            ),
+            if (_couponNeeded) ...[
+              const SizedBox(height: 4),
+              TextField(
+                controller: _couponNotesCtrl,
+                style: TextStyle(color: context.f3textPrimary),
+                decoration: InputDecoration(
+                  hintText: l10n.schedulePreblastCouponNotesHint,
+                  filled: true,
+                  fillColor: context.f3elevated,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+            ],
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text(l10n.scheduleCancel),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(
+                      context,
+                      _PreblastDraft(
+                        plan: _planCtrl.text,
+                        vq: _vq,
+                        couponNeeded: _couponNeeded,
+                        couponNotes: _couponNotesCtrl.text,
+                      ),
+                    ),
+                    child: Text(l10n.schedulePost),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

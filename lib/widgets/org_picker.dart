@@ -11,7 +11,7 @@ import '../theme/app_theme.dart';
 /// chosen one, or null if dismissed without a choice.
 Future<F3Org?> showOrgPickerSheet(
   BuildContext context, {
-  required Future<List<F3Org>> Function() fetchOrgs,
+  required Future<List<F3Org>> Function({bool forceRefresh}) fetchOrgs,
 }) {
   return showModalBottomSheet<F3Org?>(
     context: context,
@@ -25,7 +25,7 @@ Future<F3Org?> showOrgPickerSheet(
 }
 
 class _OrgPickerSheet extends StatefulWidget {
-  final Future<List<F3Org>> Function() fetchOrgs;
+  final Future<List<F3Org>> Function({bool forceRefresh}) fetchOrgs;
   const _OrgPickerSheet({required this.fetchOrgs});
 
   @override
@@ -50,9 +50,9 @@ class _OrgPickerSheetState extends State<_OrgPickerSheet> {
     super.dispose();
   }
 
-  Future<void> _load() async {
+  Future<void> _load({bool forceRefresh = false}) async {
     setState(() => _loading = true);
-    final orgs = await widget.fetchOrgs();
+    final orgs = await widget.fetchOrgs(forceRefresh: forceRefresh);
     if (!mounted) return;
     setState(() {
       _orgs = orgs;
@@ -76,7 +76,7 @@ class _OrgPickerSheetState extends State<_OrgPickerSheet> {
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
       child: SizedBox(
-        height: MediaQuery.of(context).size.height * 0.75,
+        height: MediaQuery.of(context).size.height * 0.6,
         child: Column(
           children: [
             Container(
@@ -110,7 +110,8 @@ class _OrgPickerSheetState extends State<_OrgPickerSheet> {
                 ),
                 const SizedBox(width: 8),
                 IconButton(
-                  onPressed: _loading ? null : _load,
+                  onPressed:
+                      _loading ? null : () => _load(forceRefresh: true),
                   tooltip: 'Refresh regions',
                   icon: _loading
                       ? const SizedBox(
@@ -124,7 +125,17 @@ class _OrgPickerSheetState extends State<_OrgPickerSheet> {
             ),
             Expanded(
               child: _loading
-                  ? const Center(child: CircularProgressIndicator())
+                  ? Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const CircularProgressIndicator(),
+                          const SizedBox(height: 12),
+                          Text('Loading regions…',
+                              style: TextStyle(color: context.f3textMuted)),
+                        ],
+                      ),
+                    )
                   : results.isEmpty
                       ? Center(
                           child: Column(

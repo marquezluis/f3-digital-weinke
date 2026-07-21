@@ -2,6 +2,8 @@
 // Digital Weinke — F3 Nation local-first bootcamp planner.
 // Entry point: loads exercise data and settings, then launches the app.
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -23,6 +25,7 @@ import 'screens/shell_screen.dart';
 import 'screens/local_login_screen.dart';
 import 'screens/login_gate_screen.dart';
 import 'screens/onboarding_screen.dart';
+import 'screens/schedule_screen.dart' show MineFilter;
 import 'models/auth_models.dart';
 import 'theme/app_theme.dart';
 import 'l10n/app_localizations.dart';
@@ -138,6 +141,12 @@ class DigitalWeinke extends StatelessWidget {
         ChangeNotifierProvider<ValueNotifier<int>>(
           create: (_) => ValueNotifier<int>(0),
         ),
+        // Home's upcoming-beatdowns card sets this before switching to the
+        // Schedule tab, so an already-live Schedule instance (kept alive in
+        // ShellScreen's IndexedStack) can pre-apply the filter.
+        ChangeNotifierProvider<ValueNotifier<MineFilter?>>(
+          create: (_) => ValueNotifier<MineFilter?>(null),
+        ),
       ],
       child: Consumer<SettingsService>(
         builder: (context, settings, child) => MaterialApp(
@@ -164,20 +173,112 @@ class _AppEntry extends StatefulWidget {
   State<_AppEntry> createState() => _AppEntryState();
 }
 
-class _AppEntryState extends State<_AppEntry> {
+class _AppEntryState extends State<_AppEntry> with WidgetsBindingObserver {
   bool _unlocked = false;
+  bool _handlingSessionInvalid = false;
+  Timer? _deltaCheckTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _deltaCheckTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _onAppResumed();
+      // Covers a long foreground session without ever re-backgrounding —
+      // conservative interval since this is a foreground-only poll, not a
+      // free background push.
+      _deltaCheckTimer?.cancel();
+      _deltaCheckTimer = Timer.periodic(
+          const Duration(minutes: 25), (_) => _onAppResumed());
+    } else {
+      _deltaCheckTimer?.cancel();
+      _deltaCheckTimer = null;
+    }
+  }
+
+  /// Foreground-only delta check (new Q assignment / still-unposted
+  /// backblast) — see NotificationService.checkForDeltasAndNotify for the
+  /// explicit limitation this has. No dedicated session-revalidation call
+  /// here: a dead session surfaces reactively via F3ApiService.sessionInvalid
+  /// the moment this fetch (or any other screen's) 401s.
+  Future<void> _onAppResumed() async {
+    final auth = context.read<AuthService>();
+    final api = context.read<F3ApiService>();
+    final profile = context.read<AppProfileService>();
+    final hasF3 = auth.currentUser?.identities
+            .any((i) => i.provider == AuthProvider.f3nation) ??
+        false;
+    if (!hasF3) return;
+    final token = await auth.getF3AccessToken();
+    if (token == null) return;
+
+    final userId = int.tryParse(profile.authUserId);
+    final events =
+        await api.getUpcomingBeatdowns(userAccessToken: token, userId: userId);
+    final qEvents = <int, String>{
+      for (final e in events)
+        if (e.userIsQ && e.numericId != null)
+          e.numericId!: e.orgName ?? e.locationName ?? 'a beatdown',
+    };
+
+    var unpostedTitles = <int, String>{};
+    final orgId = api.orgId;
+    if (orgId != null && profile.authUserId.isNotEmpty) {
+      final unposted = await api.getPastQsWithoutBackblast(
+        userId: profile.authUserId,
+        regionOrgId: orgId,
+        userAccessToken: token,
+      );
+      unpostedTitles = {
+        for (final e in unposted)
+          if (e.numericId != null)
+            e.numericId!: e.orgName ?? e.locationName ?? 'a beatdown',
+      };
+    }
+
+    await NotificationService().checkForDeltasAndNotify(
+      currentQEventIds: qEvents.keys.toSet(),
+      currentQEventTitles: qEvents,
+      currentUnpostedBackblastIds: unpostedTitles.keys.toSet(),
+      currentUnpostedBackblastTitles: unpostedTitles,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Consumer2<AppProfileService, AuthService>(
-      builder: (context, profile, auth, _) {
+    return Consumer3<AppProfileService, AuthService, F3ApiService>(
+      builder: (context, profile, auth, f3Api, _) {
         final hasF3 = auth.currentUser?.identities
                 .any((i) => i.provider == AuthProvider.f3nation) ??
             false;
 
+        // A confirmed-dead F3 session (revoked/expired refresh token — a
+        // real 401 from an authenticated call, never a network failure; see
+        // F3ApiService._markSessionInvalid). Unlink once, then fall through
+        // to the same login gate !hasF3 already routes to.
+        if (f3Api.sessionInvalid && !_handlingSessionInvalid) {
+          _handlingSessionInvalid = true;
+          WidgetsBinding.instance.addPostFrameCallback((_) async {
+            await auth.unlinkF3Nation();
+            f3Api.clearSessionInvalid();
+            _handlingSessionInvalid = false;
+          });
+        }
+
         // SSO-required: without an F3 Nation session, the only way in is the
         // login gate (which still exposes Emergency info with no sign-in).
-        if (!hasF3) {
+        if (!hasF3 || f3Api.sessionInvalid) {
           _unlocked = false; // re-lock the local app-lock on next sign-in
           return const LoginGateScreen();
         }

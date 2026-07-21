@@ -400,6 +400,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get scheduleNext7Days => 'NEXT 7 DAYS';
 
   @override
+  String get scheduleUpcomingFiltered => 'UPCOMING';
+
+  @override
   String get scheduleTapDateHint =>
       'Tap a date on the calendar above to see just that day.';
 
@@ -420,6 +423,24 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get scheduleFilterByType => 'Filter by type';
+
+  @override
+  String get scheduleFilterAll => 'All';
+
+  @override
+  String get scheduleFilterMine => 'Mine';
+
+  @override
+  String get scheduleFilterMineTitle => 'Filter by involvement';
+
+  @override
+  String get scheduleFilterMineHc => 'I\'m HC\'d';
+
+  @override
+  String get scheduleFilterMineQ => 'I\'m Q\'ing';
+
+  @override
+  String get scheduleFilterMineHcOrQ => 'I\'m HC\'d or Q\'ing';
 
   @override
   String get scheduleClearAll => 'Clear all';
@@ -473,6 +494,19 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get scheduleWhosIn => 'WHO\'S IN';
+
+  @override
+  String get scheduleDirectionsTooltip => 'Get directions to this AO';
+
+  @override
+  String get scheduleShareTooltip => 'Share this beatdown';
+
+  @override
+  String get scheduleShareTagline =>
+      'Shared from Digital Weinke — the F3 Nation app';
+
+  @override
   String get scheduleApiNotConfiguredTitle => 'F3 Nation API not configured';
 
   @override
@@ -517,6 +551,27 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get schedulePreblastHint =>
       'The plan, the theme, coupons, what to expect...';
+
+  @override
+  String get schedulePreblastPlanLabel => 'The Plan';
+
+  @override
+  String get schedulePreblastPlanHint =>
+      'Warmup, THE THANG, Mary — what are you running?';
+
+  @override
+  String get schedulePreblastVq => 'This is my first time Q\'ing here (VQ)';
+
+  @override
+  String get schedulePreblastCoupon => 'Coupon needed';
+
+  @override
+  String get schedulePreblastCouponNotesHint =>
+      'e.g. bring your own, or grab one at the flag';
+
+  @override
+  String get schedulePreblastAutoFilled =>
+      'Auto-filled from this beatdown — date, time, Q, and HCs are added automatically.';
 
   @override
   String get scheduleCancel => 'Cancel';
@@ -594,6 +649,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get browseAosOpenInMaps => 'Open in Maps';
+
+  @override
+  String get browseAosSeeBeatdowns => 'See beatdowns';
 
   @override
   String get browseAosFilterByState => 'Filter by state';

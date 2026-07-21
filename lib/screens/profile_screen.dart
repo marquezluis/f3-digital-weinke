@@ -30,12 +30,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   F3UserProfile? _f3;
   bool _loading = false;
   bool _uploading = false;
-  // True when we had a token but the server still rejected the profile
-  // fetch — almost always a dead/expired F3 Nation session (the refresh
-  // token itself expired or was revoked), which silently falls back to a
-  // stale access token rather than surfacing the failure. The fix is a full
-  // sign-out + sign-in, not a retry.
-  bool _sessionExpired = false;
 
   bool _isLinked(AuthService auth) =>
       auth.currentUser?.identities
@@ -62,7 +56,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() {
       _f3 = f3;
       _loading = false;
-      _sessionExpired = token != null && f3 == null;
     });
   }
 
@@ -281,9 +274,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         title: Text(l10n.profileTitle),
         backgroundColor: context.f3bg,
       ),
-      body: Consumer2<AppProfileService, AuthService>(
-        builder: (context, profile, auth, _) {
+      body: Consumer3<AppProfileService, AuthService, F3ApiService>(
+        builder: (context, profile, auth, f3Api, _) {
           final linked = _isLinked(auth);
+          final sessionExpired = f3Api.sessionInvalid;
           final name =
               profile.displayName.isEmpty ? l10n.rolePaxName : profile.displayName;
           return RefreshIndicator(
@@ -374,7 +368,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     label: l10n.profileNotLinked,
                     value: l10n.profileNotLinkedDesc,
                   )
-                else if (_sessionExpired) ...[
+                else if (sessionExpired) ...[
                   _InfoRow(
                     icon: Icons.warning_rounded,
                     label: l10n.profileSessionExpired,

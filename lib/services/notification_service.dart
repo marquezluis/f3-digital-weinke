@@ -21,14 +21,31 @@ class NotificationService {
 
     const androidSettings =
         AndroidInitializationSettings('@mipmap/ic_launcher');
-    const initSettings = InitializationSettings(android: androidSettings);
+    // Request nothing at init time (matches the Android side — permission is
+    // asked lazily, the first time a reminder actually needs to fire; see
+    // reconcileEventReminders).
+    const iosSettings = DarwinInitializationSettings(
+      requestAlertPermission: false,
+      requestBadgePermission: false,
+      requestSoundPermission: false,
+    );
+    const initSettings = InitializationSettings(
+      android: androidSettings,
+      iOS: iosSettings,
+    );
     await _plugin.initialize(initSettings);
   }
 
   Future<bool> requestPermissions() async {
     final android = _plugin.resolvePlatformSpecificImplementation<
         AndroidFlutterLocalNotificationsPlugin>();
-    final granted = await android?.requestNotificationsPermission();
+    if (android != null) {
+      final granted = await android.requestNotificationsPermission();
+      return granted ?? false;
+    }
+    final ios = _plugin.resolvePlatformSpecificImplementation<
+        IOSFlutterLocalNotificationsPlugin>();
+    final granted = await ios?.requestPermissions(alert: true, badge: true, sound: true);
     return granted ?? false;
   }
 
@@ -180,6 +197,80 @@ class NotificationService {
 
     await prefs.setStringList(
         _keyScheduledEventIds, currentIds.toList());
+  }
+
+  // ── Foreground delta-check (Q assigned / backblast still unposted) ───────
+  // Client-only, no backend involvement — checks whatever the app already
+  // fetches (getUpcomingBeatdowns/getPastQsWithoutBackblast) against what was
+  // seen last time, and fires an immediate notification for genuinely new
+  // entries. IMPORTANT LIMITATION: this only runs when the app is actually
+  // foregrounded (app resume + a periodic timer while it stays open — see
+  // _AppEntryState in main.dart) — a Q assignment made elsewhere while the
+  // app is closed produces no notification until the user next opens it.
+  // This is not a substitute for real push notifications.
+  static const _keySeenQEventIds = 'notif_seen_q_event_ids';
+  static const _keySeenUnpostedBackblastIds = 'notif_seen_unposted_backblast_ids';
+  int _deltaNotifId(int eventId) => eventId * 10 + 4; // +1/+2/+3 taken above
+  int _backblastDeltaNotifId(int eventId) => eventId * 10 + 5;
+
+  Future<void> checkForDeltasAndNotify({
+    required Set<int> currentQEventIds,
+    required Map<int, String> currentQEventTitles,
+    required Set<int> currentUnpostedBackblastIds,
+    required Map<int, String> currentUnpostedBackblastTitles,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+
+    final previousQIds = (prefs.getStringList(_keySeenQEventIds) ?? [])
+        .map(int.tryParse)
+        .whereType<int>()
+        .toSet();
+    final newQIds = currentQEventIds.difference(previousQIds);
+    for (final id in newQIds) {
+      await _showNow(
+        _deltaNotifId(id),
+        '🛡️ You\'re Q',
+        'You\'ve been assigned Q for "${currentQEventTitles[id] ?? 'a beatdown'}".',
+      );
+    }
+
+    final previousBackblastIds =
+        (prefs.getStringList(_keySeenUnpostedBackblastIds) ?? [])
+            .map(int.tryParse)
+            .whereType<int>()
+            .toSet();
+    final newBackblastIds =
+        currentUnpostedBackblastIds.difference(previousBackblastIds);
+    for (final id in newBackblastIds) {
+      await _showNow(
+        _backblastDeltaNotifId(id),
+        '📝 Backblast still unposted',
+        '"${currentUnpostedBackblastTitles[id] ?? 'A beatdown'}" doesn\'t have a backblast yet.',
+      );
+    }
+
+    if (newQIds.isNotEmpty || newBackblastIds.isNotEmpty) {
+      await requestPermissions();
+    }
+    await prefs.setStringList(_keySeenQEventIds,
+        currentQEventIds.map((id) => id.toString()).toList());
+    await prefs.setStringList(_keySeenUnpostedBackblastIds,
+        currentUnpostedBackblastIds.map((id) => id.toString()).toList());
+  }
+
+  Future<void> _showNow(int id, String title, String body) async {
+    const details = NotificationDetails(
+      android: AndroidNotificationDetails(
+        'f3_delta_check',
+        'Beatdown Updates',
+        channelDescription:
+            'New Q assignments and unposted-backblast nudges, checked when you open the app',
+        importance: Importance.high,
+        priority: Priority.high,
+        icon: '@mipmap/ic_launcher',
+      ),
+    );
+    await _plugin.show(id, title, body, details);
   }
 
   Future<void> _zonedSchedule(

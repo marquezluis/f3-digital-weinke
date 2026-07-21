@@ -405,6 +405,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get scheduleNext7Days => 'PRÓXIMOS 7 DÍAS';
 
   @override
+  String get scheduleUpcomingFiltered => 'PRÓXIMOS';
+
+  @override
   String get scheduleTapDateHint =>
       'Toca una fecha en el calendario de arriba para ver solo ese día.';
 
@@ -425,6 +428,24 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get scheduleFilterByType => 'Filtrar por tipo';
+
+  @override
+  String get scheduleFilterAll => 'Todos';
+
+  @override
+  String get scheduleFilterMine => 'Mío';
+
+  @override
+  String get scheduleFilterMineTitle => 'Filtrar por participación';
+
+  @override
+  String get scheduleFilterMineHc => 'Hice HC';
+
+  @override
+  String get scheduleFilterMineQ => 'Soy el Q';
+
+  @override
+  String get scheduleFilterMineHcOrQ => 'Hice HC o soy el Q';
 
   @override
   String get scheduleClearAll => 'Borrar todo';
@@ -478,6 +499,19 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
+  String get scheduleWhosIn => 'QUIÉN VA';
+
+  @override
+  String get scheduleDirectionsTooltip => 'Cómo llegar a este AO';
+
+  @override
+  String get scheduleShareTooltip => 'Compartir este entrenamiento';
+
+  @override
+  String get scheduleShareTagline =>
+      'Compartido desde Digital Weinke — la app de F3 Nation';
+
+  @override
   String get scheduleApiNotConfiguredTitle =>
       'La API de F3 Nation no está configurada';
 
@@ -523,6 +557,27 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get schedulePreblastHint =>
       'El plan, el tema, coupons, qué esperar...';
+
+  @override
+  String get schedulePreblastPlanLabel => 'El Plan';
+
+  @override
+  String get schedulePreblastPlanHint =>
+      'Calentamiento, THE THANG, Mary — ¿qué vas a dirigir?';
+
+  @override
+  String get schedulePreblastVq => 'Es mi primera vez siendo Q aquí (VQ)';
+
+  @override
+  String get schedulePreblastCoupon => 'Se necesita coupon';
+
+  @override
+  String get schedulePreblastCouponNotesHint =>
+      'ej. trae el tuyo, o toma uno en la bandera';
+
+  @override
+  String get schedulePreblastAutoFilled =>
+      'Rellenado automáticamente desde este entrenamiento — fecha, hora, Q y HCs se agregan automáticamente.';
 
   @override
   String get scheduleCancel => 'Cancelar';
@@ -605,6 +660,9 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get browseAosOpenInMaps => 'Abrir en Maps';
+
+  @override
+  String get browseAosSeeBeatdowns => 'Ver entrenamientos';
 
   @override
   String get browseAosFilterByState => 'Filtrar por estado';

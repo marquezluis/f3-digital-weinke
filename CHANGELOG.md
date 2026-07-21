@@ -3,7 +3,35 @@
 All notable user-facing changes to Digital Weinke are logged here.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+The patch digit (the third number, e.g. the `1` in 2.4.1) is our build
+counter within a minor-version line — it goes up on every release build,
+whether or not that build shipped, so "how many builds have we done on
+2.4" is just the highest patch number under a `## [2.4.x]` heading.
+`make build-apk`/`build-appbundle` bump it automatically.
+
 ## [Unreleased]
+
+## [2.4.1] - 2026-07-20
+
+### Added
+- **Get Directions** — a directions button on any beatdown's detail sheet (next to Share) that opens your phone's maps app pointed at the AO's real address. There's no single endpoint that carries this for a Schedule event, so it's resolved by joining the AO's org id against F3's event-series and location data.
+- **Structured preblast composer** — posting a preblast is now a form instead of one freeform box: date, time, AO, Q, and the live HC list are auto-filled from the event itself, and the Q only types the plan plus, optionally, a VQ flag and coupon notes. Assembles into the same format F3's Slack bot produces.
+- Region picker (Settings/Profile → Change region) now caches the fetched region list instead of re-pulling it every time the sheet is reopened, and shows a "Loading regions…" label instead of a bare spinner.
+- Schedule: a third filter for "Mine" (HC'd / Q'ing / both), alongside the existing AO and type filters.
+- Home's upcoming-beatdowns "See all" link now jumps into Schedule pre-filtered to what you're HC'd or Q'ing for, instead of just switching tabs.
+- Local notifications now fire on app resume (and every ~25 min while foregrounded) for a newly-assigned Q or a still-unposted backblast — client-side only, checked against whatever the app already fetches.
+- iOS notification permission initialization (was Android-only before, so the new resume-check notifications above would have silently no-op'd on iOS).
+
+### Changed
+- The AO-filtered Schedule view is capped to the next 90 days instead of showing years of sparse data for AOs with a long recurring series.
+- A dead F3 Nation session (revoked/expired token, confirmed via a real 401 — never just a network hiccup) is now detected directly and routes back to sign-in automatically, replacing the old heuristic on the Profile screen that couldn't reliably tell "offline" from "signed out."
+
+### Fixed
+- **"Change region" picker was actually crashing**, not just slow — `/v1/org` returns numeric `id`/`parentId` and a field named `orgType`, but the client expected strings and a field named `type`; every real fetch threw and left the sheet stuck loading.
+- **Release-build notifications were silently broken** — `flutter_local_notifications` stores scheduled reminders via a Gson generic signature that R8 strips by default, throwing on every reminder cancel/reschedule (only visible once minification was actually verified against a device log, not just a successful Gradle build). Added the plugin's own keep rules.
+- Preblasts posted from the app weren't showing as posted anywhere that reads `hasPreblast` (F3's calendar/past-Qs views compute that from the rich-text field, which the app wasn't populating) — flagged by an F3 Nation API maintainer; now sends a minimal rich-text payload alongside the plain text.
+
+## [2.4.0] - 2026-07-20
 
 ### Added
 - **Browse AOs map view** — OpenStreetMap-based map above the AO list, with numbered pins matching numbered badges in the list below. Auto-centers on your GPS position (10-mile default view) and re-fits to the matching AOs whenever you apply a state/region/day filter. A "recenter" button on the map returns you to your location instantly if it's already known, or fetches a fresh fix if not.
