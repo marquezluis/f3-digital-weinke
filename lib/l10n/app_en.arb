@@ -311,6 +311,7 @@
   "schedulePreblastCoupon": "Coupon needed",
   "schedulePreblastCouponNotesHint": "e.g. bring your own, or grab one at the flag",
   "schedulePreblastAutoFilled": "Auto-filled from this beatdown — date, time, Q, and HCs are added automatically.",
+  "scheduleBuildWeinke": "Build my Weinke",
   "scheduleCancel": "Cancel",
   "schedulePost": "Post",
   "scheduleSignInToPostPreblast": "Sign in to post a preblast.",

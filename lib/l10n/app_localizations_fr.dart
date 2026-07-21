@@ -583,6 +583,9 @@ class AppLocalizationsFr extends AppLocalizations {
       'Rempli automatiquement à partir de cet entraînement — date, heure, Q et HC sont ajoutés automatiquement.';
 
   @override
+  String get scheduleBuildWeinke => 'Construire mon Weinke';
+
+  @override
   String get scheduleCancel => 'Annuler';
 
   @override

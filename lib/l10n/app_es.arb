@@ -170,6 +170,7 @@
   "schedulePreblastCoupon": "Se necesita coupon",
   "schedulePreblastCouponNotesHint": "ej. trae el tuyo, o toma uno en la bandera",
   "schedulePreblastAutoFilled": "Rellenado automáticamente desde este entrenamiento — fecha, hora, Q y HCs se agregan automáticamente.",
+  "scheduleBuildWeinke": "Construir mi Weinke",
   "scheduleCancel": "Cancelar",
   "schedulePost": "Publicar",
   "scheduleSignInToPostPreblast": "Inicia sesión para publicar un preblast.",

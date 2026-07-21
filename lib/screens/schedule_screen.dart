@@ -12,13 +12,16 @@ import 'package:url_launcher/url_launcher.dart';
 import '../l10n/app_localizations.dart';
 import '../models/auth_models.dart';
 import '../models/f3_api_models.dart';
+import '../models/workout_plan.dart';
 import '../services/app_profile_service.dart' hide AppRole;
 import '../services/auth_service.dart';
 import '../services/f3_api_service.dart';
 import '../services/notification_service.dart';
+import '../services/weinke_exporter.dart';
 import '../theme/app_theme.dart';
 import '../widgets/filter_pill.dart';
 import '../widgets/month_calendar.dart';
+import 'workout_screen.dart';
 
 /// "Involvement" filter — whether the signed-in PAX is HC'd, Q'ing, or
 /// either. Public (not `_`-prefixed) so Home's upcoming-beatdowns card can
@@ -988,7 +991,23 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
     );
   }
 
-  Future<void> _postPreblast() async {
+  /// Opens the Weinke builder linked to this event; if the Q taps "Use as
+  /// Preblast" there, comes straight back into the preblast composer with
+  /// the plan already summarized into the Plan field and Coupon pre-set
+  /// from whatever's actually in the plan — nothing to retype.
+  Future<void> _buildWeinke() async {
+    final plan = await Navigator.push<WorkoutPlan>(
+      context,
+      MaterialPageRoute(builder: (_) => const WorkoutScreen(forPreblast: true)),
+    );
+    if (plan == null || !mounted) return;
+    await _postPreblast(
+      initialPlan: WeinkeExporter.planSummaryOnly(plan),
+      initialCouponNeeded: WeinkeExporter.hasCoupon(plan),
+    );
+  }
+
+  Future<void> _postPreblast({String? initialPlan, bool initialCouponNeeded = false}) async {
     final l10n = AppLocalizations.of(context)!;
     final e = widget.event;
     final myName = context.read<AppProfileService>().displayName;
@@ -1003,7 +1022,8 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
         event: e,
         attendance: _attendance ?? const [],
         myF3Name: myName,
-        initialPlan: e.preblast ?? '',
+        initialPlan: initialPlan ?? (e.preblast ?? ''),
+        initialCouponNeeded: initialCouponNeeded,
       ),
     );
     if (draft == null || draft.plan.trim().isEmpty || !mounted) return;
@@ -1230,6 +1250,17 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
                 ),
               ),
             ]),
+            if (e.userIsQ) ...[
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _busy ? null : _buildWeinke,
+                  icon: const Icon(Icons.fitness_center_rounded, size: 18),
+                  label: Text(l10n.scheduleBuildWeinke),
+                ),
+              ),
+            ],
           ],
           if (_flash != null) ...[
             const SizedBox(height: 12),
@@ -1273,12 +1304,14 @@ class _PreblastComposerSheet extends StatefulWidget {
   final List<F3AttendanceRecord> attendance;
   final String myF3Name;
   final String initialPlan;
+  final bool initialCouponNeeded;
 
   const _PreblastComposerSheet({
     required this.event,
     required this.attendance,
     required this.myF3Name,
     required this.initialPlan,
+    this.initialCouponNeeded = false,
   });
 
   @override
@@ -1289,7 +1322,7 @@ class _PreblastComposerSheetState extends State<_PreblastComposerSheet> {
   late final _planCtrl = TextEditingController(text: widget.initialPlan);
   late final _couponNotesCtrl = TextEditingController();
   bool _vq = false;
-  bool _couponNeeded = false;
+  late bool _couponNeeded = widget.initialCouponNeeded;
 
   @override
   void dispose() {

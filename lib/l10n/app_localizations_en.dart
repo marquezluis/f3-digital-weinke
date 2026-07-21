@@ -574,6 +574,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Auto-filled from this beatdown — date, time, Q, and HCs are added automatically.';
 
   @override
+  String get scheduleBuildWeinke => 'Build my Weinke';
+
+  @override
   String get scheduleCancel => 'Cancel';
 
   @override

@@ -34,9 +34,16 @@ import '../widgets/exercise_card.dart';
 import '../widgets/exercise_detail_sheet.dart';
 import '../widgets/save_session_sheet.dart';
 import '../models/workout_history.dart';
+import 'custom_exercise_screen.dart';
 
 class WorkoutScreen extends StatefulWidget {
-  const WorkoutScreen({super.key});
+  /// True when opened from a real Schedule beatdown's "Build my Weinke"
+  /// button — adds a "Use as Preblast" action that pops the built plan back
+  /// to the caller (Schedule already knows the AO/date/time/Q for that
+  /// event; this screen only needs to hand back the plan itself).
+  final bool forPreblast;
+
+  const WorkoutScreen({super.key, this.forPreblast = false});
 
   @override
   State<WorkoutScreen> createState() => _WorkoutScreenState();
@@ -77,6 +84,10 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     context.read<CurrentWorkoutService>().clearDraft();
     // Immediately generate a fresh plan so the screen is not blank.
     _generate();
+  }
+
+  void _useAsPreblast(WorkoutPlan plan) {
+    Navigator.pop(context, plan);
   }
 
   void _saveSession(WorkoutPlan plan) {
@@ -422,6 +433,12 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                 onPressed: _showTemplates,
               ),
               if (plan != null) ...[
+                if (widget.forPreblast)
+                  IconButton(
+                    icon: const Icon(Icons.campaign_rounded),
+                    tooltip: 'Use as Preblast',
+                    onPressed: () => _useAsPreblast(plan),
+                  ),
                 IconButton(
                   icon: const Icon(Icons.wb_sunny_rounded),
                   tooltip: 'Quick Warm-O-Rama',
@@ -462,6 +479,27 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                   ? _EmptyState(onGenerate: _generate, onTemplates: _showTemplates)
                   : Column(
                       children: [
+                        if (widget.forPreblast)
+                          Container(
+                            width: double.infinity,
+                            color: F3Colors.accent.withValues(alpha: 0.12),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 10),
+                            child: Row(children: [
+                              const Icon(Icons.campaign_rounded,
+                                  color: F3Colors.accent, size: 18),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Building this beatdown\'s Weinke — tap the '
+                                  'megaphone above to use it as the preblast.',
+                                  style: TextStyle(
+                                      color: context.f3textPrimary,
+                                      fontSize: 12.5),
+                                ),
+                              ),
+                            ]),
+                          ),
                         _GenOptions(onChanged: _generate),
                         Expanded(
                           child: _PlanView(
@@ -936,7 +974,7 @@ class _GenOptions extends StatelessWidget {
               Icon(Icons.fitness_center_rounded,
                   size: 16, color: context.f3textMuted),
               const SizedBox(width: 6),
-              Text('Equipment',
+              Text('Coupons in The Thang',
                   style:
                       TextStyle(color: context.f3textSecondary, fontSize: 13)),
               const Spacer(),
@@ -1609,9 +1647,9 @@ class _BlockSection extends StatelessWidget {
         SizedBox(
           width: double.infinity,
           child: OutlinedButton.icon(
-            onPressed: () => _addRandom(context),
+            onPressed: () => _openAddExercise(context),
             icon: const Icon(Icons.add_rounded, size: 16),
-            label: const Text('ADD RANDOM EXERCISE'),
+            label: const Text('ADD EXERCISE'),
             style: OutlinedButton.styleFrom(
               foregroundColor: F3Colors.forCategory(block.category.name),
               side: BorderSide(
@@ -1625,6 +1663,221 @@ class _BlockSection extends StatelessWidget {
         ),
         const SizedBox(height: 4),
       ],
+    );
+  }
+
+  void _openAddExercise(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: context.f3card,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => _AddExerciseSheet(
+        blockIndex: blockIndex,
+        blockLabel: block.label,
+        defaultCategory: block.category,
+        onRandomize: () => _addRandom(context),
+      ),
+    );
+  }
+}
+
+// ─── Add Exercise sheet: search, randomize, or write a custom one ────────────
+// Replaces the old "ADD RANDOM EXERCISE" button. Defaults to the block's own
+// category (so a Warmup block still nudges toward warmup moves) but the
+// category filter is switchable — a Thang block can pull bodyweight AND
+// coupon exercises into the same block this way, on top of the plan-level
+// "Mixed" equipment setting that already splits Thang generation between them.
+class _AddExerciseSheet extends StatefulWidget {
+  final int blockIndex;
+  final String blockLabel;
+  final ExerciseCategory defaultCategory;
+  final VoidCallback onRandomize;
+
+  const _AddExerciseSheet({
+    required this.blockIndex,
+    required this.blockLabel,
+    required this.defaultCategory,
+    required this.onRandomize,
+  });
+
+  @override
+  State<_AddExerciseSheet> createState() => _AddExerciseSheetState();
+}
+
+class _AddExerciseSheetState extends State<_AddExerciseSheet> {
+  final _searchCtrl = TextEditingController();
+  String _query = '';
+  ExerciseCategory? _categoryFilter;
+
+  @override
+  void initState() {
+    super.initState();
+    _categoryFilter = widget.defaultCategory;
+  }
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _createCustom() async {
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute(builder: (_) => const CustomExerciseScreen()),
+    );
+    if (mounted) setState(() {}); // pick up the newly-created exercise
+  }
+
+  void _add(Exercise ex) {
+    context.read<CurrentWorkoutService>().addExerciseToDraftBlock(widget.blockIndex, ex);
+    Navigator.pop(context);
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text('Added: ${ex.name}'),
+      duration: const Duration(seconds: 2),
+    ));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final service = context.watch<ExerciseService>();
+    final workoutSvc = context.watch<CurrentWorkoutService>();
+    final usedIds =
+        workoutSvc.draftPlan?.allExercises.map((e) => e.id).toSet() ?? {};
+
+    var pool = _query.isEmpty ? service.all : service.search(_query);
+    if (_categoryFilter != null) {
+      pool = pool.where((e) => e.category == _categoryFilter).toList();
+    }
+    pool = pool.where((e) => !usedIds.contains(e.id)).toList();
+
+    return DraggableScrollableSheet(
+      initialChildSize: 0.85,
+      maxChildSize: 0.95,
+      minChildSize: 0.5,
+      builder: (_, controller) => Container(
+        decoration: BoxDecoration(
+          color: context.f3bg,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.symmetric(vertical: 12),
+              decoration: BoxDecoration(
+                  color: context.f3divider,
+                  borderRadius: BorderRadius.circular(2)),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text('Add to ${widget.blockLabel}',
+                  style: TextStyle(
+                      color: context.f3textPrimary,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800)),
+            ),
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      widget.onRandomize();
+                    },
+                    icon: const Icon(Icons.shuffle_rounded, size: 16),
+                    label: const Text('RANDOMIZE'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _createCustom,
+                    icon: const Icon(Icons.edit_rounded, size: 16),
+                    label: const Text('WRITE CUSTOM'),
+                  ),
+                ),
+              ]),
+            ),
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: TextField(
+                controller: _searchCtrl,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  hintText: 'Search for an exercise...',
+                  prefixIcon: Icon(Icons.search),
+                ),
+                onChanged: (v) => setState(() => _query = v),
+              ),
+            ),
+            const SizedBox(height: 8),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [null, ...ExerciseCategory.values].map((cat) {
+                  final selected = _categoryFilter == cat;
+                  final color = cat == null
+                      ? context.f3textSecondary
+                      : F3Colors.forCategory(cat.name);
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: FilterChip(
+                      label: Text(cat?.displayName ?? 'All'),
+                      selected: selected,
+                      selectedColor: color.withValues(alpha: 0.25),
+                      onSelected: (_) =>
+                          setState(() => _categoryFilter = cat),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+            Divider(color: context.f3divider),
+            Expanded(
+              child: pool.isEmpty
+                  ? Center(
+                      child: Text('No matching exercises.',
+                          style: TextStyle(color: context.f3textMuted)),
+                    )
+                  : ListView.builder(
+                      controller: controller,
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      itemCount: pool.length,
+                      itemBuilder: (context, i) {
+                        final ex = pool[i];
+                        final color = F3Colors.forCategory(ex.category.name);
+                        return ListTile(
+                          onTap: () => _add(ex),
+                          leading: Container(
+                            width: 10,
+                            height: 10,
+                            decoration:
+                                BoxDecoration(color: color, shape: BoxShape.circle),
+                          ),
+                          title: Text(ex.name,
+                              style: TextStyle(color: context.f3textPrimary)),
+                          subtitle: Text(
+                              '${ex.category.displayName} · ${ex.intensity.displayName}',
+                              style: TextStyle(
+                                  color: context.f3textSecondary, fontSize: 12)),
+                          trailing: Icon(Icons.add_circle_outline_rounded,
+                              color: color),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

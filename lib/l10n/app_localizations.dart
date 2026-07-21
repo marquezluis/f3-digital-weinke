@@ -1084,6 +1084,12 @@ abstract class AppLocalizations {
   /// **'Auto-filled from this beatdown — date, time, Q, and HCs are added automatically.'**
   String get schedulePreblastAutoFilled;
 
+  /// No description provided for @scheduleBuildWeinke.
+  ///
+  /// In en, this message translates to:
+  /// **'Build my Weinke'**
+  String get scheduleBuildWeinke;
+
   /// No description provided for @scheduleCancel.
   ///
   /// In en, this message translates to:

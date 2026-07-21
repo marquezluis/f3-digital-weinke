@@ -134,6 +134,25 @@ class WeinkeExporter {
     return buf.toString().trimRight();
   }
 
+  /// Just the block-by-block plan body, no header — used to seed a real F3
+  /// event's preblast "The Plan" field, where AO/date/time/Q are already
+  /// known from the event itself and shouldn't be re-typed or guessed.
+  static String planSummaryOnly(WorkoutPlan plan) {
+    final buf = StringBuffer();
+    for (final block in plan.blocks) {
+      final roundsLabel = block.rounds > 1 ? '  · ${block.rounds} rounds' : '';
+      buf.writeln('${block.label} (${block.durationMinutes} min$roundsLabel)');
+      for (final ex in block.exercises) {
+        buf.writeln('- ${ex.name}');
+      }
+      buf.writeln();
+    }
+    return buf.toString().trimRight();
+  }
+
+  static bool hasCoupon(WorkoutPlan plan) =>
+      plan.blocks.any((b) => b.category == ExerciseCategory.coupon);
+
   // Derive a short action hint from the exercise description.
   static String _hint(Exercise ex) {
     final desc = ex.description;
