@@ -20,13 +20,52 @@ class AppRelease {
 }
 
 class AppVersion {
-  static const String current = '2.4.0';
-  static const String versionName = '2.4.0';
-  static const String buildNumber = '12';
-  static const String displayName = 'Digital Weinke v2.4.0';
-  static const String fullDisplayName = 'Digital Weinke v2.4.0+12';
+  // NOTE: `make build-apk`/`build-appbundle` auto-bump pubspec.yaml's version
+  // on every build (scripts/bump_version.py) — this class does NOT read that
+  // automatically, since release notes are hand-written prose. Update these
+  // four constants and add a new AppRelease entry below whenever you want a
+  // build's changes to actually show up in the in-app Release Log.
+  static const String current = '2.4.2';
+  static const String versionName = '2.4.2';
+  static const String buildNumber = '14';
+  static const String displayName = 'Digital Weinke v2.4.2';
+  static const String fullDisplayName = 'Digital Weinke v2.4.2+14';
 
   static const List<AppRelease> releases = [
+    AppRelease(
+      version: '2.4.2',
+      title: 'The Weinke-to-Preblast Update',
+      summary:
+          'Build a Weinke for a real beatdown and use it as the preblast, a smarter Add Exercise flow, and the beatdown summary now stays on screen while you scroll.',
+      newItems: [
+        'Beatdowns you\'re Q\'d for now have a "Build my Weinke" button — build the plan, then "Use as Preblast" hands it straight to the preblast composer with the plan and coupon status already filled in.',
+        'Add Exercise replaces the old random-only button: search by name, filter by category, randomize, or write a custom exercise — all from one sheet.',
+        'Writing a custom exercise now asks for an approximate time per set, shown alongside it wherever it\'s listed.',
+        'A new "Mixed — Same Block" coupon option interleaves bodyweight and coupon exercises together in one Thang block, alongside the existing separate-blocks Mixed mode.',
+      ],
+      enhancements: [
+        'The beatdown summary card (exercise/block count, time budget) stays pinned at the top of the Weinke builder instead of scrolling out of view.',
+        'The coupon-mix dropdown is now labeled "Coupons in The Thang" instead of "Equipment" so it\'s actually easy to find.',
+        'This release log now shows the 3 most recent versions with a "Show more" button instead of the entire history at once.',
+      ],
+    ),
+    AppRelease(
+      version: '2.4.1',
+      title: 'The Directions & Structured Preblast Update',
+      summary:
+          'Get directions to any beatdown, a guided preblast composer, and a batch of real bug fixes caught against live F3 Nation data.',
+      newItems: [
+        'A directions button on any beatdown\'s detail sheet opens your maps app pointed at the AO\'s real address.',
+        'Posting a preblast is now a short form instead of a blank box — date, time, AO, Q, and the live HC list fill in automatically; you just write the plan.',
+        'Schedule has a "Mine" filter (HC\'d / Q\'ing / both), and Home\'s "See all" link jumps straight into it pre-filtered.',
+        'The app now notices when your F3 Nation session actually died (not just a bad connection) and routes you back to sign-in automatically.',
+      ],
+      bugFixes: [
+        'The region picker in Settings/Profile was actually crashing on real data, not just slow.',
+        'Notifications were silently broken in release builds due to how the app was packaged — fixed.',
+        'Preblasts posted from the app weren\'t showing up as posted anywhere that checks for one — fixed.',
+      ],
+    ),
     AppRelease(
       version: '2.4.0',
       title: 'The Schedule, Map & Notifications Update',

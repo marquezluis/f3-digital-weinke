@@ -5,15 +5,17 @@ import 'exercise.dart';
 
 /// Controls how coupons appear in the generated Weinke.
 enum CouponMode {
-  noCoupons,  // bodyweight only
-  coupons,    // coupon block only (replaces bodyweight block)
-  mixed;      // both: split The Thang between bodyweight + coupon
+  noCoupons,         // bodyweight only
+  coupons,           // coupon block only (replaces bodyweight block)
+  mixed,             // both, as two separate labeled blocks (Bodyweight / Coupons)
+  mixedInterleaved;  // both, shuffled together into one block
 
   String get displayName {
     switch (this) {
-      case CouponMode.noCoupons: return 'No Coupons';
-      case CouponMode.coupons:   return 'Coupons Only';
-      case CouponMode.mixed:     return 'Mixed (50/50)';
+      case CouponMode.noCoupons:        return 'No Coupons';
+      case CouponMode.coupons:          return 'Coupons Only';
+      case CouponMode.mixed:            return 'Mixed — Separate Blocks';
+      case CouponMode.mixedInterleaved: return 'Mixed — Same Block';
     }
   }
 }
@@ -105,9 +107,13 @@ class WorkoutSettings {
 
   /// True if exercises requiring a coupon should be included.
   bool get includeCoupons =>
-      couponMode == CouponMode.coupons || couponMode == CouponMode.mixed;
+      couponMode == CouponMode.coupons ||
+      couponMode == CouponMode.mixed ||
+      couponMode == CouponMode.mixedInterleaved;
 
   /// True if bodyweight (non-coupon) thang exercises should be included.
   bool get includeBodyweight =>
-      couponMode == CouponMode.noCoupons || couponMode == CouponMode.mixed;
+      couponMode == CouponMode.noCoupons ||
+      couponMode == CouponMode.mixed ||
+      couponMode == CouponMode.mixedInterleaved;
 }

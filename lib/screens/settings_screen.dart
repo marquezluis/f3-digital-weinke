@@ -971,7 +971,10 @@ class _InfoTile extends StatelessWidget {
 class _VersionTile extends StatelessWidget {
   const _VersionTile();
 
+  static const _kPageSize = 3;
+
   void _showChangelog(BuildContext context) {
+    int visibleCount = _kPageSize;
     showModalBottomSheet(
       context: context,
       backgroundColor: context.f3card,
@@ -983,30 +986,50 @@ class _VersionTile extends StatelessWidget {
         maxChildSize: 0.95,
         minChildSize: 0.4,
         expand: false,
-        builder: (_, ctrl) => Column(children: [
-          Container(
-            width: 40, height: 4, margin: const EdgeInsets.symmetric(vertical: 12),
-            decoration: BoxDecoration(color: context.f3divider, borderRadius: BorderRadius.circular(2)),
-          ),
-          Padding(
-            padding: EdgeInsets.fromLTRB(20, 0, 20, 12),
-            child: Row(children: [
-              Icon(Icons.history_rounded, color: F3Colors.accent, size: 22),
-              SizedBox(width: 10),
-              Text(AppLocalizations.of(context)!.changelogTitle,
-                  style: TextStyle(color: context.f3textPrimary, fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1)),
-            ]),
-          ),
-          Divider(color: context.f3divider, height: 1),
-          Expanded(
-            child: ListView.builder(
-              controller: ctrl,
-              padding: const EdgeInsets.all(20),
-              itemCount: AppVersion.releases.length,
-              itemBuilder: (_, i) => _ReleaseCard(release: AppVersion.releases[i]),
-            ),
-          ),
-        ]),
+        builder: (_, ctrl) => StatefulBuilder(
+          builder: (context, setState) {
+            const all = AppVersion.releases;
+            final shownCount = visibleCount.clamp(0, all.length);
+            final hasMore = shownCount < all.length;
+            return Column(children: [
+              Container(
+                width: 40, height: 4, margin: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(color: context.f3divider, borderRadius: BorderRadius.circular(2)),
+              ),
+              Padding(
+                padding: EdgeInsets.fromLTRB(20, 0, 20, 12),
+                child: Row(children: [
+                  Icon(Icons.history_rounded, color: F3Colors.accent, size: 22),
+                  SizedBox(width: 10),
+                  Text(AppLocalizations.of(context)!.changelogTitle,
+                      style: TextStyle(color: context.f3textPrimary, fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                ]),
+              ),
+              Divider(color: context.f3divider, height: 1),
+              Expanded(
+                child: ListView.builder(
+                  controller: ctrl,
+                  padding: const EdgeInsets.all(20),
+                  itemCount: shownCount + (hasMore ? 1 : 0),
+                  itemBuilder: (_, i) {
+                    if (i < shownCount) {
+                      return _ReleaseCard(release: all[i]);
+                    }
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12.0),
+                      child: OutlinedButton(
+                        onPressed: () =>
+                            setState(() => visibleCount += _kPageSize),
+                        child: Text(
+                            'Show ${(all.length - shownCount).clamp(0, _kPageSize)} more'),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ]);
+          },
+        ),
       ),
     );
   }

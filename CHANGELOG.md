@@ -16,9 +16,13 @@ whether or not that build shipped, so "how many builds have we done on
 ### Added
 - **Build my Weinke → use as preblast** — a Q'd beatdown's detail sheet now has a "Build my Weinke" button that opens the plan builder linked to that real event. Saving there still works as before, but a new "Use as Preblast" action summarizes the built plan (blocks + exercises) straight into the preblast composer's Plan field and pre-checks Coupon if the plan actually includes coupon exercises — nothing to retype.
 - **Add Exercise** — replaces the old "ADD RANDOM EXERCISE" button in the Weinke builder. Opens a search sheet (name/description/alias match) with category filter chips, a Randomize action for the old one-tap behavior, and a Write Custom action straight into the existing custom-exercise form — all three ways to fill a block now live in one place.
+- **Mixed — Same Block** coupon mode — interleaves bodyweight and coupon exercises together into one Thang block (shuffled), alongside the existing Mixed mode which keeps them as two separate labeled blocks.
+- Writing a custom exercise now asks for an approximate time per set (required) — shown alongside the exercise wherever it's listed (Add Exercise sheet, custom exercise list).
+- The Changelog (Settings → version tile) and the Release Log (version footer) now show the 3 most recent versions with a "Show 3 more" button instead of dumping the entire release history at once.
 
 ### Changed
 - The builder's coupon-mix control (was labeled "Equipment", easy to miss) is now labeled "Coupons in The Thang" — the underlying Mixed/Coupons-only/No-Coupons setting already existed and already defaults to Mixed, it just wasn't discoverable.
+- The Weinke builder's beatdown summary card (exercise/block count, time budget bar) now stays pinned at the top instead of scrolling out of view with the rest of the plan.
 
 ## [2.4.1] - 2026-07-20
 

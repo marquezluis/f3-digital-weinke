@@ -501,6 +501,10 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                             ]),
                           ),
                         _GenOptions(onChanged: _generate),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                          child: _PlanHeader(plan: plan),
+                        ),
                         Expanded(
                           child: _PlanView(
                             plan: plan,
@@ -1107,10 +1111,6 @@ class _PlanView extends StatelessWidget {
   Widget build(BuildContext context) {
     return CustomScrollView(
       slivers: [
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-          sliver: SliverToBoxAdapter(child: _PlanHeader(plan: plan)),
-        ),
         // Disclaimer
         const SliverPadding(
           padding: EdgeInsets.fromLTRB(16, 4, 16, 0),
@@ -1866,7 +1866,8 @@ class _AddExerciseSheetState extends State<_AddExerciseSheet> {
                           title: Text(ex.name,
                               style: TextStyle(color: context.f3textPrimary)),
                           subtitle: Text(
-                              '${ex.category.displayName} · ${ex.intensity.displayName}',
+                              '${ex.category.displayName} · ${ex.intensity.displayName}'
+                              '${ex.secondsPerSet != null ? ' · ~${ex.secondsPerSet}s/set' : ''}',
                               style: TextStyle(
                                   color: context.f3textSecondary, fontSize: 12)),
                           trailing: Icon(Icons.add_circle_outline_rounded,

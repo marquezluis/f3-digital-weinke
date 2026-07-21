@@ -85,6 +85,12 @@ class Exercise {
   final ExerciseCategory category;
   final Equipment equipment;
   final Intensity intensity;
+  // Only ever set on custom (Q-written) exercises — the bundled Exicon
+  // doesn't need it since block duration is already split evenly across
+  // whatever exercises land in it. Required when writing a custom one so
+  // an unusual movement (a long hold, a distance run) doesn't silently get
+  // the same generic split as a 10-rep bodyweight move.
+  final int? secondsPerSet;
 
   const Exercise({
     required this.id,
@@ -94,6 +100,7 @@ class Exercise {
     required this.category,
     required this.equipment,
     required this.intensity,
+    this.secondsPerSet,
   });
 
   factory Exercise.fromJson(Map<String, dynamic> json) {
@@ -111,6 +118,7 @@ class Exercise {
           json['equipment'] as String? ?? 'none'),
       intensity: Intensity.fromString(
           json['intensity'] as String? ?? 'intermediate'),
+      secondsPerSet: (json['secondsPerSet'] as num?)?.toInt(),
     );
   }
 
@@ -122,6 +130,7 @@ class Exercise {
         'category': category.name,
         'equipment': equipment.name,
         'intensity': intensity.name,
+        if (secondsPerSet != null) 'secondsPerSet': secondsPerSet,
       };
 
   /// Returns a copy with a different category — used for "swap" logic.
@@ -133,6 +142,7 @@ class Exercise {
         category: newCategory,
         equipment: equipment,
         intensity: intensity,
+        secondsPerSet: secondsPerSet,
       );
 
   @override

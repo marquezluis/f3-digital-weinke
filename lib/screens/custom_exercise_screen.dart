@@ -21,6 +21,7 @@ class _CustomExerciseScreenState extends State<CustomExerciseScreen> {
   final _nameCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
   final _aliasesCtrl = TextEditingController();
+  final _secondsPerSetCtrl = TextEditingController();
   ExerciseCategory _category = ExerciseCategory.bodyweight;
   Equipment _equipment = Equipment.none;
   Intensity _intensity = Intensity.intermediate;
@@ -31,6 +32,7 @@ class _CustomExerciseScreenState extends State<CustomExerciseScreen> {
     _nameCtrl.dispose();
     _descCtrl.dispose();
     _aliasesCtrl.dispose();
+    _secondsPerSetCtrl.dispose();
     super.dispose();
   }
 
@@ -54,6 +56,7 @@ class _CustomExerciseScreenState extends State<CustomExerciseScreen> {
       category: _category,
       equipment: _equipment,
       intensity: _intensity,
+      secondsPerSet: int.parse(_secondsPerSetCtrl.text.trim()),
     );
 
     await context.read<ExerciseService>().addCustomExercise(exercise);
@@ -118,6 +121,21 @@ class _CustomExerciseScreenState extends State<CustomExerciseScreen> {
               label: 'Aliases (comma-separated)',
               hint: 'e.g. Merkin, Push-up',
               icon: Icons.label_rounded,
+            ),
+            const SizedBox(height: 12),
+            _field(
+              controller: _secondsPerSetCtrl,
+              label: 'Approx. Time Per Set (seconds) *',
+              hint: 'e.g. 30',
+              icon: Icons.timer_outlined,
+              keyboardType: TextInputType.number,
+              validator: (v) {
+                final n = int.tryParse((v ?? '').trim());
+                if (n == null || n <= 0) {
+                  return 'Enter an approximate time in seconds';
+                }
+                return null;
+              },
             ),
             const SizedBox(height: 20),
             _sectionLabel('CATEGORY'),
@@ -239,11 +257,13 @@ class _CustomExerciseScreenState extends State<CustomExerciseScreen> {
     required String hint,
     required IconData icon,
     int maxLines = 1,
+    TextInputType? keyboardType,
     String? Function(String?)? validator,
   }) {
     return TextFormField(
       controller: controller,
       maxLines: maxLines,
+      keyboardType: keyboardType,
       style: TextStyle(color: context.f3textPrimary),
       decoration: InputDecoration(
         labelText: label,
@@ -280,7 +300,9 @@ class _CustomExerciseTile extends StatelessWidget {
                       color: context.f3textPrimary,
                       fontWeight: FontWeight.w700,
                       fontSize: 15)),
-              Text('${ex.category.displayName} · ${ex.intensity.displayName}',
+              Text(
+                  '${ex.category.displayName} · ${ex.intensity.displayName}'
+                  '${ex.secondsPerSet != null ? ' · ~${ex.secondsPerSet}s/set' : ''}',
                   style: TextStyle(
                       color: context.f3textSecondary, fontSize: 12)),
             ]),

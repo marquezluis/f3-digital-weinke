@@ -120,6 +120,19 @@ class WorkoutGenerator {
               notes: _formatNotes(settings, couponBlock: true),
             ));
             break;
+          case CouponMode.mixedInterleaved:
+            // One block, both pools shuffled together — each exercise still
+            // carries its own true category (coupon vs bodyweight), only the
+            // block itself needs a nominal category for color/labeling.
+            final combined = [...mixedBw, ...mixedCoupon]..shuffle(_rng);
+            blocks.add(WorkoutBlock(
+              label: '${_thangLabel(settings)}$circuitLabel',
+              category: ExerciseCategory.bodyweight,
+              durationMinutes: timePerCircuit,
+              exercises: combined,
+              notes: _formatNotes(settings, couponBlock: true),
+            ));
+            break;
         }
 
         // Inject a rest block if there are more circuits left

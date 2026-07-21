@@ -5,10 +5,19 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:f3_nation_app/models/app_version.dart';
 
 void main() {
+  // Deliberately structural, not hardcoded to a specific version — the
+  // Makefile auto-bumps pubspec.yaml's patch/build number on every release
+  // build (scripts/bump_version.py), so a literal-value test here would
+  // break on every single build rather than only when something's actually
+  // inconsistent. AppVersion itself is NOT auto-bumped (release notes are
+  // hand-written), so this only checks the pieces stay coherent with
+  // *each other* whenever a human does update it.
   test('current version is represented in release notes', () {
-    expect(AppVersion.versionName, '2.4.0');
-    expect(AppVersion.buildNumber, '12');
-    expect(AppVersion.displayName, 'Digital Weinke v2.4.0');
+    expect(AppVersion.current, AppVersion.versionName);
+    expect(AppVersion.displayName, 'Digital Weinke v${AppVersion.versionName}');
+    expect(AppVersion.fullDisplayName,
+        'Digital Weinke v${AppVersion.versionName}+${AppVersion.buildNumber}');
+    expect(int.tryParse(AppVersion.buildNumber), isNotNull);
     expect(AppVersion.releases.first.version, AppVersion.versionName);
   });
 
