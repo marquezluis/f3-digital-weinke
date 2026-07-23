@@ -1078,12 +1078,6 @@ abstract class AppLocalizations {
   /// **'The Plan'**
   String get schedulePreblastPlanLabel;
 
-  /// No description provided for @schedulePreblastPlanHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Warmup, THE THANG, Mary — what are you running?'**
-  String get schedulePreblastPlanHint;
-
   /// No description provided for @schedulePreblastVq.
   ///
   /// In en, this message translates to:
@@ -1105,14 +1099,38 @@ abstract class AppLocalizations {
   /// No description provided for @schedulePreblastAutoFilled.
   ///
   /// In en, this message translates to:
-  /// **'Auto-filled from this beatdown — date, time, Q, and HCs are added automatically.'**
+  /// **'Auto-filled from this beatdown — date, time, Q, HCs, and the routine below all come from your Weinke automatically.'**
   String get schedulePreblastAutoFilled;
+
+  /// No description provided for @schedulePreblastNotesLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes (optional)'**
+  String get schedulePreblastNotesLabel;
+
+  /// No description provided for @schedulePreblastNotesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Weather, gear reminders, anything else worth flagging up top'**
+  String get schedulePreblastNotesHint;
+
+  /// No description provided for @schedulePreblastPlanEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Build a Weinke first — the routine shows up here automatically.'**
+  String get schedulePreblastPlanEmpty;
 
   /// No description provided for @scheduleBuildWeinke.
   ///
   /// In en, this message translates to:
   /// **'Build my Weinke'**
   String get scheduleBuildWeinke;
+
+  /// No description provided for @scheduleEditWeinke.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Weinke'**
+  String get scheduleEditWeinke;
 
   /// No description provided for @scheduleCancel.
   ///

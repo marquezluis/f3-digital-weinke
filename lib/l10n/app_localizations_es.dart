@@ -576,10 +576,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get schedulePreblastPlanLabel => 'El Plan';
 
   @override
-  String get schedulePreblastPlanHint =>
-      'Calentamiento, THE THANG, Mary — ¿qué vas a dirigir?';
-
-  @override
   String get schedulePreblastVq => 'Es mi primera vez siendo Q aquí (VQ)';
 
   @override
@@ -591,10 +587,24 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get schedulePreblastAutoFilled =>
-      'Rellenado automáticamente desde este entrenamiento — fecha, hora, Q y HCs se agregan automáticamente.';
+      'Rellenado automáticamente desde este entrenamiento — fecha, hora, Q, HCs y la rutina de abajo vienen de tu Weinke automáticamente.';
+
+  @override
+  String get schedulePreblastNotesLabel => 'Notas (opcional)';
+
+  @override
+  String get schedulePreblastNotesHint =>
+      'Clima, recordatorios de equipo, cualquier otra cosa importante';
+
+  @override
+  String get schedulePreblastPlanEmpty =>
+      'Primero construye un Weinke — la rutina aparecerá aquí automáticamente.';
 
   @override
   String get scheduleBuildWeinke => 'Construir mi Weinke';
+
+  @override
+  String get scheduleEditWeinke => 'Editar Weinke';
 
   @override
   String get scheduleCancel => 'Cancelar';

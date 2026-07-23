@@ -15,6 +15,8 @@ import '../models/f3_api_models.dart';
 import '../models/workout_plan.dart';
 import '../services/app_profile_service.dart' hide AppRole;
 import '../services/auth_service.dart';
+import '../services/current_workout_service.dart';
+import '../services/exercise_service.dart';
 import '../services/f3_api_service.dart';
 import '../services/notification_service.dart';
 import '../services/weinke_exporter.dart';
@@ -1093,11 +1095,19 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
       final dashIdx = couponLine.indexOf('—');
       if (dashIdx != -1) couponNotes = couponLine.substring(dashIdx + 1).trim();
     }
+    var notes = '';
+    const notesMarker = 'NOTES: ';
+    final notesIdx = text.indexOf(notesMarker);
+    if (notesIdx != -1 && notesIdx < planIdx) {
+      final notesEnd = text.indexOf('\n', notesIdx);
+      notes = (notesEnd == -1 ? text.substring(notesIdx + notesMarker.length) : text.substring(notesIdx + notesMarker.length, notesEnd)).trim();
+    }
     return _PreblastDraft(
       plan: plan,
       vq: text.contains('Event Tag: VQ'),
       couponNeeded: couponNeeded,
       couponNotes: couponNotes,
+      notes: notes,
     );
   }
 
@@ -1157,21 +1167,36 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
     });
   }
 
-  /// Opens the Weinke builder linked to this event; if the Q taps "Use as
-  /// Preblast" there, comes straight back into the preblast composer with
-  /// the plan already summarized into the Plan field and Coupon pre-set
-  /// from whatever's actually in the plan — nothing to retype.
+  /// Opens the Weinke builder linked to this event. If a preblast already
+  /// exists and its plan text is in our own machine-generated format (see
+  /// [WeinkeExporter.planSummaryOnly]/[WeinkeExporter.parseSummary]), it's
+  /// parsed back into real blocks and preloaded as the draft — so "Edit
+  /// Weinke" means actually revising the same structured plan, not retyping
+  /// prose from scratch (the scenario that matters most: a replacement Q,
+  /// on a different device, picking up where the original Q left off).
+  /// Older preblasts posted before this existed (or anything hand-typed)
+  /// won't parse — those just show as a read-only reference instead.
   Future<void> _buildWeinke() async {
-    // If someone already posted a preblast for this event (e.g. the
-    // original Q got sick and dropped Q), surface their plan text as a
-    // reference for whoever's building the Weinke now.
-    final existingPlan = _parseDraftFromText(_event.preblast)?.plan;
+    final existingDraft = _parseDraftFromText(_event.preblast);
+    String? referenceOnly;
+    if (existingDraft != null) {
+      final parsedPlan = WeinkeExporter.parseSummary(
+        existingDraft.plan,
+        context.read<ExerciseService>(),
+      );
+      if (parsedPlan != null) {
+        context.read<CurrentWorkoutService>().setDraftPlan(parsedPlan);
+      } else {
+        referenceOnly = existingDraft.plan;
+      }
+    }
+    if (!mounted) return;
     final plan = await Navigator.push<WorkoutPlan>(
       context,
       MaterialPageRoute(
         builder: (_) => WorkoutScreen(
           forPreblast: true,
-          existingPreblastPlan: existingPlan,
+          existingPreblastPlan: referenceOnly,
         ),
       ),
     );
@@ -1179,11 +1204,15 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
     await _postPreblast(
       initialPlan: WeinkeExporter.planSummaryOnly(plan),
       initialCouponNeeded: WeinkeExporter.hasCoupon(plan),
+      initialNotes: existingDraft?.notes ?? '',
     );
   }
 
-  Future<void> _postPreblast(
-      {String? initialPlan, bool initialCouponNeeded = false}) async {
+  Future<void> _postPreblast({
+    String? initialPlan,
+    bool initialCouponNeeded = false,
+    String initialNotes = '',
+  }) async {
     final l10n = AppLocalizations.of(context)!;
     final e = _event;
     final myName = context.read<AppProfileService>().displayName;
@@ -1200,6 +1229,7 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
         myF3Name: myName,
         initialPlan: initialPlan ?? (e.preblast ?? ''),
         initialCouponNeeded: initialCouponNeeded,
+        initialNotes: initialNotes,
       ),
     );
     if (draft == null || draft.plan.trim().isEmpty || !mounted) return;
@@ -1284,8 +1314,13 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
     if (q.isNotEmpty) buf.writeln('Q: @$q');
     buf.writeln('HC Count: ${attendance.length}');
     if (hcNames.isNotEmpty) buf.writeln('HCs: $hcNames');
+    buf.writeln();
+    if (draft.notes.trim().isNotEmpty) {
+      buf
+        ..writeln('NOTES: ${draft.notes.trim()}')
+        ..writeln();
+    }
     buf
-      ..writeln()
       ..writeln('THE PLAN: ${draft.plan.trim()}')
       ..writeln(
           'COUPON: ${draft.couponNeeded ? 'Yes${draft.couponNotes.trim().isNotEmpty ? ' — ${draft.couponNotes.trim()}' : ''}' : 'No'}');
@@ -1481,25 +1516,25 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
                     label: Text(l10n.scheduleDropQ),
                   ),
                 ),
-              if (!e.hasQ || e.userIsQ) const SizedBox(width: 8),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: _busy ? null : _postPreblast,
-                  icon: const Icon(Icons.campaign_rounded, size: 18),
-                  label: Text(e.hasPreblast
-                      ? l10n.scheduleEditPreblast
-                      : l10n.schedulePostPreblast),
-                ),
-              ),
             ]),
             if (e.userIsQ) ...[
               const SizedBox(height: 8),
+              // Building/editing the Weinke *is* how the preblast gets
+              // posted or updated now — its plan text is always generated
+              // from the actual structured Weinke, never hand-typed, so
+              // there's no separate "type the plan" step to duplicate here.
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
                   onPressed: _busy ? null : _buildWeinke,
-                  icon: const Icon(Icons.fitness_center_rounded, size: 18),
-                  label: Text(l10n.scheduleBuildWeinke),
+                  icon: Icon(
+                      e.hasPreblast
+                          ? Icons.edit_rounded
+                          : Icons.fitness_center_rounded,
+                      size: 18),
+                  label: Text(e.hasPreblast
+                      ? l10n.scheduleEditWeinke
+                      : l10n.scheduleBuildWeinke),
                 ),
               ),
             ],
@@ -1533,11 +1568,13 @@ class _PreblastDraft {
   final bool vq;
   final bool couponNeeded;
   final String couponNotes;
+  final String notes;
   const _PreblastDraft({
     required this.plan,
     required this.vq,
     required this.couponNeeded,
     required this.couponNotes,
+    this.notes = '',
   });
 }
 
@@ -1547,6 +1584,7 @@ class _PreblastComposerSheet extends StatefulWidget {
   final String myF3Name;
   final String initialPlan;
   final bool initialCouponNeeded;
+  final String initialNotes;
 
   const _PreblastComposerSheet({
     required this.event,
@@ -1554,6 +1592,7 @@ class _PreblastComposerSheet extends StatefulWidget {
     required this.myF3Name,
     required this.initialPlan,
     this.initialCouponNeeded = false,
+    this.initialNotes = '',
   });
 
   @override
@@ -1561,14 +1600,14 @@ class _PreblastComposerSheet extends StatefulWidget {
 }
 
 class _PreblastComposerSheetState extends State<_PreblastComposerSheet> {
-  late final _planCtrl = TextEditingController(text: widget.initialPlan);
+  late final _notesCtrl = TextEditingController(text: widget.initialNotes);
   late final _couponNotesCtrl = TextEditingController();
   bool _vq = false;
   late bool _couponNeeded = widget.initialCouponNeeded;
 
   @override
   void dispose() {
-    _planCtrl.dispose();
+    _notesCtrl.dispose();
     _couponNotesCtrl.dispose();
     super.dispose();
   }
@@ -1629,25 +1668,51 @@ class _PreblastComposerSheetState extends State<_PreblastComposerSheet> {
               ),
             ),
             const SizedBox(height: 16),
-            Text(l10n.schedulePreblastPlanLabel,
+            Text(l10n.schedulePreblastNotesLabel,
                 style: TextStyle(
                     color: context.f3textSecondary,
                     fontSize: 13,
                     fontWeight: FontWeight.w700)),
             const SizedBox(height: 6),
             TextField(
-              controller: _planCtrl,
-              maxLines: 5,
+              controller: _notesCtrl,
+              maxLines: 3,
               autofocus: true,
               style: TextStyle(color: context.f3textPrimary),
               decoration: InputDecoration(
-                hintText: l10n.schedulePreblastPlanHint,
+                hintText: l10n.schedulePreblastNotesHint,
                 filled: true,
                 fillColor: context.f3elevated,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
                 ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(l10n.schedulePreblastPlanLabel,
+                style: TextStyle(
+                    color: context.f3textSecondary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700)),
+            const SizedBox(height: 6),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: context.f3elevated,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                widget.initialPlan.isEmpty
+                    ? l10n.schedulePreblastPlanEmpty
+                    : widget.initialPlan,
+                style: TextStyle(
+                    color: widget.initialPlan.isEmpty
+                        ? context.f3textMuted
+                        : context.f3textSecondary,
+                    fontSize: 13,
+                    height: 1.4),
               ),
             ),
             const SizedBox(height: 8),
@@ -1697,15 +1762,18 @@ class _PreblastComposerSheetState extends State<_PreblastComposerSheet> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () => Navigator.pop(
-                      context,
-                      _PreblastDraft(
-                        plan: _planCtrl.text,
-                        vq: _vq,
-                        couponNeeded: _couponNeeded,
-                        couponNotes: _couponNotesCtrl.text,
-                      ),
-                    ),
+                    onPressed: widget.initialPlan.isEmpty
+                        ? null
+                        : () => Navigator.pop(
+                              context,
+                              _PreblastDraft(
+                                plan: widget.initialPlan,
+                                vq: _vq,
+                                couponNeeded: _couponNeeded,
+                                couponNotes: _couponNotesCtrl.text,
+                                notes: _notesCtrl.text,
+                              ),
+                            ),
                     child: Text(l10n.schedulePost),
                   ),
                 ),

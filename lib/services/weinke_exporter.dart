@@ -10,8 +10,10 @@
 // Each exercise line shows the F3 name and a concise action hint derived from
 // the exercise description.
 
+import 'package:uuid/uuid.dart';
 import '../models/exercise.dart';
 import '../models/workout_plan.dart';
+import 'exercise_service.dart';
 
 class WeinkeExporter {
   static const _divider = '─────────────────────────────────────────';
@@ -137,17 +139,99 @@ class WeinkeExporter {
   /// Just the block-by-block plan body, no header — used to seed a real F3
   /// event's preblast "The Plan" field, where AO/date/time/Q are already
   /// known from the event itself and shouldn't be re-typed or guessed.
+  ///
+  /// The trailing `[category]` tag on each block header is what makes
+  /// [parseSummary] a reliable reverse of this — as long as this text is
+  /// always machine-generated (never hand-typed/edited), rebuilding the
+  /// Weinke from a posted preblast becomes a deterministic parse of our own
+  /// format instead of an unreliable guess at arbitrary prose.
   static String planSummaryOnly(WorkoutPlan plan) {
     final buf = StringBuffer();
     for (final block in plan.blocks) {
       final roundsLabel = block.rounds > 1 ? '  · ${block.rounds} rounds' : '';
-      buf.writeln('${block.label} (${block.durationMinutes} min$roundsLabel)');
+      buf.writeln(
+          '${block.label} (${block.durationMinutes} min$roundsLabel) [${block.category.name}]');
       for (final ex in block.exercises) {
         buf.writeln('- ${ex.name}');
       }
       buf.writeln();
     }
     return buf.toString().trimRight();
+  }
+
+  static final _blockHeaderRe = RegExp(
+    r'^(.+?)\s*\((\d+)\s*min(?:\s*·\s*(\d+)\s*rounds)?\)\s*\[(\w+)\]$',
+  );
+
+  /// Reverses [planSummaryOnly]. Returns null if [text] doesn't contain at
+  /// least one recognizable block header — e.g. hand-typed prose from
+  /// before this format existed, which this deliberately does not attempt
+  /// to guess-parse.
+  static WorkoutPlan? parseSummary(String text, ExerciseService service) {
+    final blocks = <WorkoutBlock>[];
+    String? label;
+    int duration = 0;
+    int rounds = 1;
+    ExerciseCategory category = ExerciseCategory.bodyweight;
+    var exercises = <Exercise>[];
+
+    void flush() {
+      if (label == null) return;
+      blocks.add(WorkoutBlock(
+        label: label,
+        category: category,
+        exercises: exercises,
+        durationMinutes: duration,
+        rounds: rounds,
+      ));
+    }
+
+    for (final raw in text.split('\n')) {
+      final line = raw.trim();
+      if (line.isEmpty) continue;
+      final m = _blockHeaderRe.firstMatch(line);
+      if (m != null) {
+        flush();
+        label = m.group(1);
+        duration = int.tryParse(m.group(2) ?? '') ?? 0;
+        rounds = int.tryParse(m.group(3) ?? '') ?? 1;
+        category = ExerciseCategory.fromString(m.group(4) ?? '');
+        exercises = [];
+      } else if (line.startsWith('- ')) {
+        exercises.add(_resolveExercise(line.substring(2).trim(), service));
+      }
+    }
+    flush();
+    if (blocks.isEmpty) return null;
+    return WorkoutPlan(
+      id: const Uuid().v4(),
+      generatedAt: DateTime.now(),
+      blocks: blocks,
+    );
+  }
+
+  /// Matches a parsed exercise name against the real catalog (name or
+  /// alias, case-insensitive) so it keeps its real description/hint/
+  /// equipment; falls back to a lightweight ad-hoc entry (same idea as a
+  /// custom exercise) so an unrecognized name still shows up in the block
+  /// instead of silently vanishing.
+  static Exercise _resolveExercise(String name, ExerciseService service) {
+    final lower = name.toLowerCase();
+    for (final ex in service.all) {
+      if (ex.name.toLowerCase() == lower ||
+          ex.aliases.any((a) => a.toLowerCase() == lower)) {
+        return ex;
+      }
+    }
+    return Exercise(
+      id: 'parsed-${name.hashCode}',
+      name: name,
+      description: '',
+      aliases: const [],
+      category: ExerciseCategory.bodyweight,
+      equipment: Equipment.none,
+      intensity: Intensity.intermediate,
+    );
   }
 
   static bool hasCoupon(WorkoutPlan plan) =>
