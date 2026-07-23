@@ -13,6 +13,7 @@ import '../services/f3_api_service.dart';
 import '../theme/app_theme.dart';
 import 'heatmap_screen.dart';
 import 'achievements_screen.dart';
+import 'activity_feed_screen.dart';
 
 class BrotherhoodScreen extends StatefulWidget {
   const BrotherhoodScreen({super.key});
@@ -151,6 +152,18 @@ class _BrotherhoodScreenState extends State<BrotherhoodScreen> {
                     color: context.f3card,
                     borderRadius: BorderRadius.circular(12),
                     child: Column(children: [
+                      ListTile(
+                        leading: const Icon(Icons.dynamic_feed_rounded,
+                            color: F3Colors.accent),
+                        title: const Text('Activity Feed'),
+                        subtitle: const Text(
+                            'Backblasts, achievements, and hard commits'),
+                        trailing: const Icon(Icons.chevron_right_rounded),
+                        onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const ActivityFeedScreen())),
+                      ),
                       ListTile(
                         leading: const Icon(Icons.whatshot_rounded,
                             color: F3Colors.phaseThang),
