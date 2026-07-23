@@ -179,6 +179,7 @@
   "schedulePost": "Publicar",
   "scheduleSignInToPostPreblast": "Inicia sesión para publicar un preblast.",
   "schedulePreblastPosted": "Preblast publicado.",
+  "schedulePreblastAutoUpdated": "Preblast actualizado.",
   "scheduleBeatdownFallback": "Beatdown",
 
   "browseAosTitle": "Explorar AOs",

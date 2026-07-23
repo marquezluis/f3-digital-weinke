@@ -320,6 +320,7 @@
   "schedulePost": "Post",
   "scheduleSignInToPostPreblast": "Sign in to post a preblast.",
   "schedulePreblastPosted": "Preblast posted.",
+  "schedulePreblastAutoUpdated": "Preblast refreshed to match.",
   "scheduleBeatdownFallback": "Beatdown",
 
   "browseAosTitle": "Browse AOs",

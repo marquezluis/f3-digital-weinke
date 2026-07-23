@@ -1138,6 +1138,12 @@ abstract class AppLocalizations {
   /// **'Preblast posted.'**
   String get schedulePreblastPosted;
 
+  /// No description provided for @schedulePreblastAutoUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Preblast refreshed to match.'**
+  String get schedulePreblastAutoUpdated;
+
   /// No description provided for @scheduleBeatdownFallback.
   ///
   /// In en, this message translates to:

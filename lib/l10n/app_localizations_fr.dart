@@ -613,6 +613,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get schedulePreblastPosted => 'Preblast publié.';
 
   @override
+  String get schedulePreblastAutoUpdated => 'Preblast actualisé.';
+
+  @override
   String get scheduleBeatdownFallback => 'Beatdown';
 
   @override

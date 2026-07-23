@@ -853,6 +853,10 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
   // text, or one just posted). Starts as whatever Schedule's list fetch had.
   late F3EventInstance _event = widget.event;
   bool _loadingPreblast = false;
+  // The last submitted preblast draft (plan/coupon/VQ) — kept so an HC/Q
+  // change can silently re-assemble and re-post with fresh counts/names
+  // without re-prompting the Q to retype what they already wrote.
+  _PreblastDraft? _lastDraft;
 
   @override
   void initState() {
@@ -989,6 +993,7 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
     if (_flash != null && !_flash!.toLowerCase().contains('fail')) {
       setState(() => _attending = true);
       _scheduleReminders();
+      await _autoRepostPreblastIfNeeded();
     }
   }
 
@@ -1003,6 +1008,7 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
       setState(() => _attending = false);
       final id = widget.event.numericId;
       if (id != null) NotificationService().cancelEventReminders(id);
+      await _autoRepostPreblastIfNeeded();
     }
   }
 
@@ -1014,6 +1020,7 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
     );
     if (_flash != null && !_flash!.toLowerCase().contains('fail')) {
       _scheduleReminders(isQ: true);
+      await _autoRepostPreblastIfNeeded();
     }
   }
 
@@ -1030,6 +1037,7 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
     if (_flash != null && !_flash!.toLowerCase().contains('fail')) {
       final id = widget.event.numericId;
       if (id != null) NotificationService().cancelEventReminders(id);
+      await _autoRepostPreblastIfNeeded();
     }
   }
 
@@ -1047,6 +1055,80 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
       isQ: isQ ?? widget.event.userIsQ,
       hasPreblast: _event.hasPreblast,
     );
+  }
+
+  /// Best-effort recovery of the Q's plan/coupon text from an already-posted
+  /// preblast — used when [_lastDraft] is empty (card opened fresh this
+  /// session, nothing submitted through the composer yet) but a preblast
+  /// already exists. Parses the fixed format [_assemblePreblast] itself
+  /// produces, so this only ever needs to stay in sync with that function.
+  _PreblastDraft? _parseDraftFromText(String? text) {
+    if (text == null || text.isEmpty) return null;
+    const planMarker = 'THE PLAN: ';
+    const couponMarker = '\nCOUPON: ';
+    final planIdx = text.indexOf(planMarker);
+    final couponIdx = text.indexOf(couponMarker);
+    if (planIdx == -1 || couponIdx == -1 || couponIdx < planIdx) return null;
+    final plan = text.substring(planIdx + planMarker.length, couponIdx).trim();
+    if (plan.isEmpty) return null;
+    final couponLine = text.substring(couponIdx + couponMarker.length).trim();
+    final couponNeeded = couponLine.startsWith('Yes');
+    var couponNotes = '';
+    if (couponNeeded) {
+      final dashIdx = couponLine.indexOf('—');
+      if (dashIdx != -1) couponNotes = couponLine.substring(dashIdx + 1).trim();
+    }
+    return _PreblastDraft(
+      plan: plan,
+      vq: text.contains('Event Tag: VQ'),
+      couponNeeded: couponNeeded,
+      couponNotes: couponNotes,
+    );
+  }
+
+  /// Silently re-assembles and re-posts the preblast after an HC/Q change —
+  /// only the auto-filled fields (Q, HC count, HC names) actually need to
+  /// change; the Q's own plan/coupon text is carried over from [_lastDraft]
+  /// (or recovered via [_parseDraftFromText]) rather than re-prompted for.
+  /// No-ops if there's no preblast yet, or if the plan text can't be
+  /// recovered at all — this is a convenience on top of the real "Edit
+  /// Preblast" flow, never a replacement for it.
+  Future<void> _autoRepostPreblastIfNeeded() async {
+    if (!_event.hasPreblast) return;
+    final draft = _lastDraft ?? _parseDraftFromText(_event.preblast);
+    if (draft == null) return;
+    final id = _event.numericId;
+    final eventOrgId = _event.orgId;
+    if (id == null || eventOrgId == null) return;
+    final c = await _creds();
+    if (c.token == null) return;
+
+    await _loadAttendance(); // fresh HC list before reassembling
+    if (!mounted) return;
+    final myName = context.read<AppProfileService>().displayName;
+    final text = _assemblePreblast(
+      event: _event,
+      attendance: _attendance ?? const [],
+      myF3Name: myName,
+      draft: draft,
+    );
+    final d = _event.date;
+    final startDate =
+        '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+    final err = await context.read<F3ApiService>().postPreblast(
+          eventInstanceId: id,
+          orgId: '$eventOrgId',
+          startDate: startDate,
+          preblast: text,
+        );
+    if (!mounted || err != null) return;
+    setState(() {
+      _event = _event.copyWith(preblast: text, hasPreblast: true);
+      _lastDraft = draft;
+      final base = _flash;
+      final suffix = AppLocalizations.of(context)!.schedulePreblastAutoUpdated;
+      _flash = (base == null || base.isEmpty) ? suffix : '$base — $suffix';
+    });
   }
 
   /// Opens the Weinke builder linked to this event; if the Q taps "Use as
@@ -1119,6 +1201,7 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
         // without this the button silently reverts to "Post Preblast".
         if (err == null) {
           _event = _event.copyWith(preblast: text, hasPreblast: true);
+          _lastDraft = draft;
         }
       });
     }
