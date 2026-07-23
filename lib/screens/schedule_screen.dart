@@ -63,7 +63,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     // switches, initState never refires) — Home's "see all" link sets this
     // notifier instead of a constructor param so it still reaches an
     // already-live Schedule instance.
-    context.read<ValueNotifier<MineFilter?>>().addListener(_onMineFilterRequested);
+    context
+        .read<ValueNotifier<MineFilter?>>()
+        .addListener(_onMineFilterRequested);
   }
 
   @override
@@ -79,7 +81,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     final requested = notifier.value;
     if (requested == null) return;
     setState(() => _mineFilter = requested);
-    notifier.value = null; // consume once — don't re-apply on a later tab switch
+    notifier.value =
+        null; // consume once — don't re-apply on a later tab switch
   }
 
   DateTime _calendarMonth = DateTime(DateTime.now().year, DateTime.now().month);
@@ -181,8 +184,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     final profile = context.read<AppProfileService>();
     final token = await auth.getF3AccessToken();
     final userId = int.tryParse(profile.authUserId);
-    final events = await api.getUpcomingBeatdowns(
-        userAccessToken: token, userId: userId);
+    final events =
+        await api.getUpcomingBeatdowns(userAccessToken: token, userId: userId);
     if (!mounted) return;
     // Recurring series now generate instances a year+ out — Schedule only
     // shows today through the next 7 days. Today's events stay even once
@@ -302,8 +305,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               title: l10n.scheduleApiNotConfiguredTitle,
               subtitle: l10n.scheduleApiNotConfiguredSub)
           : RefreshIndicator(
-              onRefresh: () =>
-                  Future.wait([_load(), _loadCalendarMonth()]),
+              onRefresh: () => Future.wait([_load(), _loadCalendarMonth()]),
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(14, 10, 14, 28),
                 children: [
@@ -322,8 +324,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                           child: SizedBox(
                               width: 20,
                               height: 20,
-                              child: CircularProgressIndicator(
-                                  strokeWidth: 2))),
+                              child:
+                                  CircularProgressIndicator(strokeWidth: 2))),
                     ),
                   const Divider(height: 32, thickness: 1),
                   if (_selectedDay != null)
@@ -350,7 +352,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         Padding(
           padding: const EdgeInsets.fromLTRB(4, 4, 4, 2),
           child: Row(children: [
-            const Icon(Icons.view_agenda_rounded, size: 13, color: F3Colors.accent),
+            const Icon(Icons.view_agenda_rounded,
+                size: 13, color: F3Colors.accent),
             const SizedBox(width: 6),
             Text(l10n.scheduleNext7Days,
                 style: TextStyle(
@@ -405,8 +408,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                               ? l10n.scheduleNoMatches
                               : l10n.scheduleNothingScheduled,
                           style: TextStyle(
-                              color:
-                                  context.f3textMuted.withValues(alpha: 0.6),
+                              color: context.f3textMuted.withValues(alpha: 0.6),
                               fontSize: 12),
                         ),
                       ),
@@ -440,8 +442,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               block,
               if (!isLast)
                 Divider(
-                    height: 1,
-                    color: context.f3divider.withValues(alpha: 0.5)),
+                    height: 1, color: context.f3divider.withValues(alpha: 0.5)),
             ]);
           }),
       ],
@@ -531,8 +532,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               ),
               if (!isLast)
                 Divider(
-                    height: 1,
-                    color: context.f3divider.withValues(alpha: 0.5)),
+                    height: 1, color: context.f3divider.withValues(alpha: 0.5)),
             ]);
           }),
       ],
@@ -569,8 +569,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 ),
                 const SizedBox(height: 2),
                 Text(subtitle,
-                    style:
-                        TextStyle(color: context.f3textMuted, fontSize: 12)),
+                    style: TextStyle(color: context.f3textMuted, fontSize: 12)),
               ],
             ),
             TextButton.icon(
@@ -603,10 +602,14 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   String _dayLabel(DateTime day, int? offsetFromToday, {bool short = false}) {
     final l10n = AppLocalizations.of(context)!;
     if (offsetFromToday == 0) {
-      return short ? l10n.scheduleTodayShort : '${l10n.scheduleTodayFull} · ${_fmtDate(day)}';
+      return short
+          ? l10n.scheduleTodayShort
+          : '${l10n.scheduleTodayFull} · ${_fmtDate(day)}';
     }
     if (offsetFromToday == 1) {
-      return short ? l10n.scheduleTomorrowShort : '${l10n.scheduleTomorrowFull} · ${_fmtDate(day)}';
+      return short
+          ? l10n.scheduleTomorrowShort
+          : '${l10n.scheduleTomorrowFull} · ${_fmtDate(day)}';
     }
     // Locale-aware weekday names via intl rather than a hand-translated
     // array — DateFormat already knows every supported locale's weekday
@@ -779,7 +782,10 @@ class _EventCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(event.orgName ?? event.locationName ?? l10n.scheduleBeatdownFallback,
+                  Text(
+                      event.orgName ??
+                          event.locationName ??
+                          l10n.scheduleBeatdownFallback,
                       style: TextStyle(
                           color: context.f3textPrimary,
                           fontWeight: FontWeight.w800,
@@ -789,7 +795,8 @@ class _EventCard extends StatelessWidget {
                     [
                       if (event.startTime != null) event.startTime,
                       event.hasQ
-                          ? l10n.scheduleQLabel(event.qF3Name ?? l10n.scheduleQSet)
+                          ? l10n.scheduleQLabel(
+                              event.qF3Name ?? l10n.scheduleQSet)
                           : l10n.scheduleQNeeded,
                     ].join(' · '),
                     style: TextStyle(
@@ -803,8 +810,7 @@ class _EventCard extends StatelessWidget {
             ),
             if ((event.hcCount ?? 0) > 0)
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                   color: F3Colors.accent.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(8),
@@ -862,7 +868,9 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
   /// that actually carries it.
   Future<void> _refreshPreblastIfNeeded() async {
     final id = _event.numericId;
-    if (id == null || !_event.hasPreblast || (_event.preblast ?? '').isNotEmpty) {
+    if (id == null ||
+        !_event.hasPreblast ||
+        (_event.preblast ?? '').isNotEmpty) {
       return;
     }
     setState(() => _loadingPreblast = true);
@@ -882,7 +890,8 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
   Future<void> _loadAttendance() async {
     final id = widget.event.numericId;
     if (id == null) return;
-    final records = await context.read<F3ApiService>().getAttendanceForEvent(id);
+    final records =
+        await context.read<F3ApiService>().getAttendanceForEvent(id);
     if (mounted) setState(() => _attendance = records);
   }
 
@@ -901,8 +910,9 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
       uri = Uri.parse(
           'geo:${loc.lat},${loc.lon}?q=${loc.lat},${loc.lon}(${Uri.encodeComponent(loc.aoName ?? loc.name)})');
     } else {
-      final address =
-          [loc.street, loc.city, loc.state].where((s) => (s ?? '').isNotEmpty).join(', ');
+      final address = [loc.street, loc.city, loc.state]
+          .where((s) => (s ?? '').isNotEmpty)
+          .join(', ');
       if (address.isEmpty) return;
       uri = Uri.parse('geo:0,0?q=${Uri.encodeComponent(address)}');
     }
@@ -949,7 +959,8 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
     );
   }
 
-  Future<void> _run(Future<String?> Function(int eiId, int uid, String token) op,
+  Future<void> _run(
+      Future<String?> Function(int eiId, int uid, String token) op,
       String okMsg) async {
     final id = widget.event.numericId;
     if (id == null) return;
@@ -957,7 +968,8 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
     try {
       final c = await _creds();
       if (c.token == null || c.uid == null) {
-        setState(() => _flash = AppLocalizations.of(context)!.scheduleSignInFirst);
+        setState(
+            () => _flash = AppLocalizations.of(context)!.scheduleSignInFirst);
         return;
       }
       final err = await op(id, c.uid!, c.token!);
@@ -969,8 +981,9 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
 
   Future<void> _hc() async {
     await _run(
-      (id, uid, token) => context.read<F3ApiService>().signUpForEvent(
-          eventInstanceId: id, userId: uid),
+      (id, uid, token) => context
+          .read<F3ApiService>()
+          .signUpForEvent(eventInstanceId: id, userId: uid),
       AppLocalizations.of(context)!.scheduleHcSuccess,
     );
     if (_flash != null && !_flash!.toLowerCase().contains('fail')) {
@@ -981,8 +994,9 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
 
   Future<void> _unhc() async {
     await _run(
-      (id, uid, token) => context.read<F3ApiService>().withdrawFromEvent(
-          eventInstanceId: id, userId: uid),
+      (id, uid, token) => context
+          .read<F3ApiService>()
+          .withdrawFromEvent(eventInstanceId: id, userId: uid),
       AppLocalizations.of(context)!.scheduleUnhcSuccess,
     );
     if (_flash != null && !_flash!.toLowerCase().contains('fail')) {
@@ -994,8 +1008,8 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
 
   Future<void> _takeQ() async {
     await _run(
-      (id, uid, token) => context.read<F3ApiService>().takeQ(
-          eventInstanceId: id, userId: uid),
+      (id, uid, token) =>
+          context.read<F3ApiService>().takeQ(eventInstanceId: id, userId: uid),
       AppLocalizations.of(context)!.scheduleTakeQSuccess,
     );
     if (_flash != null && !_flash!.toLowerCase().contains('fail')) {
@@ -1008,8 +1022,9 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
   /// whole attendance record).
   Future<void> _dropQ() async {
     await _run(
-      (id, uid, token) => context.read<F3ApiService>().removeQ(
-          eventInstanceId: id, userId: uid),
+      (id, uid, token) => context
+          .read<F3ApiService>()
+          .removeQ(eventInstanceId: id, userId: uid),
       AppLocalizations.of(context)!.scheduleDropQSuccess,
     );
     if (_flash != null && !_flash!.toLowerCase().contains('fail')) {
@@ -1050,7 +1065,8 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
     );
   }
 
-  Future<void> _postPreblast({String? initialPlan, bool initialCouponNeeded = false}) async {
+  Future<void> _postPreblast(
+      {String? initialPlan, bool initialCouponNeeded = false}) async {
     final l10n = AppLocalizations.of(context)!;
     final e = _event;
     final myName = context.read<AppProfileService>().displayName;
@@ -1144,7 +1160,8 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
     buf
       ..writeln()
       ..writeln('THE PLAN: ${draft.plan.trim()}')
-      ..writeln('COUPON: ${draft.couponNeeded ? 'Yes${draft.couponNotes.trim().isNotEmpty ? ' — ${draft.couponNotes.trim()}' : ''}' : 'No'}');
+      ..writeln(
+          'COUPON: ${draft.couponNeeded ? 'Yes${draft.couponNotes.trim().isNotEmpty ? ' — ${draft.couponNotes.trim()}' : ''}' : 'No'}');
     return buf.toString().trimRight();
   }
 
@@ -1159,194 +1176,201 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
         top: 16,
         bottom: MediaQuery.of(context).viewInsets.bottom + 24,
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 40,
-            height: 4,
-            margin: const EdgeInsets.only(bottom: 16),
-            decoration: BoxDecoration(
-                color: context.f3divider,
-                borderRadius: BorderRadius.circular(2)),
-          ),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Text(
-                    e.orgName ?? e.locationName ?? l10n.scheduleBeatdownFallback,
-                    style: TextStyle(
-                        color: context.f3textPrimary,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w900)),
-              ),
-              if (_location != null) ...[
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                  color: context.f3divider,
+                  borderRadius: BorderRadius.circular(2)),
+            ),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(
+                      e.orgName ??
+                          e.locationName ??
+                          l10n.scheduleBeatdownFallback,
+                      style: TextStyle(
+                          color: context.f3textPrimary,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900)),
+                ),
+                if (_location != null) ...[
+                  Tooltip(
+                    message: l10n.scheduleDirectionsTooltip,
+                    child: IconButton(
+                      onPressed: _getDirections,
+                      icon: const Icon(Icons.directions_rounded, size: 20),
+                      visualDensity: VisualDensity.compact,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                ],
                 Tooltip(
-                  message: l10n.scheduleDirectionsTooltip,
+                  message: l10n.scheduleShareTooltip,
                   child: IconButton(
-                    onPressed: _getDirections,
-                    icon: const Icon(Icons.directions_rounded, size: 20),
+                    onPressed: _share,
+                    icon: const Icon(Icons.ios_share_rounded, size: 20),
                     visualDensity: VisualDensity.compact,
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
                   ),
                 ),
-                const SizedBox(width: 4),
               ],
-              Tooltip(
-                message: l10n.scheduleShareTooltip,
-                child: IconButton(
-                  onPressed: _share,
-                  icon: const Icon(Icons.ios_share_rounded, size: 20),
-                  visualDensity: VisualDensity.compact,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              [
+                '${e.date.month}/${e.date.day}',
+                if (e.startTime != null) e.startTime,
+                e.hasQ
+                    ? l10n.scheduleQLabel(e.qF3Name ?? l10n.scheduleQSet)
+                    : l10n.scheduleQNeeded,
+                if ((e.hcCount ?? 0) > 0) l10n.scheduleHcCount(e.hcCount ?? 0),
+              ].join(' · '),
+              style: TextStyle(color: context.f3textSecondary, fontSize: 13),
+            ),
+            if ((_attendance ?? const []).isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Text(l10n.scheduleWhosIn,
+                  style: TextStyle(
+                      color: context.f3textMuted,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.2)),
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: _attendance!.map((a) {
+                  final name = a.f3Name ?? '?';
+                  final label = a.isQ
+                      ? '$name (Q)'
+                      : a.isCoQ
+                          ? '$name (Co-Q)'
+                          : name;
+                  return Chip(
+                    label: Text(label, style: const TextStyle(fontSize: 12)),
+                    visualDensity: VisualDensity.compact,
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    backgroundColor: a.isQ || a.isCoQ
+                        ? F3Colors.accent.withValues(alpha: 0.15)
+                        : context.f3card,
+                    side: BorderSide(color: context.f3divider),
+                  );
+                }).toList(),
               ),
             ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            [
-              '${e.date.month}/${e.date.day}',
-              if (e.startTime != null) e.startTime,
-              e.hasQ
-                  ? l10n.scheduleQLabel(e.qF3Name ?? l10n.scheduleQSet)
-                  : l10n.scheduleQNeeded,
-              if ((e.hcCount ?? 0) > 0) l10n.scheduleHcCount(e.hcCount ?? 0),
-            ].join(' · '),
-            style: TextStyle(color: context.f3textSecondary, fontSize: 13),
-          ),
-          if ((_attendance ?? const []).isNotEmpty) ...[
-            const SizedBox(height: 10),
-            Text(l10n.scheduleWhosIn,
-                style: TextStyle(
-                    color: context.f3textMuted,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1.2)),
-            const SizedBox(height: 6),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: _attendance!.map((a) {
-                final name = a.f3Name ?? '?';
-                final label = a.isQ
-                    ? '$name (Q)'
-                    : a.isCoQ
-                        ? '$name (Co-Q)'
-                        : name;
-                return Chip(
-                  label: Text(label, style: const TextStyle(fontSize: 12)),
-                  visualDensity: VisualDensity.compact,
-                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  backgroundColor: a.isQ || a.isCoQ
-                      ? F3Colors.accent.withValues(alpha: 0.15)
-                      : context.f3card,
-                  side: BorderSide(color: context.f3divider),
-                );
-              }).toList(),
-            ),
-          ],
-          const SizedBox(height: 16),
-          if (e.hasPreblast) ...[
-            Text(l10n.schedulePreblastHeader,
-                style: TextStyle(
-                    color: context.f3textMuted,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1.2)),
-            const SizedBox(height: 6),
-            if ((e.preblast ?? '').isNotEmpty)
-              Text(e.preblast!,
-                  style: TextStyle(
-                      color: context.f3textSecondary, fontSize: 14, height: 1.4))
-            else if (_loadingPreblast)
-              SizedBox(
-                height: 16,
-                width: 16,
-                child: CircularProgressIndicator(
-                    strokeWidth: 2, color: context.f3textMuted),
-              )
-            else
-              Text(l10n.schedulePreblastUnavailable,
-                  style: TextStyle(color: context.f3textMuted, fontSize: 13)),
             const SizedBox(height: 16),
-          ],
-          if (!_linked)
-            Text(l10n.scheduleSignInToHc,
-                style: TextStyle(color: context.f3textMuted, fontSize: 12))
-          else ...[
-            SizedBox(
-              width: double.infinity,
-              child: _attending
-                  ? OutlinedButton.icon(
-                      onPressed: _busy ? null : _unhc,
-                      icon: const Icon(Icons.person_remove_rounded, size: 18),
-                      label: Text(l10n.scheduleUnHc),
-                    )
-                  : ElevatedButton.icon(
-                      onPressed: _busy ? null : _hc,
-                      icon: const Icon(Icons.how_to_reg_rounded),
-                      label: Text(l10n.scheduleHcImIn),
-                    ),
-            ),
-            const SizedBox(height: 8),
-            Row(children: [
-              if (!e.hasQ)
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _busy ? null : _takeQ,
-                    icon: const Icon(Icons.sports_rounded, size: 18),
-                    label: Text(l10n.scheduleTakeQ),
-                  ),
-                ),
-              if (e.userIsQ)
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _busy ? null : _dropQ,
-                    icon: const Icon(Icons.remove_circle_outline_rounded, size: 18),
-                    label: Text(l10n.scheduleDropQ),
-                  ),
-                ),
-              if (!e.hasQ || e.userIsQ) const SizedBox(width: 8),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: _busy ? null : _postPreblast,
-                  icon: const Icon(Icons.campaign_rounded, size: 18),
-                  label: Text(e.hasPreblast
-                      ? l10n.scheduleEditPreblast
-                      : l10n.schedulePostPreblast),
-                ),
-              ),
-            ]),
-            if (e.userIsQ) ...[
-              const SizedBox(height: 8),
+            if (e.hasPreblast) ...[
+              Text(l10n.schedulePreblastHeader,
+                  style: TextStyle(
+                      color: context.f3textMuted,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.2)),
+              const SizedBox(height: 6),
+              if ((e.preblast ?? '').isNotEmpty)
+                Text(e.preblast!,
+                    style: TextStyle(
+                        color: context.f3textSecondary,
+                        fontSize: 14,
+                        height: 1.4))
+              else if (_loadingPreblast)
+                SizedBox(
+                  height: 16,
+                  width: 16,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: context.f3textMuted),
+                )
+              else
+                Text(l10n.schedulePreblastUnavailable,
+                    style: TextStyle(color: context.f3textMuted, fontSize: 13)),
+              const SizedBox(height: 16),
+            ],
+            if (!_linked)
+              Text(l10n.scheduleSignInToHc,
+                  style: TextStyle(color: context.f3textMuted, fontSize: 12))
+            else ...[
               SizedBox(
                 width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: _busy ? null : _buildWeinke,
-                  icon: const Icon(Icons.fitness_center_rounded, size: 18),
-                  label: Text(l10n.scheduleBuildWeinke),
-                ),
+                child: _attending
+                    ? OutlinedButton.icon(
+                        onPressed: _busy ? null : _unhc,
+                        icon: const Icon(Icons.person_remove_rounded, size: 18),
+                        label: Text(l10n.scheduleUnHc),
+                      )
+                    : ElevatedButton.icon(
+                        onPressed: _busy ? null : _hc,
+                        icon: const Icon(Icons.how_to_reg_rounded),
+                        label: Text(l10n.scheduleHcImIn),
+                      ),
               ),
+              const SizedBox(height: 8),
+              Row(children: [
+                if (!e.hasQ)
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _busy ? null : _takeQ,
+                      icon: const Icon(Icons.sports_rounded, size: 18),
+                      label: Text(l10n.scheduleTakeQ),
+                    ),
+                  ),
+                if (e.userIsQ)
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _busy ? null : _dropQ,
+                      icon: const Icon(Icons.remove_circle_outline_rounded,
+                          size: 18),
+                      label: Text(l10n.scheduleDropQ),
+                    ),
+                  ),
+                if (!e.hasQ || e.userIsQ) const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _busy ? null : _postPreblast,
+                    icon: const Icon(Icons.campaign_rounded, size: 18),
+                    label: Text(e.hasPreblast
+                        ? l10n.scheduleEditPreblast
+                        : l10n.schedulePostPreblast),
+                  ),
+                ),
+              ]),
+              if (e.userIsQ) ...[
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: _busy ? null : _buildWeinke,
+                    icon: const Icon(Icons.fitness_center_rounded, size: 18),
+                    label: Text(l10n.scheduleBuildWeinke),
+                  ),
+                ),
+              ],
+            ],
+            if (_flash != null) ...[
+              const SizedBox(height: 12),
+              Text(_flash!,
+                  style: const TextStyle(
+                      color: F3Colors.accent,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600)),
+            ],
+            if (_busy) ...[
+              const SizedBox(height: 12),
+              const Center(child: CircularProgressIndicator()),
             ],
           ],
-          if (_flash != null) ...[
-            const SizedBox(height: 12),
-            Text(_flash!,
-                style: const TextStyle(
-                    color: F3Colors.accent,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600)),
-          ],
-          if (_busy) ...[
-            const SizedBox(height: 12),
-            const Center(child: CircularProgressIndicator()),
-          ],
-        ],
+        ),
       ),
     );
   }
@@ -1454,7 +1478,8 @@ class _PreblastComposerSheetState extends State<_PreblastComposerSheet> {
                   'Q: ${q.isEmpty ? '—' : q}',
                   l10n.scheduleHcCount(widget.attendance.length),
                 ].join(' · '),
-                style: TextStyle(color: context.f3textSecondary, fontSize: 12.5),
+                style:
+                    TextStyle(color: context.f3textSecondary, fontSize: 12.5),
               ),
             ),
             const SizedBox(height: 16),
