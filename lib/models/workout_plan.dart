@@ -30,6 +30,26 @@ enum CallStyle {
   };
 }
 
+/// Best-effort call style read off an exercise's own F3 Exicon description —
+/// many entries explicitly say "OYO," "in cadence," "on my up," etc. Covers
+/// roughly 10% of the Exicon (confirmed by scanning the bundled data); the
+/// rest, and anything ambiguous ("IC or OYO" — genuinely either), return
+/// null rather than guess, leaving it for the Q to set manually per exercise.
+CallStyle? suggestedCallStyleFor(String description) {
+  final d = description.toLowerCase();
+  final hasOnMyUp = d.contains('on my up');
+  final hasOnMyDown = d.contains('on my down');
+  final hasIC = d.contains('in cadence') || RegExp(r'\bic\b').hasMatch(d);
+  final hasOYO = d.contains('on your own') || RegExp(r'\boyo\b').hasMatch(d);
+
+  if (hasOnMyUp && !hasOnMyDown) return CallStyle.onMyUp;
+  if (hasOnMyDown && !hasOnMyUp) return CallStyle.onMyDown;
+  if (hasIC && hasOYO) return null;
+  if (hasIC) return CallStyle.inCadence;
+  if (hasOYO) return CallStyle.onYourOwn;
+  return null;
+}
+
 class WorkoutBlock {
   final String label;
   final ExerciseCategory category;
@@ -40,6 +60,11 @@ class WorkoutBlock {
   // exerciseId → Q note (e.g. "OYO", "do in cadence", "flapjack at halfway")
   final Map<String, String> exerciseNotes;
   final CallStyle callStyle;
+  // exerciseId → the Q's explicit per-exercise call style override. Takes
+  // priority over [suggestedCallStyleFor] (the exercise's own Exicon text),
+  // which in turn takes priority over the block's own [callStyle] default —
+  // see [callStyleFor].
+  final Map<String, CallStyle> exerciseCallStyles;
 
   const WorkoutBlock({
     required this.label,
@@ -50,9 +75,24 @@ class WorkoutBlock {
     this.rounds = 1,
     this.exerciseNotes = const {},
     this.callStyle = CallStyle.onYourOwn,
+    this.exerciseCallStyles = const {},
   });
 
   String noteFor(String exerciseId) => exerciseNotes[exerciseId] ?? '';
+
+  /// Resolves the actual call style to use for one exercise: an explicit
+  /// per-exercise override the Q set, else what that exercise's own Exicon
+  /// description suggests, else this block's overall default.
+  CallStyle callStyleFor(String exerciseId) {
+    final override = exerciseCallStyles[exerciseId];
+    if (override != null) return override;
+    final exercise = exercises.where((e) => e.id == exerciseId).firstOrNull;
+    if (exercise != null) {
+      final suggested = suggestedCallStyleFor(exercise.description);
+      if (suggested != null) return suggested;
+    }
+    return callStyle;
+  }
 
   WorkoutBlock copyWithExerciseNote(String exerciseId, String note) {
     final updated = Map<String, String>.from(exerciseNotes);
@@ -70,6 +110,29 @@ class WorkoutBlock {
       rounds: rounds,
       exerciseNotes: updated,
       callStyle: callStyle,
+      exerciseCallStyles: exerciseCallStyles,
+    );
+  }
+
+  /// Sets (or clears, if [style] is null) the Q's explicit per-exercise
+  /// override — distinct from this block's own overall [callStyle].
+  WorkoutBlock copyWithExerciseCallStyle(String exerciseId, CallStyle? style) {
+    final updated = Map<String, CallStyle>.from(exerciseCallStyles);
+    if (style == null) {
+      updated.remove(exerciseId);
+    } else {
+      updated[exerciseId] = style;
+    }
+    return WorkoutBlock(
+      label: label,
+      category: category,
+      exercises: exercises,
+      durationMinutes: durationMinutes,
+      notes: notes,
+      rounds: rounds,
+      exerciseNotes: exerciseNotes,
+      callStyle: callStyle,
+      exerciseCallStyles: updated,
     );
   }
 
@@ -84,6 +147,7 @@ class WorkoutBlock {
         rounds: rounds,
         exerciseNotes: exerciseNotes,
         callStyle: callStyle,
+        exerciseCallStyles: exerciseCallStyles,
       );
 
   /// Duration scaled to a new exercise count, holding per-exercise time
@@ -119,6 +183,7 @@ class WorkoutBlock {
         rounds: rounds,
         exerciseNotes: exerciseNotes,
         callStyle: callStyle,
+        exerciseCallStyles: exerciseCallStyles,
       );
 
   WorkoutBlock copyWithRounds(int newRounds) => WorkoutBlock(
@@ -130,6 +195,7 @@ class WorkoutBlock {
         rounds: newRounds,
         exerciseNotes: exerciseNotes,
         callStyle: callStyle,
+        exerciseCallStyles: exerciseCallStyles,
       );
 
   WorkoutBlock copyWithCallStyle(CallStyle newStyle) => WorkoutBlock(
@@ -141,6 +207,7 @@ class WorkoutBlock {
         rounds: rounds,
         exerciseNotes: exerciseNotes,
         callStyle: newStyle,
+        exerciseCallStyles: exerciseCallStyles,
       );
 }
 

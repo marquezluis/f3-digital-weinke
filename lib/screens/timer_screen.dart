@@ -131,11 +131,14 @@ class _TimerScreenState extends State<TimerScreen> {
     await _tts.speak(text);
   }
 
-  /// Which block a given exercise belongs to determines its call style — the
-  /// Q's live call, not a fixed Exicon property (see CallStyle's doc comment).
+  /// Resolves via [WorkoutBlock.callStyleFor]: the Q's explicit per-exercise
+  /// override, else what that exercise's own Exicon description suggests
+  /// (e.g. "OYO", "in cadence"), else the containing block's own default.
   CallStyle _callStyleFor(String exerciseId, WorkoutPlan plan) {
     for (final b in plan.blocks) {
-      if (b.exercises.any((e) => e.id == exerciseId)) return b.callStyle;
+      if (b.exercises.any((e) => e.id == exerciseId)) {
+        return b.callStyleFor(exerciseId);
+      }
     }
     return CallStyle.onYourOwn;
   }

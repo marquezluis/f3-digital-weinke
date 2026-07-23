@@ -768,6 +768,8 @@ class _SwipableExerciseCard extends StatelessWidget {
   final int exerciseIndex;
   final VoidCallback onSwap;
   final String note;
+  final CallStyle callStyle;
+  final bool hasCallStyleOverride;
 
   const _SwipableExerciseCard({
     super.key,
@@ -776,7 +778,69 @@ class _SwipableExerciseCard extends StatelessWidget {
     required this.exerciseIndex,
     required this.onSwap,
     this.note = '',
+    this.callStyle = CallStyle.onYourOwn,
+    this.hasCallStyleOverride = false,
   });
+
+  void _editCallStyle(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: context.f3card,
+        title: Text('How should PAX count this?',
+            style: TextStyle(color: context.f3textPrimary, fontSize: 16)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (hasCallStyleOverride)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading:
+                    Icon(Icons.undo_rounded, color: context.f3textSecondary),
+                title: Text('Use block default',
+                    style: TextStyle(color: context.f3textPrimary)),
+                onTap: () {
+                  context.read<CurrentWorkoutService>()
+                      .setExerciseCallStyleInDraftBlock(
+                          blockIndex, exercise.id, null);
+                  Navigator.pop(context);
+                },
+              ),
+            ...CallStyle.values.map((style) {
+              final selected = callStyle == style;
+              return ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(
+                  selected
+                      ? Icons.radio_button_checked_rounded
+                      : Icons.radio_button_off_rounded,
+                  color: selected ? F3Colors.accent : context.f3textMuted,
+                ),
+                title: Text(style.displayName,
+                    style: TextStyle(
+                        color:
+                            selected ? F3Colors.accent : context.f3textPrimary,
+                        fontWeight:
+                            selected ? FontWeight.w800 : FontWeight.normal)),
+                onTap: () {
+                  context.read<CurrentWorkoutService>()
+                      .setExerciseCallStyleInDraftBlock(
+                          blockIndex, exercise.id, style);
+                  Navigator.pop(context);
+                },
+              );
+            }),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('CANCEL'),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -844,37 +908,78 @@ class _SwipableExerciseCard extends StatelessWidget {
               ));
             },
           ),
-          GestureDetector(
-            onTap: () => _editNote(context, workoutSvc),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(4, 4, 4, 0),
-              child: Row(children: [
-                Icon(
-                  note.isEmpty
-                      ? Icons.note_add_outlined
-                      : Icons.sticky_note_2_rounded,
-                  size: 13,
-                  color: note.isEmpty ? context.f3textMuted : F3Colors.accent,
-                ),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: Text(
-                    note.isEmpty ? 'Add Q note…' : note,
-                    style: TextStyle(
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 4, 4, 0),
+            child: Row(children: [
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => _editNote(context, workoutSvc),
+                  child: Row(children: [
+                    Icon(
+                      note.isEmpty
+                          ? Icons.note_add_outlined
+                          : Icons.sticky_note_2_rounded,
+                      size: 13,
                       color:
                           note.isEmpty ? context.f3textMuted : F3Colors.accent,
-                      fontSize: 11,
-                      fontStyle:
-                          note.isEmpty ? FontStyle.italic : FontStyle.normal,
-                      fontWeight:
-                          note.isEmpty ? FontWeight.normal : FontWeight.w600,
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        note.isEmpty ? 'Add Q note…' : note,
+                        style: TextStyle(
+                          color: note.isEmpty
+                              ? context.f3textMuted
+                              : F3Colors.accent,
+                          fontSize: 11,
+                          fontStyle: note.isEmpty
+                              ? FontStyle.italic
+                              : FontStyle.normal,
+                          fontWeight: note.isEmpty
+                              ? FontWeight.normal
+                              : FontWeight.w600,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ]),
                 ),
-              ]),
-            ),
+              ),
+              const SizedBox(width: 6),
+              GestureDetector(
+                onTap: () => _editCallStyle(context),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: hasCallStyleOverride
+                        ? F3Colors.accent.withValues(alpha: 0.18)
+                        : context.f3divider.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(
+                        color: hasCallStyleOverride
+                            ? F3Colors.accent.withValues(alpha: 0.5)
+                            : Colors.transparent),
+                  ),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(Icons.campaign_rounded,
+                        size: 10,
+                        color: hasCallStyleOverride
+                            ? F3Colors.accent
+                            : context.f3textMuted),
+                    const SizedBox(width: 3),
+                    Text(callStyle.displayName,
+                        style: TextStyle(
+                            color: hasCallStyleOverride
+                                ? F3Colors.accent
+                                : context.f3textMuted,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700)),
+                  ]),
+                ),
+              ),
+            ]),
           ),
         ],
       ),
@@ -1925,6 +2030,9 @@ class _BlockSection extends StatelessWidget {
                       exerciseIndex: ei,
                       onSwap: () => onSwap(ex),
                       note: block.noteFor(ex.id),
+                      callStyle: block.callStyleFor(ex.id),
+                      hasCallStyleOverride:
+                          block.exerciseCallStyles.containsKey(ex.id),
                     ),
                   ),
                 ],

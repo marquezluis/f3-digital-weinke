@@ -79,6 +79,25 @@ class CurrentWorkoutService extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Sets (or clears, if [style] is null) the Q's explicit call-style
+  /// override for one exercise — distinct from the block's own overall
+  /// [setDraftBlockCallStyle] default.
+  void setExerciseCallStyleInDraftBlock(
+      int blockIndex, String exerciseId, CallStyle? style) {
+    if (_draftPlan == null) return;
+    final newBlocks = List<WorkoutBlock>.from(_draftPlan!.blocks);
+    if (blockIndex < 0 || blockIndex >= newBlocks.length) return;
+    newBlocks[blockIndex] =
+        newBlocks[blockIndex].copyWithExerciseCallStyle(exerciseId, style);
+    _draftPlan = WorkoutPlan(
+      id: _draftPlan!.id,
+      generatedAt: _draftPlan!.generatedAt,
+      blocks: newBlocks,
+      settings: _draftPlan!.settings,
+    );
+    notifyListeners();
+  }
+
   /// Rename a block in the draft plan.
   void renameDraftBlock(int blockIndex, String newLabel) {
     if (_draftPlan == null) return;
