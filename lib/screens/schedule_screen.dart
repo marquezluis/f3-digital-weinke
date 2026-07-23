@@ -1018,7 +1018,17 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
           context.read<F3ApiService>().takeQ(eventInstanceId: id, userId: uid),
       AppLocalizations.of(context)!.scheduleTakeQSuccess,
     );
-    if (_flash != null && !_flash!.toLowerCase().contains('fail')) {
+    if (_flash != null && !_flash!.toLowerCase().contains('fail') && mounted) {
+      // qF3Name/userIsQ are a snapshot from whenever this event was last
+      // fetched — never update themselves, so the Take Q/Drop Q buttons
+      // (and the "Who's in" Q tag) would otherwise stay stale until the
+      // whole card is closed and reopened. Take Q also grants attendance
+      // server-side, so _attending flips too.
+      final myName = context.read<AppProfileService>().displayName;
+      setState(() {
+        _attending = true;
+        _event = _event.copyWith(userIsQ: true, qF3Name: myName);
+      });
       _scheduleReminders(isQ: true);
       await _autoRepostPreblastIfNeeded();
     }
@@ -1037,6 +1047,11 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
     if (_flash != null && !_flash!.toLowerCase().contains('fail')) {
       final id = widget.event.numericId;
       if (id != null) NotificationService().cancelEventReminders(id);
+      // Same staleness fix as _takeQ — see there. removeQ keeps the PAX
+      // attendance record (per its own docs), so _attending is untouched.
+      setState(() {
+        _event = _event.copyWith(userIsQ: false, qF3Name: '');
+      });
       await _autoRepostPreblastIfNeeded();
     }
   }

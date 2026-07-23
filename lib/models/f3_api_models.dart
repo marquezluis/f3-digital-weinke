@@ -31,8 +31,7 @@ class F3UserProfile {
   /// flat name.
   factory F3UserProfile.fromJson(Map<String, dynamic> json) {
     final wrapper = json['profile'] ?? json['user'];
-    final data =
-        wrapper is Map<String, dynamic> ? wrapper : json;
+    final data = wrapper is Map<String, dynamic> ? wrapper : json;
     String? str(dynamic v) {
       final s = v?.toString();
       return (s == null || s.isEmpty || s == 'null') ? null : s;
@@ -85,8 +84,9 @@ class F3WeeklyWorkout {
   }
 
   /// "Tue"
-  String get displayWeekday =>
-      weekday.length >= 3 ? weekday[0].toUpperCase() + weekday.substring(1, 3) : weekday;
+  String get displayWeekday => weekday.length >= 3
+      ? weekday[0].toUpperCase() + weekday.substring(1, 3)
+      : weekday;
 }
 
 class F3Location {
@@ -165,6 +165,7 @@ class F3EventInstance {
   final String? locationName;
   final String? eventTypeName;
   final String? preblast;
+
   /// The server's own "has a preblast been posted" signal. Prefer this over
   /// `(preblast ?? '').isNotEmpty` — calendar-home-schedule (Schedule's main
   /// fetch) sends this flag but never sends the actual preblast text, so
@@ -196,10 +197,14 @@ class F3EventInstance {
   /// Returns a copy with the given fields replaced — used to fold a
   /// just-posted or freshly-fetched preblast into an event instance that
   /// otherwise came from calendar-home-schedule (which never sends the
-  /// preblast text itself).
+  /// preblast text itself), and to reflect a Take Q/Drop Q the user just did
+  /// (qF3Name/userIsQ are otherwise a snapshot from whenever this event was
+  /// last fetched, and never update themselves).
   F3EventInstance copyWith({
     String? preblast,
     bool? hasPreblast,
+    String? qF3Name,
+    bool? userIsQ,
   }) =>
       F3EventInstance(
         id: id,
@@ -209,14 +214,14 @@ class F3EventInstance {
         orgId: orgId,
         orgName: orgName,
         startTime: startTime,
-        qF3Name: qF3Name,
+        qF3Name: qF3Name ?? this.qF3Name,
         locationName: locationName,
         eventTypeName: eventTypeName,
         preblast: preblast ?? this.preblast,
         hasPreblast: hasPreblast ?? this.hasPreblast,
         hcCount: hcCount,
         userAttending: userAttending,
-        userIsQ: userIsQ,
+        userIsQ: userIsQ ?? this.userIsQ,
       );
 
   bool get hasQ => qF3Name != null && qF3Name!.isNotEmpty;
@@ -270,9 +275,11 @@ class F3EventInstance {
       orgId: json['orgId'] is int
           ? json['orgId'] as int
           : int.tryParse(str(json['orgId']) ?? ''),
-      orgName: str(json['orgName'] ?? (json['org'] is Map ? json['org']['name'] : null)),
+      orgName: str(
+          json['orgName'] ?? (json['org'] is Map ? json['org']['name'] : null)),
       startTime: str(json['startTime']),
-      qF3Name: str(json['plannedQs'] ?? (json['qUser'] is Map ? json['qUser']['f3Name'] : null)),
+      qF3Name: str(json['plannedQs'] ??
+          (json['qUser'] is Map ? json['qUser']['f3Name'] : null)),
       locationName:
           str(json['location'] is Map ? json['location']['name'] : null),
       eventTypeName: typeName,

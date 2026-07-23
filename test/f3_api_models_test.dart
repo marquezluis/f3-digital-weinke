@@ -68,5 +68,26 @@ void main() {
       expect(copy.preblast, e.preblast);
       expect(copy.hasPreblast, e.hasPreblast);
     });
+
+    test('reflects a just-taken Q — qF3Name/userIsQ are otherwise a stale '
+        'snapshot from whenever the event was last fetched', () {
+      final e = F3EventInstance.fromJson({'id': '1'});
+      expect(e.hasQ, isFalse);
+      expect(e.userIsQ, isFalse);
+
+      final afterTakeQ = e.copyWith(userIsQ: true, qF3Name: 'PermVac');
+      expect(afterTakeQ.hasQ, isTrue);
+      expect(afterTakeQ.userIsQ, isTrue);
+      expect(afterTakeQ.qF3Name, 'PermVac');
+    });
+
+    test('reflects a Drop Q — qF3Name clears so hasQ goes back to false', () {
+      final e = F3EventInstance.fromJson({'id': '1', 'plannedQs': 'PermVac'});
+      expect(e.hasQ, isTrue);
+
+      final afterDropQ = e.copyWith(userIsQ: false, qF3Name: '');
+      expect(afterDropQ.hasQ, isFalse);
+      expect(afterDropQ.userIsQ, isFalse);
+    });
   });
 }
