@@ -541,11 +541,6 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                   onPressed: () => _quickWarmup(plan),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.shield_rounded),
-                  tooltip: 'Audit with Spartan',
-                  onPressed: () => _auditPlan(plan),
-                ),
-                IconButton(
                   icon: const Icon(Icons.share_rounded),
                   tooltip: 'Share as Preblast',
                   onPressed: () => _shareWeinke(plan),
@@ -618,6 +613,18 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
               ? _BottomActions(
                   onNewBeatdown: _confirmNewBeatdown,
                   onStartWorkout: () => _startWorkout(plan),
+                )
+              : null,
+          // Matches the shield FAB pattern used for Spartan elsewhere in the
+          // app (shell_screen.dart) — was crowding the AppBar's icon row.
+          floatingActionButton: plan != null
+              ? FloatingActionButton(
+                  heroTag: 'weinkeSpartanFab',
+                  backgroundColor: F3Colors.catCoupon,
+                  foregroundColor: Colors.white,
+                  tooltip: 'Audit with Spartan',
+                  onPressed: () => _auditPlan(plan),
+                  child: const Icon(Icons.shield_rounded),
                 )
               : null,
         );
