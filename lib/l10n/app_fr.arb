@@ -149,6 +149,7 @@
   "scheduleWhosIn": "QUI VIENT",
   "scheduleDirectionsTooltip": "Itinéraire vers cet AO",
   "scheduleShareTooltip": "Partager cet entraînement",
+  "scheduleCloseTooltip": "Fermer",
   "scheduleShareTagline": "Partagé depuis Digital Weinke — l'appli F3 Nation",
   "scheduleApiNotConfiguredTitle": "L'API F3 Nation n'est pas configurée",
   "scheduleApiNotConfiguredSub": "Cette version n'est pas connectée à l'API F3 Nation.",

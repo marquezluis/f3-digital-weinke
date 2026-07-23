@@ -1173,204 +1173,223 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
       padding: EdgeInsets.only(
         left: 20,
         right: 20,
-        top: 16,
+        top: 8,
         bottom: MediaQuery.of(context).viewInsets.bottom + 24,
       ),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              margin: const EdgeInsets.only(bottom: 16),
-              decoration: BoxDecoration(
-                  color: context.f3divider,
-                  borderRadius: BorderRadius.circular(2)),
-            ),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Text(
-                      e.orgName ??
-                          e.locationName ??
-                          l10n.scheduleBeatdownFallback,
-                      style: TextStyle(
-                          color: context.f3textPrimary,
-                          fontSize: 20,
-                          fontWeight: FontWeight.w900)),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 40,
+            height: 4,
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(
+                color: context.f3divider,
+                borderRadius: BorderRadius.circular(2)),
+          ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Tooltip(
+                message: l10n.scheduleCloseTooltip,
+                child: IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.arrow_back_rounded, size: 20),
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
                 ),
-                if (_location != null) ...[
-                  Tooltip(
-                    message: l10n.scheduleDirectionsTooltip,
-                    child: IconButton(
-                      onPressed: _getDirections,
-                      icon: const Icon(Icons.directions_rounded, size: 20),
-                      visualDensity: VisualDensity.compact,
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                ],
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                    e.orgName ??
+                        e.locationName ??
+                        l10n.scheduleBeatdownFallback,
+                    style: TextStyle(
+                        color: context.f3textPrimary,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900)),
+              ),
+              if (_location != null) ...[
                 Tooltip(
-                  message: l10n.scheduleShareTooltip,
+                  message: l10n.scheduleDirectionsTooltip,
                   child: IconButton(
-                    onPressed: _share,
-                    icon: const Icon(Icons.ios_share_rounded, size: 20),
+                    onPressed: _getDirections,
+                    icon: const Icon(Icons.directions_rounded, size: 20),
                     visualDensity: VisualDensity.compact,
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
                   ),
                 ),
+                const SizedBox(width: 4),
               ],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              [
-                '${e.date.month}/${e.date.day}',
-                if (e.startTime != null) e.startTime,
-                e.hasQ
-                    ? l10n.scheduleQLabel(e.qF3Name ?? l10n.scheduleQSet)
-                    : l10n.scheduleQNeeded,
-                if ((e.hcCount ?? 0) > 0) l10n.scheduleHcCount(e.hcCount ?? 0),
-              ].join(' · '),
-              style: TextStyle(color: context.f3textSecondary, fontSize: 13),
-            ),
-            if ((_attendance ?? const []).isNotEmpty) ...[
-              const SizedBox(height: 10),
-              Text(l10n.scheduleWhosIn,
-                  style: TextStyle(
-                      color: context.f3textMuted,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1.2)),
-              const SizedBox(height: 6),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: _attendance!.map((a) {
-                  final name = a.f3Name ?? '?';
-                  final label = a.isQ
-                      ? '$name (Q)'
-                      : a.isCoQ
-                          ? '$name (Co-Q)'
-                          : name;
-                  return Chip(
-                    label: Text(label, style: const TextStyle(fontSize: 12)),
-                    visualDensity: VisualDensity.compact,
-                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    backgroundColor: a.isQ || a.isCoQ
-                        ? F3Colors.accent.withValues(alpha: 0.15)
-                        : context.f3card,
-                    side: BorderSide(color: context.f3divider),
-                  );
-                }).toList(),
+              Tooltip(
+                message: l10n.scheduleShareTooltip,
+                child: IconButton(
+                  onPressed: _share,
+                  icon: const Icon(Icons.ios_share_rounded, size: 20),
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
               ),
             ],
-            const SizedBox(height: 16),
-            if (e.hasPreblast) ...[
-              Text(l10n.schedulePreblastHeader,
-                  style: TextStyle(
-                      color: context.f3textMuted,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1.2)),
-              const SizedBox(height: 6),
-              if ((e.preblast ?? '').isNotEmpty)
-                Text(e.preblast!,
-                    style: TextStyle(
-                        color: context.f3textSecondary,
-                        fontSize: 14,
-                        height: 1.4))
-              else if (_loadingPreblast)
-                SizedBox(
-                  height: 16,
-                  width: 16,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2, color: context.f3textMuted),
-                )
-              else
-                Text(l10n.schedulePreblastUnavailable,
-                    style: TextStyle(color: context.f3textMuted, fontSize: 13)),
-              const SizedBox(height: 16),
-            ],
-            if (!_linked)
-              Text(l10n.scheduleSignInToHc,
-                  style: TextStyle(color: context.f3textMuted, fontSize: 12))
-            else ...[
+          ),
+          const SizedBox(height: 4),
+          Text(
+            [
+              '${e.date.month}/${e.date.day}',
+              if (e.startTime != null) e.startTime,
+              e.hasQ
+                  ? l10n.scheduleQLabel(e.qF3Name ?? l10n.scheduleQSet)
+                  : l10n.scheduleQNeeded,
+              if ((e.hcCount ?? 0) > 0) l10n.scheduleHcCount(e.hcCount ?? 0),
+            ].join(' · '),
+            style: TextStyle(color: context.f3textSecondary, fontSize: 13),
+          ),
+          if ((_attendance ?? const []).isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Text(l10n.scheduleWhosIn,
+                style: TextStyle(
+                    color: context.f3textMuted,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.2)),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: _attendance!.map((a) {
+                final name = a.f3Name ?? '?';
+                final label = a.isQ
+                    ? '$name (Q)'
+                    : a.isCoQ
+                        ? '$name (Co-Q)'
+                        : name;
+                return Chip(
+                  label: Text(label, style: const TextStyle(fontSize: 12)),
+                  visualDensity: VisualDensity.compact,
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  backgroundColor: a.isQ || a.isCoQ
+                      ? F3Colors.accent.withValues(alpha: 0.15)
+                      : context.f3card,
+                  side: BorderSide(color: context.f3divider),
+                );
+              }).toList(),
+            ),
+          ],
+          const SizedBox(height: 16),
+          if (e.hasPreblast) ...[
+            Text(l10n.schedulePreblastHeader,
+                style: TextStyle(
+                    color: context.f3textMuted,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.2)),
+            const SizedBox(height: 6),
+            if ((e.preblast ?? '').isNotEmpty)
+              ConstrainedBox(
+                // A long preblast scrolls in its own box instead of
+                // growing the whole card — keeps the card's own
+                // drag-to-dismiss usable regardless of text length.
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.28,
+                ),
+                child: SingleChildScrollView(
+                  child: Text(e.preblast!,
+                      style: TextStyle(
+                          color: context.f3textSecondary,
+                          fontSize: 14,
+                          height: 1.4)),
+                ),
+              )
+            else if (_loadingPreblast)
               SizedBox(
-                width: double.infinity,
-                child: _attending
-                    ? OutlinedButton.icon(
-                        onPressed: _busy ? null : _unhc,
-                        icon: const Icon(Icons.person_remove_rounded, size: 18),
-                        label: Text(l10n.scheduleUnHc),
-                      )
-                    : ElevatedButton.icon(
-                        onPressed: _busy ? null : _hc,
-                        icon: const Icon(Icons.how_to_reg_rounded),
-                        label: Text(l10n.scheduleHcImIn),
-                      ),
-              ),
-              const SizedBox(height: 8),
-              Row(children: [
-                if (!e.hasQ)
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _busy ? null : _takeQ,
-                      icon: const Icon(Icons.sports_rounded, size: 18),
-                      label: Text(l10n.scheduleTakeQ),
+                height: 16,
+                width: 16,
+                child: CircularProgressIndicator(
+                    strokeWidth: 2, color: context.f3textMuted),
+              )
+            else
+              Text(l10n.schedulePreblastUnavailable,
+                  style: TextStyle(color: context.f3textMuted, fontSize: 13)),
+            const SizedBox(height: 16),
+          ],
+          if (!_linked)
+            Text(l10n.scheduleSignInToHc,
+                style: TextStyle(color: context.f3textMuted, fontSize: 12))
+          else ...[
+            SizedBox(
+              width: double.infinity,
+              child: _attending
+                  ? OutlinedButton.icon(
+                      onPressed: _busy ? null : _unhc,
+                      icon: const Icon(Icons.person_remove_rounded, size: 18),
+                      label: Text(l10n.scheduleUnHc),
+                    )
+                  : ElevatedButton.icon(
+                      onPressed: _busy ? null : _hc,
+                      icon: const Icon(Icons.how_to_reg_rounded),
+                      label: Text(l10n.scheduleHcImIn),
                     ),
-                  ),
-                if (e.userIsQ)
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _busy ? null : _dropQ,
-                      icon: const Icon(Icons.remove_circle_outline_rounded,
-                          size: 18),
-                      label: Text(l10n.scheduleDropQ),
-                    ),
-                  ),
-                if (!e.hasQ || e.userIsQ) const SizedBox(width: 8),
+            ),
+            const SizedBox(height: 8),
+            Row(children: [
+              if (!e.hasQ)
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: _busy ? null : _postPreblast,
-                    icon: const Icon(Icons.campaign_rounded, size: 18),
-                    label: Text(e.hasPreblast
-                        ? l10n.scheduleEditPreblast
-                        : l10n.schedulePostPreblast),
+                    onPressed: _busy ? null : _takeQ,
+                    icon: const Icon(Icons.sports_rounded, size: 18),
+                    label: Text(l10n.scheduleTakeQ),
                   ),
                 ),
-              ]),
-              if (e.userIsQ) ...[
-                const SizedBox(height: 8),
-                SizedBox(
-                  width: double.infinity,
+              if (e.userIsQ)
+                Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: _busy ? null : _buildWeinke,
-                    icon: const Icon(Icons.fitness_center_rounded, size: 18),
-                    label: Text(l10n.scheduleBuildWeinke),
+                    onPressed: _busy ? null : _dropQ,
+                    icon: const Icon(Icons.remove_circle_outline_rounded,
+                        size: 18),
+                    label: Text(l10n.scheduleDropQ),
                   ),
                 ),
-              ],
-            ],
-            if (_flash != null) ...[
-              const SizedBox(height: 12),
-              Text(_flash!,
-                  style: const TextStyle(
-                      color: F3Colors.accent,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600)),
-            ],
-            if (_busy) ...[
-              const SizedBox(height: 12),
-              const Center(child: CircularProgressIndicator()),
+              if (!e.hasQ || e.userIsQ) const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _busy ? null : _postPreblast,
+                  icon: const Icon(Icons.campaign_rounded, size: 18),
+                  label: Text(e.hasPreblast
+                      ? l10n.scheduleEditPreblast
+                      : l10n.schedulePostPreblast),
+                ),
+              ),
+            ]),
+            if (e.userIsQ) ...[
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _busy ? null : _buildWeinke,
+                  icon: const Icon(Icons.fitness_center_rounded, size: 18),
+                  label: Text(l10n.scheduleBuildWeinke),
+                ),
+              ),
             ],
           ],
-        ),
+          if (_flash != null) ...[
+            const SizedBox(height: 12),
+            Text(_flash!,
+                style: const TextStyle(
+                    color: F3Colors.accent,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600)),
+          ],
+          if (_busy) ...[
+            const SizedBox(height: 12),
+            const Center(child: CircularProgressIndicator()),
+          ],
+        ],
       ),
     );
   }

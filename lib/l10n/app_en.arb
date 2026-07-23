@@ -290,6 +290,7 @@
   "scheduleWhosIn": "WHO'S IN",
   "scheduleDirectionsTooltip": "Get directions to this AO",
   "scheduleShareTooltip": "Share this beatdown",
+  "scheduleCloseTooltip": "Close",
   "scheduleShareTagline": "Shared from Digital Weinke — the F3 Nation app",
   "scheduleApiNotConfiguredTitle": "F3 Nation API not configured",
   "scheduleApiNotConfiguredSub": "This build isn't connected to the F3 Nation API.",

@@ -958,6 +958,12 @@ abstract class AppLocalizations {
   /// **'Share this beatdown'**
   String get scheduleShareTooltip;
 
+  /// No description provided for @scheduleCloseTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get scheduleCloseTooltip;
+
   /// No description provided for @scheduleShareTagline.
   ///
   /// In en, this message translates to:

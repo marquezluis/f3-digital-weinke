@@ -508,6 +508,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get scheduleShareTooltip => 'Compartir este entrenamiento';
 
   @override
+  String get scheduleCloseTooltip => 'Cerrar';
+
+  @override
   String get scheduleShareTagline =>
       'Compartido desde Digital Weinke — la app de F3 Nation';
 
