@@ -13,6 +13,7 @@
 import 'package:uuid/uuid.dart';
 import '../models/exercise.dart';
 import '../models/workout_plan.dart';
+import '../models/workout_settings.dart';
 import 'exercise_service.dart';
 
 class WeinkeExporter {
@@ -236,6 +237,43 @@ class WeinkeExporter {
 
   static bool hasCoupon(WorkoutPlan plan) =>
       plan.blocks.any((b) => b.category == ExerciseCategory.coupon);
+
+  /// Infers which [CouponMode] a loaded/parsed plan actually reflects.
+  ///
+  /// CouponMode is a persisted *global* preference (WorkoutSettings), not a
+  /// property of any one plan — so after [parseSummary] preloads someone
+  /// else's existing plan as the draft, the coupon-mode dropdown otherwise
+  /// keeps showing whatever this device's own last preference was, with no
+  /// connection to what's actually in the loaded blocks. That mismatch is
+  /// dangerous, not just confusing: hitting "Regenerate" would silently
+  /// apply the wrong mode to a plan the Q thinks they're just tweaking.
+  /// Returns null when the structure doesn't clearly match one mode (rare —
+  /// e.g. a custom-edited plan with an odd block mix), in which case the
+  /// caller should leave the existing preference alone rather than guess.
+  static CouponMode? inferCouponMode(WorkoutPlan plan) {
+    final thangBlocks = plan.blocks
+        .where((b) =>
+            (b.category == ExerciseCategory.bodyweight ||
+                b.category == ExerciseCategory.coupon) &&
+            b.exercises.isNotEmpty)
+        .toList();
+    if (thangBlocks.isEmpty) return null;
+
+    bool hasBoth(WorkoutBlock b) =>
+        b.exercises.any((e) => e.category == ExerciseCategory.bodyweight) &&
+        b.exercises.any((e) => e.category == ExerciseCategory.coupon);
+    if (thangBlocks.any(hasBoth)) return CouponMode.mixedInterleaved;
+
+    final hasBwOnly = thangBlocks.any(
+        (b) => b.exercises.every((e) => e.category != ExerciseCategory.coupon));
+    final hasCouponOnly = thangBlocks.any(
+        (b) => b.exercises.every((e) => e.category == ExerciseCategory.coupon));
+
+    if (hasBwOnly && hasCouponOnly) return CouponMode.mixed;
+    if (hasCouponOnly) return CouponMode.coupons;
+    if (hasBwOnly) return CouponMode.noCoupons;
+    return null;
+  }
 
   // Derive a short action hint from the exercise description.
   static String _hint(Exercise ex) {

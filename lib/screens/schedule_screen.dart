@@ -19,6 +19,7 @@ import '../services/current_workout_service.dart';
 import '../services/exercise_service.dart';
 import '../services/f3_api_service.dart';
 import '../services/notification_service.dart';
+import '../services/settings_service.dart';
 import '../services/weinke_exporter.dart';
 import '../theme/app_theme.dart';
 import '../widgets/filter_pill.dart';
@@ -1186,6 +1187,20 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
       );
       if (parsedPlan != null) {
         context.read<CurrentWorkoutService>().setDraftPlan(parsedPlan);
+        // The coupon-mode dropdown is a global saved preference, not part
+        // of any one plan — without this it can show a completely
+        // different mode than what's actually in the blocks just loaded
+        // (e.g. "Mixed — Same Block" displayed while the real plan has two
+        // separate Bodyweight/Coupons blocks), and hitting Regenerate would
+        // silently apply the wrong one.
+        final inferred = WeinkeExporter.inferCouponMode(parsedPlan);
+        if (inferred != null) {
+          final settingsSvc = context.read<SettingsService>();
+          if (settingsSvc.settings.couponMode != inferred) {
+            await settingsSvc.update(
+                settingsSvc.settings.copyWith(couponMode: inferred));
+          }
+        }
       } else {
         referenceOnly = existingDraft.plan;
       }

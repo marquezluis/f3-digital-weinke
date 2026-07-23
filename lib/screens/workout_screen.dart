@@ -99,6 +99,77 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     _generate();
   }
 
+  /// A real blank slate — three empty blocks (Warm-O-Rama/Thang/Mary) with
+  /// no exercises, for a Q who wants to build every pick themselves rather
+  /// than start from a random generated plan. Existing "Add Exercise" (per
+  /// block) is how they'd then fill each one in.
+  void _newBeatdownBlank() {
+    final settings = context.read<SettingsService>().settings;
+    final total = settings.durationMinutes;
+    final thangMinutes = (total - 15).clamp(5, total);
+    context.read<CurrentWorkoutService>().setDraftPlan(WorkoutPlan(
+          id: const Uuid().v4(),
+          generatedAt: DateTime.now(),
+          settings: settings,
+          blocks: [
+            const WorkoutBlock(
+              label: 'Warm-O-Rama',
+              category: ExerciseCategory.warmup,
+              exercises: [],
+              durationMinutes: 7,
+            ),
+            WorkoutBlock(
+              label: 'THE THANG',
+              category: ExerciseCategory.bodyweight,
+              exercises: const [],
+              durationMinutes: thangMinutes,
+            ),
+            const WorkoutBlock(
+              label: 'Mary',
+              category: ExerciseCategory.mary,
+              exercises: [],
+              durationMinutes: 8,
+            ),
+          ],
+        ));
+  }
+
+  Future<void> _confirmNewBeatdown() async {
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: context.f3card,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.bolt_rounded, color: F3Colors.accent),
+              title: const Text('Generate New'),
+              subtitle: const Text('Auto-picked exercises, same as usual'),
+              onTap: () => Navigator.pop(context, 'generate'),
+            ),
+            ListTile(
+              leading: Icon(Icons.crop_square_rounded,
+                  color: context.f3textSecondary),
+              title: const Text('Start Blank'),
+              subtitle: const Text('Empty blocks — you add every exercise'),
+              onTap: () => Navigator.pop(context, 'blank'),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    if (choice == 'generate') {
+      _newBeatdown();
+    } else if (choice == 'blank') {
+      _newBeatdownBlank();
+    }
+  }
+
   void _useAsPreblast(WorkoutPlan plan) {
     Navigator.pop(context, plan);
   }
@@ -545,7 +616,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
           // Bottom action area when a plan exists
           bottomNavigationBar: plan != null && !_generating
               ? _BottomActions(
-                  onNewBeatdown: _newBeatdown,
+                  onNewBeatdown: _confirmNewBeatdown,
                   onStartWorkout: () => _startWorkout(plan),
                 )
               : null,

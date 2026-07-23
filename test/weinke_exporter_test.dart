@@ -7,6 +7,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:f3_nation_app/models/exercise.dart';
 import 'package:f3_nation_app/models/workout_plan.dart';
+import 'package:f3_nation_app/models/workout_settings.dart';
 import 'package:f3_nation_app/services/exercise_service.dart';
 import 'package:f3_nation_app/services/weinke_exporter.dart';
 
@@ -116,6 +117,68 @@ THE THANG — Bodyweight (20 min) [bodyweight]
 ''';
       final parsed = WeinkeExporter.parseSummary(text, service)!;
       expect(parsed.blocks.single.exercises.single.id, 'merkin');
+    });
+  });
+
+  group('WeinkeExporter.inferCouponMode', () {
+    final coupon = _ex('sandbag', 'Sandbag Get-Up', ExerciseCategory.coupon);
+    final bw = _ex('merkin2', 'Merkin', ExerciseCategory.bodyweight);
+
+    WorkoutBlock block(String label, ExerciseCategory cat, List<Exercise> ex) =>
+        WorkoutBlock(
+            label: label,
+            category: cat,
+            exercises: ex,
+            durationMinutes: 20);
+
+    test('detects Mixed — Separate Blocks (two single-category blocks)', () {
+      final plan = WorkoutPlan(
+        id: 'p',
+        generatedAt: DateTime(2026, 1, 1),
+        blocks: [
+          block('THE THANG — Bodyweight', ExerciseCategory.bodyweight, [bw]),
+          block('THE THANG — Coupons', ExerciseCategory.coupon, [coupon]),
+        ],
+      );
+      expect(WeinkeExporter.inferCouponMode(plan), CouponMode.mixed);
+    });
+
+    test('detects Mixed — Same Block (one block with both categories)', () {
+      final plan = WorkoutPlan(
+        id: 'p',
+        generatedAt: DateTime(2026, 1, 1),
+        blocks: [
+          block('THE THANG', ExerciseCategory.bodyweight, [bw, coupon]),
+        ],
+      );
+      expect(WeinkeExporter.inferCouponMode(plan), CouponMode.mixedInterleaved);
+    });
+
+    test('detects No Coupons (single bodyweight-only block)', () {
+      final plan = WorkoutPlan(
+        id: 'p',
+        generatedAt: DateTime(2026, 1, 1),
+        blocks: [block('THE THANG', ExerciseCategory.bodyweight, [bw])],
+      );
+      expect(WeinkeExporter.inferCouponMode(plan), CouponMode.noCoupons);
+    });
+
+    test('detects Coupons Only (single coupon-only block)', () {
+      final plan = WorkoutPlan(
+        id: 'p',
+        generatedAt: DateTime(2026, 1, 1),
+        blocks: [block('THE THANG', ExerciseCategory.coupon, [coupon])],
+      );
+      expect(WeinkeExporter.inferCouponMode(plan), CouponMode.coupons);
+    });
+
+    test('returns null when there is no Thang-like block at all', () {
+      final plan = WorkoutPlan(
+        id: 'p',
+        generatedAt: DateTime(2026, 1, 1),
+        blocks: [block('Warm-O-Rama', ExerciseCategory.warmup, [_ex('ssh2', 'SSH', ExerciseCategory.warmup)])],
+      );
+      expect(WeinkeExporter.inferCouponMode(plan), isNull);
     });
   });
 }
