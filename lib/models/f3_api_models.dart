@@ -165,6 +165,12 @@ class F3EventInstance {
   final String? locationName;
   final String? eventTypeName;
   final String? preblast;
+  /// The server's own "has a preblast been posted" signal. Prefer this over
+  /// `(preblast ?? '').isNotEmpty` — calendar-home-schedule (Schedule's main
+  /// fetch) sends this flag but never sends the actual preblast text, so
+  /// text-presence alone can't tell a real "not posted yet" apart from
+  /// "posted, but this endpoint didn't include the text."
+  final bool hasPreblast;
   final int? hcCount;
   final bool userAttending;
   final bool userIsQ;
@@ -181,10 +187,37 @@ class F3EventInstance {
     this.locationName,
     this.eventTypeName,
     this.preblast,
+    this.hasPreblast = false,
     this.hcCount,
     this.userAttending = false,
     this.userIsQ = false,
   });
+
+  /// Returns a copy with the given fields replaced — used to fold a
+  /// just-posted or freshly-fetched preblast into an event instance that
+  /// otherwise came from calendar-home-schedule (which never sends the
+  /// preblast text itself).
+  F3EventInstance copyWith({
+    String? preblast,
+    bool? hasPreblast,
+  }) =>
+      F3EventInstance(
+        id: id,
+        eventId: eventId,
+        date: date,
+        name: name,
+        orgId: orgId,
+        orgName: orgName,
+        startTime: startTime,
+        qF3Name: qF3Name,
+        locationName: locationName,
+        eventTypeName: eventTypeName,
+        preblast: preblast ?? this.preblast,
+        hasPreblast: hasPreblast ?? this.hasPreblast,
+        hcCount: hcCount,
+        userAttending: userAttending,
+        userIsQ: userIsQ,
+      );
 
   bool get hasQ => qF3Name != null && qF3Name!.isNotEmpty;
   int? get numericId => int.tryParse(id);
@@ -244,6 +277,11 @@ class F3EventInstance {
           str(json['location'] is Map ? json['location']['name'] : null),
       eventTypeName: typeName,
       preblast: str(json['preblast']),
+      // Calendar-home-schedule sends `hasPreblast` but no text; byId sends
+      // the text (and `preblastTs`) but no `hasPreblast` key — covers both.
+      hasPreblast: json['hasPreblast'] == true ||
+          json['preblastTs'] != null ||
+          (str(json['preblast']) ?? '').isNotEmpty,
       hcCount: hc is int ? hc : int.tryParse(hc?.toString() ?? ''),
       userAttending: json['userAttending'] == true,
       userIsQ: json['userIsQ'] == true,

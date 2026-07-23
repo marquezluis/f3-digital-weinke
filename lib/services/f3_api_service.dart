@@ -132,6 +132,28 @@ class F3ApiService extends ChangeNotifier {
     return null;
   }
 
+  /// Generic authenticated DELETE. Returns (statusCode, decodedBodyOrNull).
+  Future<({int status, dynamic body})> _delete(
+    String path, {
+    String? bearerOverride,
+  }) async {
+    try {
+      final res = await http
+          .delete(Uri.parse('$_base$path'), headers: _headers(bearerOverride))
+          .timeout(const Duration(seconds: 15));
+      if (res.statusCode == 401 && bearerOverride != null) {
+        _markSessionInvalid();
+      }
+      dynamic decoded;
+      try {
+        decoded = res.body.isNotEmpty ? json.decode(res.body) : null;
+      } catch (_) {}
+      return (status: res.statusCode, body: decoded);
+    } catch (e) {
+      return (status: -1, body: e.toString());
+    }
+  }
+
   /// Generic authenticated POST. Returns (statusCode, decodedBodyOrNull).
   /// Used by the publish flow to write event instances and attendance.
   Future<({int status, dynamic body})> _post(
@@ -479,14 +501,16 @@ class F3ApiService extends ChangeNotifier {
     return 'Sign-up failed (${res.status}): ${res.body}';
   }
 
-  /// Remove the signed-in PAX's planned attendance (un-HC).
+  /// Remove the signed-in PAX's planned attendance (un-HC). Deletes the
+  /// whole attendance record — if they're Q, this drops the Q too, matching
+  /// the real F3 Nation route (`DELETE /attendance/event-instance/{id}/user/{id}`).
+  /// Use [removeQ] instead to step down from Q while staying HC'd.
   Future<String?> withdrawFromEvent({
     required int eventInstanceId,
     required int userId,
   }) async {
-    final res = await _post(
-      '/v1/attendance/remove-planned',
-      {'eventInstanceId': eventInstanceId, 'userId': userId},
+    final res = await _delete(
+      '/v1/attendance/event-instance/$eventInstanceId/user/$userId',
     );
     if (res.status == 200 || res.status == 201) return null;
     return 'Withdraw failed (${res.status}): ${res.body}';
@@ -503,6 +527,18 @@ class F3ApiService extends ChangeNotifier {
     );
     if (res.status == 200 || res.status == 201) return null;
     return 'Take-Q failed (${res.status}): ${res.body}';
+  }
+
+  /// Steps down from Q for an event, keeping the PAX's HC/attendance intact.
+  Future<String?> removeQ({
+    required int eventInstanceId,
+    required int userId,
+  }) async {
+    final res = await _delete(
+      '/v1/attendance/remove-q?eventInstanceId=$eventInstanceId&userId=$userId',
+    );
+    if (res.status == 200 || res.status == 201) return null;
+    return 'Remove-Q failed (${res.status}): ${res.body}';
   }
 
   /// Post/update the preblast (the plan announced before a beatdown). [orgId]
@@ -547,6 +583,15 @@ class F3ApiService extends ChangeNotifier {
     });
     if (res.status == 200 || res.status == 201) return null;
     return 'Preblast failed (${res.status}): ${res.body}';
+  }
+
+  /// Fetches one event instance's full record, including the actual
+  /// preblast text — unlike calendar-home-schedule (Schedule's main list
+  /// fetch), which only sends a `hasPreblast` boolean, never the text.
+  Future<F3EventInstance?> getEventInstanceById(int id) async {
+    final data = await _get('/v1/event-instance/id/$id');
+    if (data == null) return null;
+    return F3EventInstance.fromJson(data);
   }
 
   // ── Health check ─────────────────────────────────────────────────────────

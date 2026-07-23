@@ -1000,6 +1000,12 @@ abstract class AppLocalizations {
   /// **'You\'ve got the Q. Time to build a Weinke.'**
   String get scheduleTakeQSuccess;
 
+  /// No description provided for @scheduleDropQSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Q dropped. Still HC\'d for the beatdown.'**
+  String get scheduleDropQSuccess;
+
   /// No description provided for @schedulePostPreblast.
   ///
   /// In en, this message translates to:
@@ -1017,6 +1023,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'PREBLAST'**
   String get schedulePreblastHeader;
+
+  /// No description provided for @schedulePreblastUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Posted, but the text isn\'t available right now.'**
+  String get schedulePreblastUnavailable;
 
   /// No description provided for @scheduleSignInToHc.
   ///
@@ -1041,6 +1053,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Take Q'**
   String get scheduleTakeQ;
+
+  /// No description provided for @scheduleDropQ.
+  ///
+  /// In en, this message translates to:
+  /// **'Drop Q'**
+  String get scheduleDropQ;
 
   /// No description provided for @schedulePreblastHint.
   ///

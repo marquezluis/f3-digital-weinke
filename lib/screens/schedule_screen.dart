@@ -843,12 +843,40 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
   late bool _attending = widget.event.userAttending;
   List<F3AttendanceRecord>? _attendance; // null while loading
   F3Location? _location; // null while loading or if unresolved
+  // The event, refined as richer data comes in (a freshly-fetched preblast
+  // text, or one just posted). Starts as whatever Schedule's list fetch had.
+  late F3EventInstance _event = widget.event;
+  bool _loadingPreblast = false;
 
   @override
   void initState() {
     super.initState();
     _loadAttendance();
     _loadLocation();
+    _refreshPreblastIfNeeded();
+  }
+
+  /// calendar-home-schedule (Schedule's main fetch) only ever sends a
+  /// `hasPreblast` boolean, never the actual text — so if the server says a
+  /// preblast exists but we don't have its text yet, fetch the one event
+  /// that actually carries it.
+  Future<void> _refreshPreblastIfNeeded() async {
+    final id = _event.numericId;
+    if (id == null || !_event.hasPreblast || (_event.preblast ?? '').isNotEmpty) {
+      return;
+    }
+    setState(() => _loadingPreblast = true);
+    final fresh = await context.read<F3ApiService>().getEventInstanceById(id);
+    if (!mounted) return;
+    setState(() {
+      _loadingPreblast = false;
+      if (fresh != null) {
+        _event = _event.copyWith(
+          preblast: fresh.preblast,
+          hasPreblast: fresh.hasPreblast,
+        );
+      }
+    });
   }
 
   Future<void> _loadAttendance() async {
@@ -884,7 +912,7 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
   }
 
   void _share() {
-    final e = widget.event;
+    final e = _event;
     final l10n = AppLocalizations.of(context)!;
     final where = e.orgName ?? e.locationName ?? l10n.scheduleBeatdownFallback;
     final lines = [
@@ -975,6 +1003,21 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
     }
   }
 
+  /// Steps down from Q only — stays HC'd. Distinct from [_unhc], which drops
+  /// attendance entirely (and the Q along with it, since it deletes the
+  /// whole attendance record).
+  Future<void> _dropQ() async {
+    await _run(
+      (id, uid, token) => context.read<F3ApiService>().removeQ(
+          eventInstanceId: id, userId: uid),
+      AppLocalizations.of(context)!.scheduleDropQSuccess,
+    );
+    if (_flash != null && !_flash!.toLowerCase().contains('fail')) {
+      final id = widget.event.numericId;
+      if (id != null) NotificationService().cancelEventReminders(id);
+    }
+  }
+
   /// Immediate reminder scheduling right after HC/take-Q, so it doesn't wait
   /// for Home's next reconcile pass to pick it up.
   void _scheduleReminders({bool? isQ}) {
@@ -987,7 +1030,7 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
           widget.event.locationName ??
           AppLocalizations.of(context)!.scheduleBeatdownFallback,
       isQ: isQ ?? widget.event.userIsQ,
-      hasPreblast: (widget.event.preblast ?? '').isNotEmpty,
+      hasPreblast: _event.hasPreblast,
     );
   }
 
@@ -1009,7 +1052,7 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
 
   Future<void> _postPreblast({String? initialPlan, bool initialCouponNeeded = false}) async {
     final l10n = AppLocalizations.of(context)!;
-    final e = widget.event;
+    final e = _event;
     final myName = context.read<AppProfileService>().displayName;
     final draft = await showModalBottomSheet<_PreblastDraft>(
       context: context,
@@ -1055,6 +1098,12 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
       setState(() {
         _busy = false;
         _flash = err ?? l10n.schedulePreblastPosted;
+        // Reflect the post immediately — calendar-home-schedule's next
+        // refetch still won't carry the text (only `hasPreblast`), so
+        // without this the button silently reverts to "Post Preblast".
+        if (err == null) {
+          _event = _event.copyWith(preblast: text, hasPreblast: true);
+        }
       });
     }
     // A posted preblast means the Q is running this beatdown — set their
@@ -1102,7 +1151,7 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final e = widget.event;
+    final e = _event;
     return Padding(
       padding: EdgeInsets.only(
         left: 20,
@@ -1202,7 +1251,7 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
             ),
           ],
           const SizedBox(height: 16),
-          if ((e.preblast ?? '').isNotEmpty) ...[
+          if (e.hasPreblast) ...[
             Text(l10n.schedulePreblastHeader,
                 style: TextStyle(
                     color: context.f3textMuted,
@@ -1210,9 +1259,20 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
                     fontWeight: FontWeight.w800,
                     letterSpacing: 1.2)),
             const SizedBox(height: 6),
-            Text(e.preblast!,
-                style: TextStyle(
-                    color: context.f3textSecondary, fontSize: 14, height: 1.4)),
+            if ((e.preblast ?? '').isNotEmpty)
+              Text(e.preblast!,
+                  style: TextStyle(
+                      color: context.f3textSecondary, fontSize: 14, height: 1.4))
+            else if (_loadingPreblast)
+              SizedBox(
+                height: 16,
+                width: 16,
+                child: CircularProgressIndicator(
+                    strokeWidth: 2, color: context.f3textMuted),
+              )
+            else
+              Text(l10n.schedulePreblastUnavailable,
+                  style: TextStyle(color: context.f3textMuted, fontSize: 13)),
             const SizedBox(height: 16),
           ],
           if (!_linked)
@@ -1243,14 +1303,22 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
                     label: Text(l10n.scheduleTakeQ),
                   ),
                 ),
-              if (!e.hasQ) const SizedBox(width: 8),
+              if (e.userIsQ)
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _busy ? null : _dropQ,
+                    icon: const Icon(Icons.remove_circle_outline_rounded, size: 18),
+                    label: Text(l10n.scheduleDropQ),
+                  ),
+                ),
+              if (!e.hasQ || e.userIsQ) const SizedBox(width: 8),
               Expanded(
                 child: OutlinedButton.icon(
                   onPressed: _busy ? null : _postPreblast,
                   icon: const Icon(Icons.campaign_rounded, size: 18),
-                  label: Text((e.preblast ?? '').isEmpty
-                      ? l10n.schedulePostPreblast
-                      : l10n.scheduleEditPreblast),
+                  label: Text(e.hasPreblast
+                      ? l10n.scheduleEditPreblast
+                      : l10n.schedulePostPreblast),
                 ),
               ),
             ]),

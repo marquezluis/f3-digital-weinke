@@ -527,6 +527,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'You\'ve got the Q. Time to build a Weinke.';
 
   @override
+  String get scheduleDropQSuccess => 'Q dropped. Still HC\'d for the beatdown.';
+
+  @override
   String get schedulePostPreblast => 'Post Preblast';
 
   @override
@@ -534,6 +537,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get schedulePreblastHeader => 'PREBLAST';
+
+  @override
+  String get schedulePreblastUnavailable =>
+      'Posted, but the text isn\'t available right now.';
 
   @override
   String get scheduleSignInToHc =>
@@ -547,6 +554,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get scheduleTakeQ => 'Take Q';
+
+  @override
+  String get scheduleDropQ => 'Drop Q';
 
   @override
   String get schedulePreblastHint =>

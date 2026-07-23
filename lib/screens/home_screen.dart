@@ -1035,7 +1035,7 @@ class _UpcomingBeatdownsSectionState extends State<_UpcomingBeatdownsSection> {
               dateTime: e.dateTime,
               title: e.orgName ?? e.locationName ?? 'Beatdown',
               isQ: e.userIsQ,
-              hasPreblast: (e.preblast ?? '').isNotEmpty,
+              hasPreblast: e.hasPreblast,
             ))
         .toList());
   }
