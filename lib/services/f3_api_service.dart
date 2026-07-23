@@ -38,8 +38,7 @@ class F3ApiService extends ChangeNotifier {
     notifyListeners();
   }
 
-  String? get orgId =>
-      _userOrgId ?? (_orgIdEnv.isNotEmpty ? _orgIdEnv : null);
+  String? get orgId => _userOrgId ?? (_orgIdEnv.isNotEmpty ? _orgIdEnv : null);
 
   bool get isConfigured => _apiKey.isNotEmpty;
 
@@ -96,8 +95,7 @@ class F3ApiService extends ChangeNotifier {
       if (res.statusCode == 401 && bearerOverride != null) {
         _markSessionInvalid();
       }
-    } catch (_) {
-    }
+    } catch (_) {}
     return null;
   }
 
@@ -127,19 +125,29 @@ class F3ApiService extends ChangeNotifier {
           return body['locations'] as List;
         }
       }
-    } catch (_) {
-    }
+    } catch (_) {}
     return null;
   }
 
   /// Generic authenticated DELETE. Returns (statusCode, decodedBodyOrNull).
+  /// [payload], when given, is sent as a JSON body — confirmed against the
+  /// real API (empirically, against staging) that routes without path
+  /// template params (e.g. `/attendance/remove-q`) read their input from
+  /// the DELETE body, not the query string; a query string there fails
+  /// oRPC's own input validation with a 400 ("expected object, received
+  /// undefined") before the handler ever runs.
   Future<({int status, dynamic body})> _delete(
     String path, {
+    Map<String, dynamic>? payload,
     String? bearerOverride,
   }) async {
     try {
       final res = await http
-          .delete(Uri.parse('$_base$path'), headers: _headers(bearerOverride))
+          .delete(
+            Uri.parse('$_base$path'),
+            headers: _headers(bearerOverride),
+            body: payload != null ? json.encode(payload) : null,
+          )
           .timeout(const Duration(seconds: 15));
       if (res.statusCode == 401 && bearerOverride != null) {
         _markSessionInvalid();
@@ -189,8 +197,7 @@ class F3ApiService extends ChangeNotifier {
   /// the actual signed-in PAX's profile — without it, this authenticates
   /// with the shared app API key and returns that key's owner instead.
   Future<F3UserProfile?> getMyProfile({String? userAccessToken}) async {
-    final data =
-        await _get('/v1/me/profile', bearerOverride: userAccessToken);
+    final data = await _get('/v1/me/profile', bearerOverride: userAccessToken);
     if (data == null) return null;
     _myProfile = F3UserProfile.fromJson(data);
     notifyListeners();
@@ -225,8 +232,7 @@ class F3ApiService extends ChangeNotifier {
   }
 
   Future<F3UserProfile?> findPaxByF3Name(String f3Name) async {
-    final data =
-        await _get('/v1/user/f3name/${Uri.encodeComponent(f3Name)}');
+    final data = await _get('/v1/user/f3name/${Uri.encodeComponent(f3Name)}');
     if (data == null) return null;
     return F3UserProfile.fromJson(data);
   }
@@ -258,7 +264,8 @@ class F3ApiService extends ChangeNotifier {
   /// joins `/v1/event`'s `parents[].parentId` (the AO org id) against
   /// `/v1/location` on `locationId`. Used for a "get directions" action on
   /// a Schedule event, which only has the AO org id to work with.
-  Future<Map<int, F3Location>> getAoLocations({bool forceRefresh = false}) async {
+  Future<Map<int, F3Location>> getAoLocations(
+      {bool forceRefresh = false}) async {
     if (_cachedAoLocations != null && !forceRefresh) return _cachedAoLocations!;
     final results = await Future.wait([
       getLocations(forceRefresh: forceRefresh),
@@ -298,7 +305,8 @@ class F3ApiService extends ChangeNotifier {
     final data = await _get('/v1/event?pageSize=10000');
     if (data == null) return {};
     final events = data['events'] as List<dynamic>? ?? [];
-    final result = <String, ({List<F3WeeklyWorkout> schedule, String? aoName})>{};
+    final result =
+        <String, ({List<F3WeeklyWorkout> schedule, String? aoName})>{};
     for (final e in events) {
       if (e is! Map) continue;
       final locationId = e['locationId']?.toString();
@@ -339,7 +347,10 @@ class F3ApiService extends ChangeNotifier {
   /// (including past months, so backblasts can still be added after the
   /// fact for days that already happened).
   Future<List<F3EventInstance>> getUpcomingBeatdowns(
-      {String? userAccessToken, int? userId, DateTime? from, int limit = 200}) async {
+      {String? userAccessToken,
+      int? userId,
+      DateTime? from,
+      int limit = 200}) async {
     if (orgId == null || userId == null) return [];
     final d = from ?? DateTime.now();
     final startDate =
@@ -359,8 +370,8 @@ class F3ApiService extends ChangeNotifier {
   /// same as the other read endpoints.
   Future<List<F3AttendanceRecord>> getAttendanceForEvent(
       int eventInstanceId) async {
-    final data =
-        await _get('/v1/attendance/event-instance/$eventInstanceId?isPlanned=true');
+    final data = await _get(
+        '/v1/attendance/event-instance/$eventInstanceId?isPlanned=true');
     final list = data?['attendance'] as List?;
     if (list == null) return [];
     return list
@@ -395,9 +406,8 @@ class F3ApiService extends ChangeNotifier {
     final data = await _getList('/v1/org?pageSize=5000');
     if (data == null) return _cachedOrgs ?? [];
     try {
-      final orgs = data
-          .map((e) => F3Org.fromJson(e as Map<String, dynamic>))
-          .toList();
+      final orgs =
+          data.map((e) => F3Org.fromJson(e as Map<String, dynamic>)).toList();
       _cachedOrgs = orgs;
       return orgs;
     } catch (_) {
@@ -535,7 +545,8 @@ class F3ApiService extends ChangeNotifier {
     required int userId,
   }) async {
     final res = await _delete(
-      '/v1/attendance/remove-q?eventInstanceId=$eventInstanceId&userId=$userId',
+      '/v1/attendance/remove-q',
+      payload: {'eventInstanceId': eventInstanceId, 'userId': userId},
     );
     if (res.status == 200 || res.status == 201) return null;
     return 'Remove-Q failed (${res.status}): ${res.body}';

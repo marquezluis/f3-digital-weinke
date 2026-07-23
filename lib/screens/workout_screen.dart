@@ -91,19 +91,20 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
   }
 
   void _saveSession(WorkoutPlan plan) {
-    final blocks = plan.blocks.map((b) => HistoryBlock(
-      label: b.label,
-      category: b.category.name,
-      durationMinutes: b.durationMinutes,
-      exerciseNames: b.exercises.map((e) => e.name).toList(),
-      rounds: b.rounds,
-    )).toList();
+    final blocks = plan.blocks
+        .map((b) => HistoryBlock(
+              label: b.label,
+              category: b.category.name,
+              durationMinutes: b.durationMinutes,
+              exerciseNames: b.exercises.map((e) => e.name).toList(),
+              rounds: b.rounds,
+            ))
+        .toList();
     SaveSessionSheet.show(context, blocks: blocks);
   }
 
   void _saveAsTemplate(WorkoutPlan plan) async {
-    final ctrl = TextEditingController(
-        text: 'My Beatdown Template');
+    final ctrl = TextEditingController(text: 'My Beatdown Template');
     final name = await showDialog<String>(
       context: context,
       builder: (_) => AlertDialog(
@@ -123,8 +124,8 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
               child: const Text('CANCEL')),
           TextButton(
               onPressed: () => Navigator.pop(context, ctrl.text.trim()),
-              child: const Text('SAVE',
-                  style: TextStyle(color: F3Colors.accent))),
+              child:
+                  const Text('SAVE', style: TextStyle(color: F3Colors.accent))),
         ],
       ),
     );
@@ -154,16 +155,13 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
   }
 
   void _showTemplates() {
-    final templates = context
-        .read<HistoryService>()
-        .all
-        .where((h) => h.isTemplate)
-        .toList();
+    final templates =
+        context.read<HistoryService>().all.where((h) => h.isTemplate).toList();
     if (templates.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text(
-                'No templates yet. Save a plan as a template first.')),
+            content:
+                Text('No templates yet. Save a plan as a template first.')),
       );
       return;
     }
@@ -213,9 +211,8 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
           (c) => c.name == b.category,
           orElse: () => ExerciseCategory.bodyweight);
       final exercises = b.exerciseNames
-          .map((name) =>
-              exerciseSvc.all.firstWhere((e) => e.name == name,
-                  orElse: () => exerciseSvc.all.first))
+          .map((name) => exerciseSvc.all.firstWhere((e) => e.name == name,
+              orElse: () => exerciseSvc.all.first))
           .toList();
       return WorkoutBlock(
         label: b.label,
@@ -280,7 +277,8 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('SHARE', style: TextStyle(color: F3Colors.accent)),
+            child:
+                const Text('SHARE', style: TextStyle(color: F3Colors.accent)),
           ),
         ],
       ),
@@ -294,7 +292,9 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
       time: timeCtrl.text.trim(),
       qName: settings.myF3Name,
     );
-    Share.share(text, subject: 'Preblast: ${aoCtrl.text.trim().isEmpty ? "Beatdown" : aoCtrl.text.trim()}');
+    Share.share(text,
+        subject:
+            'Preblast: ${aoCtrl.text.trim().isEmpty ? "Beatdown" : aoCtrl.text.trim()}');
   }
 
   void _auditPlan(WorkoutPlan plan) async {
@@ -303,24 +303,32 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
       barrierDismissible: false,
       builder: (_) => AlertDialog(
         backgroundColor: context.f3card,
-        title: Text('Spartan is reviewing...', style: TextStyle(color: context.f3textPrimary)),
-        content: SizedBox(height: 50, child: Center(child: CircularProgressIndicator(color: F3Colors.accent))),
+        title: Text('Spartan is reviewing...',
+            style: TextStyle(color: context.f3textPrimary)),
+        content: SizedBox(
+            height: 50,
+            child: Center(
+                child: CircularProgressIndicator(color: F3Colors.accent))),
       ),
     );
-    
+
     final spartan = SpartanService.instance;
     final feedback = await spartan.auditBeatdown(plan);
-    
+
     if (mounted) {
       Navigator.pop(context); // Close loading dialog
       showDialog(
         context: context,
         builder: (_) => AlertDialog(
           backgroundColor: context.f3card,
-          title: Text('Spartan Audit', style: TextStyle(color: context.f3textPrimary)),
-          content: Text(feedback, style: TextStyle(color: context.f3textSecondary, height: 1.4)),
+          title: Text('Spartan Audit',
+              style: TextStyle(color: context.f3textPrimary)),
+          content: Text(feedback,
+              style: TextStyle(color: context.f3textSecondary, height: 1.4)),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('GOT IT')),
+            TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('GOT IT')),
           ],
         ),
       );
@@ -333,19 +341,19 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     final settings = context.read<SettingsService>().settings;
     final newWarmup = generator.buildWarmupBlock(settings);
     final newBlocks = List<WorkoutBlock>.from(plan.blocks);
-    final idx = newBlocks.indexWhere(
-        (b) => b.category == ExerciseCategory.warmup);
+    final idx =
+        newBlocks.indexWhere((b) => b.category == ExerciseCategory.warmup);
     if (idx >= 0) {
       newBlocks[idx] = newWarmup;
     } else {
       newBlocks.insert(0, newWarmup);
     }
     context.read<CurrentWorkoutService>().setDraftPlan(WorkoutPlan(
-      id: plan.id,
-      generatedAt: plan.generatedAt,
-      blocks: newBlocks,
-      settings: plan.settings,
-    ));
+          id: plan.id,
+          generatedAt: plan.generatedAt,
+          blocks: newBlocks,
+          settings: plan.settings,
+        ));
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
       content: Text('Warm-O-Rama refreshed with new exercises'),
       duration: Duration(seconds: 2),
@@ -376,15 +384,18 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
         context: context,
         builder: (_) => AlertDialog(
           backgroundColor: context.f3card,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: Row(children: [
             Icon(Icons.music_note_rounded, color: F3Colors.accent, size: 22),
             SizedBox(width: 10),
-            Text('Launch music?', style: TextStyle(color: context.f3textPrimary, fontSize: 17)),
+            Text('Launch music?',
+                style: TextStyle(color: context.f3textPrimary, fontSize: 17)),
           ]),
           content: Text(
             'Open your music app now. Press the back button to return to your workout when you\'re ready.',
-            style: TextStyle(color: context.f3textSecondary, height: 1.45, fontSize: 14),
+            style: TextStyle(
+                color: context.f3textSecondary, height: 1.45, fontSize: 14),
           ),
           actions: [
             TextButton(
@@ -395,7 +406,8 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
               onPressed: () => Navigator.pop(context, true),
               style: ElevatedButton.styleFrom(
                 minimumSize: const Size(0, 40),
-                textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
+                textStyle:
+                    const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
               ),
               child: const Text('LAUNCH'),
             ),
@@ -476,7 +488,8 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
               ? const Center(
                   child: CircularProgressIndicator(color: F3Colors.accent))
               : plan == null
-                  ? _EmptyState(onGenerate: _generate, onTemplates: _showTemplates)
+                  ? _EmptyState(
+                      onGenerate: _generate, onTemplates: _showTemplates)
                   : Column(
                       children: [
                         if (widget.forPreblast)
@@ -553,7 +566,10 @@ class _ExerciseSwapSheetState extends State<_ExerciseSwapSheet> {
     final service = context.read<ExerciseService>();
     final usedIds = widget.plan.allExercises.map((e) => e.id).toSet();
 
-    var pool = service.byCategory(widget.original.category).where((e) => e.id != widget.original.id && !usedIds.contains(e.id)).toList();
+    var pool = service
+        .byCategory(widget.original.category)
+        .where((e) => e.id != widget.original.id && !usedIds.contains(e.id))
+        .toList();
 
     if (_filterIntensity != null) {
       pool = pool.where((e) => e.intensity == _filterIntensity).toList();
@@ -561,7 +577,11 @@ class _ExerciseSwapSheetState extends State<_ExerciseSwapSheet> {
 
     if (_searchQuery.isNotEmpty) {
       final q = _searchQuery.toLowerCase();
-      pool = pool.where((e) => e.name.toLowerCase().contains(q) || e.description.toLowerCase().contains(q)).toList();
+      pool = pool
+          .where((e) =>
+              e.name.toLowerCase().contains(q) ||
+              e.description.toLowerCase().contains(q))
+          .toList();
     }
 
     return DraggableScrollableSheet(
@@ -576,8 +596,12 @@ class _ExerciseSwapSheetState extends State<_ExerciseSwapSheet> {
         child: Column(
           children: [
             Container(
-              width: 40, height: 4, margin: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(color: context.f3divider, borderRadius: BorderRadius.circular(2)),
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.symmetric(vertical: 12),
+              decoration: BoxDecoration(
+                  color: context.f3divider,
+                  borderRadius: BorderRadius.circular(2)),
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -601,8 +625,10 @@ class _ExerciseSwapSheetState extends State<_ExerciseSwapSheet> {
                     child: FilterChip(
                       label: Text(intensity.displayName),
                       selected: selected,
-                      selectedColor: F3Colors.forIntensity(intensity.name).withValues(alpha: 0.3),
-                      onSelected: (val) => setState(() => _filterIntensity = val ? intensity : null),
+                      selectedColor: F3Colors.forIntensity(intensity.name)
+                          .withValues(alpha: 0.3),
+                      onSelected: (val) => setState(
+                          () => _filterIntensity = val ? intensity : null),
                     ),
                   );
                 }).toList(),
@@ -621,8 +647,11 @@ class _ExerciseSwapSheetState extends State<_ExerciseSwapSheet> {
                     child: ExerciseCard(
                       exercise: ex,
                       onSwap: () {
-                        final updated = widget.plan.withSwappedExercise(widget.original, ex);
-                        context.read<CurrentWorkoutService>().swapDraftExercise(updated);
+                        final updated = widget.plan
+                            .withSwappedExercise(widget.original, ex);
+                        context
+                            .read<CurrentWorkoutService>()
+                            .swapDraftExercise(updated);
                         Navigator.pop(context);
                       },
                     ),
@@ -673,24 +702,25 @@ class _SwipableExerciseCard extends StatelessWidget {
       ),
       confirmDismiss: (_) async {
         return await showDialog<bool>(
-          context: context,
-          builder: (_) => AlertDialog(
-            backgroundColor: context.f3card,
-            title: Text('Remove exercise?',
-                style: TextStyle(color: context.f3textPrimary)),
-            content: Text(exercise.name,
-                style: TextStyle(color: context.f3textSecondary)),
-            actions: [
-              TextButton(
-                  onPressed: () => Navigator.pop(context, false),
-                  child: const Text('CANCEL')),
-              TextButton(
-                  onPressed: () => Navigator.pop(context, true),
-                  child: const Text('REMOVE',
-                      style: TextStyle(color: Colors.red))),
-            ],
-          ),
-        ) ?? false;
+              context: context,
+              builder: (_) => AlertDialog(
+                backgroundColor: context.f3card,
+                title: Text('Remove exercise?',
+                    style: TextStyle(color: context.f3textPrimary)),
+                content: Text(exercise.name,
+                    style: TextStyle(color: context.f3textSecondary)),
+                actions: [
+                  TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('CANCEL')),
+                  TextButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      child: const Text('REMOVE',
+                          style: TextStyle(color: Colors.red))),
+                ],
+              ),
+            ) ??
+            false;
       },
       onDismissed: (_) {
         workoutSvc.removeExerciseFromDraftBlock(blockIndex, exercise.id);
@@ -712,7 +742,8 @@ class _SwipableExerciseCard extends StatelessWidget {
             onDetail: () => ExerciseDetailSheet.show(context, exercise),
             onSwap: onSwap,
             onDuplicate: () {
-              workoutSvc.duplicateExerciseInDraftBlock(blockIndex, exerciseIndex);
+              workoutSvc.duplicateExerciseInDraftBlock(
+                  blockIndex, exerciseIndex);
               ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                 content: Text('${exercise.name} duplicated'),
                 duration: const Duration(seconds: 2),
@@ -729,25 +760,20 @@ class _SwipableExerciseCard extends StatelessWidget {
                       ? Icons.note_add_outlined
                       : Icons.sticky_note_2_rounded,
                   size: 13,
-                  color: note.isEmpty
-                      ? context.f3textMuted
-                      : F3Colors.accent,
+                  color: note.isEmpty ? context.f3textMuted : F3Colors.accent,
                 ),
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
                     note.isEmpty ? 'Add Q note…' : note,
                     style: TextStyle(
-                      color: note.isEmpty
-                          ? context.f3textMuted
-                          : F3Colors.accent,
+                      color:
+                          note.isEmpty ? context.f3textMuted : F3Colors.accent,
                       fontSize: 11,
-                      fontStyle: note.isEmpty
-                          ? FontStyle.italic
-                          : FontStyle.normal,
-                      fontWeight: note.isEmpty
-                          ? FontWeight.normal
-                          : FontWeight.w600,
+                      fontStyle:
+                          note.isEmpty ? FontStyle.italic : FontStyle.normal,
+                      fontWeight:
+                          note.isEmpty ? FontWeight.normal : FontWeight.w600,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -792,8 +818,8 @@ class _SwipableExerciseCard extends StatelessWidget {
                     blockIndex, exercise.id, '');
                 Navigator.pop(ctx);
               },
-              child: Text('CLEAR',
-                  style: TextStyle(color: context.f3textMuted)),
+              child:
+                  Text('CLEAR', style: TextStyle(color: context.f3textMuted)),
             ),
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -826,7 +852,8 @@ class _BottomActions extends StatelessWidget {
 
   // Shared style constants so both buttons have identical footprints.
   static const _kButtonHeight = 52.0;
-  static const _kButtonPadding = EdgeInsets.symmetric(horizontal: 8, vertical: 0);
+  static const _kButtonPadding =
+      EdgeInsets.symmetric(horizontal: 8, vertical: 0);
   static const _kButtonShape = RoundedRectangleBorder(
     borderRadius: BorderRadius.all(Radius.circular(12)),
   );
@@ -860,9 +887,9 @@ class _BottomActions extends StatelessWidget {
                     shape: _kButtonShape,
                   ),
                   icon: const Icon(Icons.refresh_rounded, size: 18),
-                label: const FittedBox(
+                  label: const FittedBox(
                     fit: BoxFit.scaleDown,
-                  child: Text('New Beatdown', style: _kLabelStyle),
+                    child: Text('New Beatdown', style: _kLabelStyle),
                   ),
                 ),
               ),
@@ -884,9 +911,9 @@ class _BottomActions extends StatelessWidget {
                     shadowColor: F3Colors.accent.withValues(alpha: 0.45),
                   ),
                   icon: const Icon(Icons.play_arrow_rounded, size: 20),
-                label: const FittedBox(
+                  label: const FittedBox(
                     fit: BoxFit.scaleDown,
-                  child: Text('START WORKOUT', style: _kLabelStyle),
+                    child: Text('START WORKOUT', style: _kLabelStyle),
                   ),
                 ),
               ),
@@ -927,8 +954,8 @@ class _EmptyState extends StatelessWidget {
               'A full beatdown: Disclaimer → Warm-O-Rama → The Thang → '
               'Mary → COT.\nExercises drawn from the full F3 Exicon.',
               textAlign: TextAlign.center,
-              style:
-                  TextStyle(color: context.f3textSecondary, fontSize: 15, height: 1.5),
+              style: TextStyle(
+                  color: context.f3textSecondary, fontSize: 15, height: 1.5),
             ),
             const SizedBox(height: 32),
             ElevatedButton.icon(
@@ -992,8 +1019,8 @@ class _GenOptions extends StatelessWidget {
                     fontWeight: FontWeight.w600),
                 dropdownColor: context.f3card,
                 items: CouponMode.values
-                    .map((m) => DropdownMenuItem(
-                        value: m, child: Text(m.displayName)))
+                    .map((m) =>
+                        DropdownMenuItem(value: m, child: Text(m.displayName)))
                     .toList(),
                 onChanged: (m) {
                   if (m == null) return;
@@ -1009,8 +1036,8 @@ class _GenOptions extends StatelessWidget {
             children: Intensity.values.map((i) {
               final on = s.intensities.contains(i);
               return FilterChip(
-                label: Text(i.displayName,
-                    style: const TextStyle(fontSize: 12)),
+                label:
+                    Text(i.displayName, style: const TextStyle(fontSize: 12)),
                 selected: on,
                 showCheckmark: false,
                 backgroundColor: context.f3elevated,
@@ -1021,9 +1048,8 @@ class _GenOptions extends StatelessWidget {
                         ? F3Colors.forIntensity(i.name)
                         : context.f3textSecondary),
                 side: BorderSide(
-                    color: on
-                        ? F3Colors.forIntensity(i.name)
-                        : context.f3divider),
+                    color:
+                        on ? F3Colors.forIntensity(i.name) : context.f3divider),
                 onSelected: (sel) {
                   final cur = Set<Intensity>.from(s.intensities);
                   if (on) {
@@ -1134,7 +1160,8 @@ class _PlanView extends StatelessWidget {
               label: 'COT',
               duration: '4 min',
               color: F3Colors.phaseCOT,
-              body: 'Count-O-Rama · Name-O-Rama · FNG Naming · Announcements · Closing Word',
+              body:
+                  'Count-O-Rama · Name-O-Rama · FNG Naming · Announcements · Closing Word',
             ),
           ),
         ),
@@ -1153,10 +1180,10 @@ class _PlanHeader extends StatelessWidget {
     final warnings = <String>[];
     final hasWarmup = plan.blocks.any(
         (b) => b.category == ExerciseCategory.warmup && b.exercises.isNotEmpty);
-    final hasThang = plan.blocks.any(
-        (b) => (b.category == ExerciseCategory.bodyweight ||
-                b.category == ExerciseCategory.coupon) &&
-            b.exercises.isNotEmpty);
+    final hasThang = plan.blocks.any((b) =>
+        (b.category == ExerciseCategory.bodyweight ||
+            b.category == ExerciseCategory.coupon) &&
+        b.exercises.isNotEmpty);
     final hasMary = plan.blocks.any(
         (b) => b.category == ExerciseCategory.mary && b.exercises.isNotEmpty);
     if (!hasWarmup) warnings.add('No Warm-O-Rama exercises');
@@ -1182,20 +1209,22 @@ class _PlanHeader extends StatelessWidget {
             const Icon(Icons.bolt_rounded, color: F3Colors.accent, size: 26),
             const SizedBox(width: 10),
             Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Text("TODAY'S BEATDOWN",
-                    style: TextStyle(
-                        color: F3Colors.accent,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 1.5)),
-                Text(
-                    '${plan.allExercises.length} exercises · ${plan.blocks.length} blocks',
-                    style: TextStyle(
-                        color: context.f3textSecondary, fontSize: 12)),
-                const SizedBox(height: 6),
-                _TimeBudgetBar(plan: plan),
-              ]),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text("TODAY'S BEATDOWN",
+                        style: TextStyle(
+                            color: F3Colors.accent,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.5)),
+                    Text(
+                        '${plan.allExercises.length} exercises · ${plan.blocks.length} blocks',
+                        style: TextStyle(
+                            color: context.f3textSecondary, fontSize: 12)),
+                    const SizedBox(height: 6),
+                    _TimeBudgetBar(plan: plan),
+                  ]),
             ),
             Text(_fmt(plan.generatedAt),
                 style: TextStyle(color: context.f3textMuted, fontSize: 11)),
@@ -1227,9 +1256,7 @@ class _PlanHeader extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(warnings.join(' · '),
                         style: const TextStyle(
-                            color: Colors.orange,
-                            fontSize: 12,
-                            height: 1.4)),
+                            color: Colors.orange, fontSize: 12, height: 1.4)),
                   ],
                 ),
               ),
@@ -1320,7 +1347,9 @@ class _PhaseCard extends StatelessWidget {
             ),
             child: Text(label,
                 style: TextStyle(
-                    color: color, fontSize: 11, fontWeight: FontWeight.w800,
+                    color: color,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
                     letterSpacing: 1)),
           ),
           const SizedBox(width: 10),
@@ -1330,11 +1359,14 @@ class _PhaseCard extends StatelessWidget {
               children: [
                 Text(duration,
                     style: TextStyle(
-                        color: color, fontSize: 11, fontWeight: FontWeight.w600)),
+                        color: color,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600)),
                 const SizedBox(height: 4),
                 Text(body,
                     style: TextStyle(
-                        color: context.f3textSecondary, fontSize: 13,
+                        color: context.f3textSecondary,
+                        fontSize: 13,
                         height: 1.4)),
               ],
             ),
@@ -1418,8 +1450,8 @@ class _BlockSection extends StatelessWidget {
               }
               Navigator.pop(context);
             },
-            child: const Text('RENAME',
-                style: TextStyle(color: F3Colors.accent)),
+            child:
+                const Text('RENAME', style: TextStyle(color: F3Colors.accent)),
           ),
         ],
       ),
@@ -1447,9 +1479,7 @@ class _BlockSection extends StatelessWidget {
               ),
               title: Text(style.displayName,
                   style: TextStyle(
-                      color: selected
-                          ? F3Colors.accent
-                          : context.f3textPrimary,
+                      color: selected ? F3Colors.accent : context.f3textPrimary,
                       fontWeight:
                           selected ? FontWeight.w800 : FontWeight.normal)),
               onTap: () {
@@ -1484,8 +1514,8 @@ class _BlockSection extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(block.label,
-                  style: TextStyle(
-                      color: context.f3textSecondary, fontSize: 13)),
+                  style:
+                      TextStyle(color: context.f3textSecondary, fontSize: 13)),
               const SizedBox(height: 20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -1514,8 +1544,7 @@ class _BlockSection extends StatelessWidget {
                 ],
               ),
               Text(tempRounds == 1 ? 'round' : 'rounds',
-                  style: TextStyle(
-                      color: context.f3textMuted, fontSize: 13)),
+                  style: TextStyle(color: context.f3textMuted, fontSize: 13)),
             ],
           ),
           actions: [
@@ -1530,8 +1559,8 @@ class _BlockSection extends StatelessWidget {
                     .setDraftBlockRounds(blockIndex, tempRounds);
                 Navigator.pop(context);
               },
-              child: const Text('SAVE',
-                  style: TextStyle(color: F3Colors.accent)),
+              child:
+                  const Text('SAVE', style: TextStyle(color: F3Colors.accent)),
             ),
           ],
         ),
@@ -1549,7 +1578,8 @@ class _BlockSection extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 10),
           child: Row(children: [
             Container(
-              width: 4, height: 22,
+              width: 4,
+              height: 22,
               decoration: BoxDecoration(
                   color: color, borderRadius: BorderRadius.circular(2)),
             ),
@@ -1557,13 +1587,20 @@ class _BlockSection extends StatelessWidget {
             Expanded(
               child: GestureDetector(
                 onTap: () => _renameBlock(context),
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  Text(block.label.toUpperCase(),
-                      style: TextStyle(
-                          color: color, fontSize: 12, fontWeight: FontWeight.w800,
-                          letterSpacing: 1.5)),
+                child: Row(children: [
+                  Flexible(
+                    child: Text(block.label.toUpperCase(),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                        style: TextStyle(
+                            color: color,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.5)),
+                  ),
                   const SizedBox(width: 4),
-                  Icon(Icons.edit_rounded, color: color.withValues(alpha: 0.5), size: 13),
+                  Icon(Icons.edit_rounded,
+                      color: color.withValues(alpha: 0.5), size: 13),
                 ]),
               ),
             ),
@@ -1603,10 +1640,7 @@ class _BlockSection extends StatelessWidget {
                             ? F3Colors.accent
                             : context.f3textMuted),
                     const SizedBox(width: 3),
-                    Text(
-                        block.rounds > 1
-                            ? '${block.rounds}x'
-                            : '1x',
+                    Text(block.rounds > 1 ? '${block.rounds}x' : '1x',
                         style: TextStyle(
                             color: block.rounds > 1
                                 ? F3Colors.accent
@@ -1640,8 +1674,7 @@ class _BlockSection extends StatelessWidget {
                             ? F3Colors.accent
                             : context.f3textMuted),
                     const SizedBox(width: 3),
-                    Text(
-                        block.callStyle.displayName,
+                    Text(block.callStyle.displayName,
                         style: TextStyle(
                             color: block.callStyle != CallStyle.onYourOwn
                                 ? F3Colors.accent
@@ -1679,7 +1712,8 @@ class _BlockSection extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: 8),
             child: Text(block.notes,
                 style: TextStyle(
-                    color: context.f3textMuted, fontSize: 12,
+                    color: context.f3textMuted,
+                    fontSize: 12,
                     fontStyle: FontStyle.italic)),
           ),
         ReorderableListView.builder(
@@ -1737,7 +1771,9 @@ class _BlockSection extends StatelessWidget {
                       .withValues(alpha: 0.4)),
               padding: const EdgeInsets.symmetric(vertical: 10),
               textStyle: const TextStyle(
-                  fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 0.5),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.5),
             ),
           ),
         ),
@@ -1813,7 +1849,9 @@ class _AddExerciseSheetState extends State<_AddExerciseSheet> {
   }
 
   void _add(Exercise ex) {
-    context.read<CurrentWorkoutService>().addExerciseToDraftBlock(widget.blockIndex, ex);
+    context
+        .read<CurrentWorkoutService>()
+        .addExerciseToDraftBlock(widget.blockIndex, ex);
     Navigator.pop(context);
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text('Added: ${ex.name}'),
@@ -1914,8 +1952,7 @@ class _AddExerciseSheetState extends State<_AddExerciseSheet> {
                       label: Text(cat?.displayName ?? 'All'),
                       selected: selected,
                       selectedColor: color.withValues(alpha: 0.25),
-                      onSelected: (_) =>
-                          setState(() => _categoryFilter = cat),
+                      onSelected: (_) => setState(() => _categoryFilter = cat),
                     ),
                   );
                 }).toList(),
@@ -1940,8 +1977,8 @@ class _AddExerciseSheetState extends State<_AddExerciseSheet> {
                           leading: Container(
                             width: 10,
                             height: 10,
-                            decoration:
-                                BoxDecoration(color: color, shape: BoxShape.circle),
+                            decoration: BoxDecoration(
+                                color: color, shape: BoxShape.circle),
                           ),
                           title: Text(ex.name,
                               style: TextStyle(color: context.f3textPrimary)),
@@ -1949,7 +1986,8 @@ class _AddExerciseSheetState extends State<_AddExerciseSheet> {
                               '${ex.category.displayName} · ${ex.intensity.displayName}'
                               '${ex.secondsPerSet != null ? ' · ~${ex.secondsPerSet}s/set' : ''}',
                               style: TextStyle(
-                                  color: context.f3textSecondary, fontSize: 12)),
+                                  color: context.f3textSecondary,
+                                  fontSize: 12)),
                           trailing: Icon(Icons.add_circle_outline_rounded,
                               color: color),
                         );
