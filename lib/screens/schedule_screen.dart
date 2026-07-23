@@ -1103,14 +1103,25 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
     final c = await _creds();
     if (c.token == null) return;
 
-    await _loadAttendance(); // fresh HC list before reassembling
+    await _loadAttendance(); // fresh HC/Q list before reassembling
     if (!mounted) return;
+    final freshAttendance = _attendance ?? const [];
+    // Empty string, not null, when nobody's currently Q — Drop Q with no
+    // replacement yet should say so, not silently keep the last Q's name.
+    var currentQ = '';
+    for (final a in freshAttendance) {
+      if (a.isQ) {
+        currentQ = a.f3Name ?? '';
+        break;
+      }
+    }
     final myName = context.read<AppProfileService>().displayName;
     final text = _assemblePreblast(
       event: _event,
-      attendance: _attendance ?? const [],
+      attendance: freshAttendance,
       myF3Name: myName,
       draft: draft,
+      qNameOverride: currentQ,
     );
     final d = _event.date;
     final startDate =
@@ -1223,9 +1234,18 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
     required List<F3AttendanceRecord> attendance,
     required String myF3Name,
     required _PreblastDraft draft,
+    // Overrides the event.qF3Name/myF3Name fallback below with the actual
+    // current Q from freshly-loaded attendance — event.qF3Name is a snapshot
+    // from whenever this event was last fetched and goes stale the moment
+    // Take Q/Drop Q changes who's actually Q'd (used by the auto-repost
+    // path, which always has fresh attendance in hand; the manual composer
+    // leaves this null and keeps the original fallback, since a human
+    // actively posting/editing implies real intent either way).
+    String? qNameOverride,
   }) {
     final where = event.orgName ?? event.locationName ?? 'the AO';
-    final q = (event.qF3Name?.isNotEmpty ?? false) ? event.qF3Name! : myF3Name;
+    final q = qNameOverride ??
+        ((event.qF3Name?.isNotEmpty ?? false) ? event.qF3Name! : myF3Name);
     final hcNames = attendance.map((a) => '@${a.f3Name ?? '?'}').join(' ');
     final buf = StringBuffer()
       ..writeln('Preblast: $where')
