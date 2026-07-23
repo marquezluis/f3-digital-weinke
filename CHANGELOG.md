@@ -11,6 +11,23 @@ whether or not that build shipped, so "how many builds have we done on
 
 ## [Unreleased]
 
+## [2.4.3] - 2026-07-22
+
+### Added
+- **Pic-o-Rama** — snap or pick a photo when saving a session (camera or gallery), with multi-photo support. Photos show up as thumbnails on Heatmap days (tap to view), aggregated per-AO on Browse AOs, and attach alongside the backblast text when sharing.
+- **Share as Image** — any past beatdown can be exported as a shareable card image (title, date, AO/Q, block summary), not just plain text.
+- **Call style per block** — In Cadence / On Your Own / On My Up / On My Down, set while building the Weinke. The live timer announces it before each exercise: name → get in position → call style → go.
+- Achievement unlocks now show a real celebration (confetti) the moment they trip, instead of only being visible passively in the Achievements list.
+- History has a Favorites ("Greatest Hits") filter using the existing thumbs-up rating.
+- A "this month vs last month" comparison (sessions, FNGs, coupon sessions) on the Heatmap screen.
+- Share your emergency medical info to a fellow PAX before a hard workout.
+
+### Changed
+- Posting a preblast now auto-sets your event reminder, matching what HC'ing or taking Q already did.
+- The live rep counter, if used during a session, now carries over into the backblast notes instead of being silently lost on save.
+- TTS voice now follows the app's language setting (English/Spanish/French) instead of always speaking English.
+- The Weinke builder's time-budget bar accounts for real per-exercise timing on custom exercises instead of a generic estimate.
+
 ## [2.4.2] - 2026-07-20
 
 ### Added

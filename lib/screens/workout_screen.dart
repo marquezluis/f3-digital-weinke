@@ -1251,7 +1251,7 @@ class _TimeBudgetBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final target = plan.settings.durationMinutes;
-    final planned = plan.totalMinutes;
+    final planned = plan.refinedTotalMinutes;
     final ratio = (planned / target).clamp(0.0, 1.2);
     final over = planned > target;
     final under = planned < target - 2;
@@ -1426,6 +1426,51 @@ class _BlockSection extends StatelessWidget {
     );
   }
 
+  void _editCallStyle(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: context.f3card,
+        title: Text('How should PAX count this?',
+            style: TextStyle(color: context.f3textPrimary, fontSize: 16)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: CallStyle.values.map((style) {
+            final selected = block.callStyle == style;
+            return ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(
+                selected
+                    ? Icons.radio_button_checked_rounded
+                    : Icons.radio_button_off_rounded,
+                color: selected ? F3Colors.accent : context.f3textMuted,
+              ),
+              title: Text(style.displayName,
+                  style: TextStyle(
+                      color: selected
+                          ? F3Colors.accent
+                          : context.f3textPrimary,
+                      fontWeight:
+                          selected ? FontWeight.w800 : FontWeight.normal)),
+              onTap: () {
+                context
+                    .read<CurrentWorkoutService>()
+                    .setDraftBlockCallStyle(blockIndex, style);
+                Navigator.pop(context);
+              },
+            );
+          }).toList(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('CANCEL'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _editRounds(BuildContext context) {
     int tempRounds = block.rounds;
     showDialog(
@@ -1564,6 +1609,41 @@ class _BlockSection extends StatelessWidget {
                             : '1x',
                         style: TextStyle(
                             color: block.rounds > 1
+                                ? F3Colors.accent
+                                : context.f3textMuted,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700)),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 6),
+            GestureDetector(
+              onTap: () => _editCallStyle(context),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                decoration: BoxDecoration(
+                    color: block.callStyle != CallStyle.onYourOwn
+                        ? F3Colors.accent.withValues(alpha: 0.18)
+                        : context.f3divider.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(
+                        color: block.callStyle != CallStyle.onYourOwn
+                            ? F3Colors.accent.withValues(alpha: 0.5)
+                            : Colors.transparent)),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.campaign_rounded,
+                        size: 10,
+                        color: block.callStyle != CallStyle.onYourOwn
+                            ? F3Colors.accent
+                            : context.f3textMuted),
+                    const SizedBox(width: 3),
+                    Text(
+                        block.callStyle.displayName,
+                        style: TextStyle(
+                            color: block.callStyle != CallStyle.onYourOwn
                                 ? F3Colors.accent
                                 : context.f3textMuted,
                             fontSize: 11,

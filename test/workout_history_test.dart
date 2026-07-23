@@ -119,17 +119,17 @@ void main() {
       expect(copy.pax, sample.pax);    // unchanged
     });
 
-    test('photoPath serialises when present', () {
-      final h = sample.copyWith(photoPath: '/data/photo.jpg');
+    test('photoPaths serialises when present', () {
+      final h = sample.copyWith(photoPaths: ['/data/photo.jpg']);
       final json = h.toJson();
-      expect(json['photoPath'], '/data/photo.jpg');
+      expect(json['photoPaths'], ['/data/photo.jpg']);
       final restored = WorkoutHistory.fromJson(json);
-      expect(restored.photoPath, '/data/photo.jpg');
+      expect(restored.photoPaths, ['/data/photo.jpg']);
     });
 
-    test('photoPath absent when null', () {
+    test('photoPaths absent when empty', () {
       final json = sample.toJson();
-      expect(json.containsKey('photoPath'), isFalse);
+      expect(json.containsKey('photoPaths'), isFalse);
     });
   });
 

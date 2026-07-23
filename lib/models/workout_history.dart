@@ -164,7 +164,7 @@ class WorkoutHistory {
   final String wotd;        // Word of the Day
   final List<HistoryBlock> blocks; // plan summary
   final bool completed;     // false while in-progress (future use)
-  final String? photoPath;  // placeholder — camera not yet implemented
+  final List<String> photoPaths; // local file paths, Pic-o-Rama captures
   // 0 = unrated, 1 = thumbs-up (great session), -1 = thumbs-down (rough one)
   final int rating;
   // When true, this entry is a saved template (reusable plan, not a past session)
@@ -191,7 +191,7 @@ class WorkoutHistory {
     this.wotd = '',
     this.blocks = const [],
     this.completed = true,
-    this.photoPath,
+    this.photoPaths = const [],
     this.rating = 0,
     this.isTemplate = false,
     this.beatdownType = BeatdownType.bootCamp,
@@ -221,7 +221,10 @@ class WorkoutHistory {
                 .toList() ??
             [],
         completed: json['completed'] as bool? ?? true,
-        photoPath: json['photoPath'] as String?,
+        photoPaths: (json['photoPaths'] as List<dynamic>?)
+                ?.map((e) => e.toString())
+                .toList() ??
+            [],
         rating: json['rating'] as int? ?? 0,
         isTemplate: json['isTemplate'] as bool? ?? false,
         beatdownType: BeatdownType.fromString(json['beatdownType'] as String?),
@@ -242,7 +245,7 @@ class WorkoutHistory {
         'wotd': wotd,
         'blocks': blocks.map((b) => b.toJson()).toList(),
         'completed': completed,
-        if (photoPath != null) 'photoPath': photoPath,
+        if (photoPaths.isNotEmpty) 'photoPaths': photoPaths,
         'rating': rating,
         'isTemplate': isTemplate,
         'beatdownType': beatdownType.storageValue,
@@ -289,7 +292,7 @@ class WorkoutHistory {
     String? cot,
     List<HistoryBlock>? blocks,
     bool? completed,
-    String? photoPath,
+    List<String>? photoPaths,
     int? rating,
     bool? isTemplate,
     BeatdownType? beatdownType,
@@ -308,7 +311,7 @@ class WorkoutHistory {
         cot: cot ?? this.cot,
         blocks: blocks ?? this.blocks,
         completed: completed ?? this.completed,
-        photoPath: photoPath ?? this.photoPath,
+        photoPaths: photoPaths ?? this.photoPaths,
         rating: rating ?? this.rating,
         isTemplate: isTemplate ?? this.isTemplate,
         beatdownType: beatdownType ?? this.beatdownType,

@@ -64,6 +64,21 @@ class CurrentWorkoutService extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Set how the Q calls the count for a block (In Cadence / OYO / etc.).
+  void setDraftBlockCallStyle(int blockIndex, CallStyle style) {
+    if (_draftPlan == null) return;
+    final newBlocks = List<WorkoutBlock>.from(_draftPlan!.blocks);
+    if (blockIndex < 0 || blockIndex >= newBlocks.length) return;
+    newBlocks[blockIndex] = newBlocks[blockIndex].copyWithCallStyle(style);
+    _draftPlan = WorkoutPlan(
+      id: _draftPlan!.id,
+      generatedAt: _draftPlan!.generatedAt,
+      blocks: newBlocks,
+      settings: _draftPlan!.settings,
+    );
+    notifyListeners();
+  }
+
   /// Rename a block in the draft plan.
   void renameDraftBlock(int blockIndex, String newLabel) {
     if (_draftPlan == null) return;

@@ -5,6 +5,7 @@
 // caveats that apply to the future "publish backblast" feature.
 
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -16,6 +17,7 @@ import '../l10n/app_localizations.dart';
 import '../models/f3_api_models.dart';
 import '../services/f3_api_service.dart';
 import '../services/geo_service.dart';
+import '../services/history_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/filter_pill.dart';
 import 'schedule_screen.dart';
@@ -922,6 +924,7 @@ class _AoDetailSheet extends StatelessWidget {
             )
           else
             _row(context, l10n.browseAosSchedule, l10n.browseAosNoBeatdownsScheduled),
+          _AoPhotoWall(aoName: location.aoName ?? location.name),
           const SizedBox(height: 8),
           SizedBox(
             width: double.infinity,
@@ -944,6 +947,59 @@ class _AoDetailSheet extends StatelessWidget {
           ],
         ],
       ),
+    );
+  }
+}
+
+/// Photo history for this AO, aggregated from local WorkoutHistory entries
+/// whose `ao` field matches — makes the AO feel alive before any
+/// server-side social/feed layer exists.
+class _AoPhotoWall extends StatelessWidget {
+  final String aoName;
+  const _AoPhotoWall({required this.aoName});
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<HistoryService>(
+      builder: (context, svc, _) {
+        final photos = <String>[];
+        for (final entry in svc.all) {
+          if (entry.isTemplate) continue;
+          if (entry.ao.toLowerCase() != aoName.toLowerCase()) continue;
+          photos.addAll(entry.photoPaths);
+        }
+        if (photos.isEmpty) return const SizedBox.shrink();
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'PIC-O-RAMA AT THIS AO',
+                style: TextStyle(
+                    color: context.f3textMuted,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.2),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                height: 80,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: photos.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 8),
+                  itemBuilder: (_, i) => ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: Image.file(File(photos[i]),
+                        width: 80, height: 80, fit: BoxFit.cover),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

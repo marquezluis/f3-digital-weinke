@@ -1,11 +1,17 @@
 // lib/widgets/save_session_sheet.dart
 // Bottom sheet form to save the current workout session to local history.
 // Accepts a pre-built list of HistoryBlocks extracted from the active plan.
+import 'dart:io';
+
+import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import '../models/workout_history.dart';
+import '../services/achievement_service.dart';
 import '../services/app_profile_service.dart' hide AppRole;
 import '../services/history_service.dart';
 import '../services/settings_service.dart';
@@ -18,12 +24,15 @@ class SaveSessionSheet extends StatefulWidget {
   final String initialPax;
   /// Real minutes the Q Mode timer ran, if this came from a live session.
   final int? actualDurationMinutes;
+  /// Rep count logged via the timer's rep counter overlay, if used.
+  final int? initialRepCount;
 
   const SaveSessionSheet({
     super.key,
     required this.blocks,
     this.initialPax = '',
     this.actualDurationMinutes,
+    this.initialRepCount,
   });
 
   /// Convenience: push as a modal bottom sheet.
@@ -32,6 +41,7 @@ class SaveSessionSheet extends StatefulWidget {
     required List<HistoryBlock> blocks,
     String initialPax = '',
     int? actualDurationMinutes,
+    int? initialRepCount,
   }) {
     return showModalBottomSheet(
       context: context,
@@ -44,6 +54,7 @@ class SaveSessionSheet extends StatefulWidget {
         blocks: blocks,
         initialPax: initialPax,
         actualDurationMinutes: actualDurationMinutes,
+        initialRepCount: initialRepCount,
       ),
     );
   }
@@ -68,6 +79,8 @@ class _SaveSessionSheetState extends State<SaveSessionSheet> {
   EventTag? _eventTag;
   List<String> _historyAOs  = [];
   List<String> _historyPax  = [];
+  final List<String> _photoPaths = [];
+  bool _pickingPhoto = false;
 
   @override
   void initState() {
@@ -77,7 +90,12 @@ class _SaveSessionSheetState extends State<SaveSessionSheet> {
     _qCtrl     = TextEditingController();
     _paxCtrl   = TextEditingController(text: widget.initialPax);
     _fngCtrl   = TextEditingController(text: '0');
-    _notesCtrl = TextEditingController();
+    // Pre-fill with the live rep count, if the Q used the timer's rep
+    // counter — otherwise that data would silently vanish once saved.
+    _notesCtrl = TextEditingController(
+        text: widget.initialRepCount != null
+            ? 'Reps: ${widget.initialRepCount}'
+            : '');
     _cotCtrl   = TextEditingController();
     _wotdCtrl  = TextEditingController();
 
@@ -151,6 +169,69 @@ class _SaveSessionSheetState extends State<SaveSessionSheet> {
     _cotCtrl.dispose();
     _wotdCtrl.dispose();
     super.dispose();
+  }
+
+  // ── Pic-o-Rama ────────────────────────────────────────────────────────────
+  // Same capture pattern as Profile's avatar upload: pick via image_picker,
+  // copy into app documents (survives cache clears), keep the local path.
+  Future<void> _pickPhoto(ImageSource source) async {
+    try {
+      setState(() => _pickingPhoto = true);
+      final picked = await ImagePicker().pickImage(
+        source: source,
+        maxWidth: 1600,
+        maxHeight: 1600,
+        imageQuality: 85,
+      );
+      if (picked == null) return;
+      final dir = await getApplicationDocumentsDirectory();
+      final dest = File(
+          '${dir.path}/beatdown_${const Uuid().v4()}.jpg');
+      await dest.writeAsBytes(await picked.readAsBytes());
+      if (!mounted) return;
+      setState(() => _photoPaths.add(dest.path));
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Could not add photo: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _pickingPhoto = false);
+    }
+  }
+
+  void _showPhotoSourceSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: context.f3card,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_library_rounded),
+              title: const Text('Choose from library'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickPhoto(ImageSource.gallery);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt_rounded),
+              title: const Text('Take photo'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickPhoto(ImageSource.camera);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _removePhoto(int index) {
+    setState(() => _photoPaths.removeAt(index));
   }
 
   List<String> _parsePax() => _paxCtrl.text
@@ -240,12 +321,26 @@ class _SaveSessionSheetState extends State<SaveSessionSheet> {
       cot: _cotCtrl.text.trim(),
       wotd: _wotdCtrl.text.trim(),
       blocks: widget.blocks,
+      photoPaths: _photoPaths,
       beatdownType: _beatdownType,
       eventTag: _eventTag,
       actualDurationMinutes: widget.actualDurationMinutes,
     );
 
-    await context.read<HistoryService>().add(entry);
+    final history = context.read<HistoryService>();
+    // Diff achievements before/after so a genuinely new unlock (not one that
+    // was already earned) gets its own celebration instead of the routine
+    // save toast.
+    final before = AchievementService.compute(history.all)
+        .where((a) => a.unlocked)
+        .map((a) => a.id)
+        .toSet();
+
+    await history.add(entry);
+
+    final newlyUnlocked = AchievementService.compute(history.all)
+        .where((a) => a.unlocked && !before.contains(a.id))
+        .toList();
 
     if (mounted) {
       Navigator.of(context).pop();
@@ -254,6 +349,14 @@ class _SaveSessionSheetState extends State<SaveSessionSheet> {
           content: Text('Session saved to history!'),
           duration: Duration(seconds: 3),
         ),
+      );
+    }
+
+    if (mounted && newlyUnlocked.isNotEmpty) {
+      showDialog<void>(
+        context: context,
+        builder: (_) =>
+            _AchievementUnlockedDialog(achievement: newlyUnlocked.first),
       );
     }
   }
@@ -478,6 +581,119 @@ class _SaveSessionSheetState extends State<SaveSessionSheet> {
                 hint: 'e.g. Perseverance',
                 icon: Icons.menu_book_rounded,
               ),
+              const SizedBox(height: 20),
+
+              // ── FNG welcome-photo nudge ──────────────────────────────────
+              // FNGs are an anonymous count in this model (no per-person
+              // identity), so this can't detect a specific person's first
+              // session — it nudges whenever today's count is > 0, which is
+              // the closest signal actually available.
+              ValueListenableBuilder<TextEditingValue>(
+                valueListenable: _fngCtrl,
+                builder: (context, value, _) {
+                  final fngCount = int.tryParse(value.text) ?? 0;
+                  if (fngCount == 0 || _photoPaths.isNotEmpty) {
+                    return const SizedBox.shrink();
+                  }
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: F3Colors.accent.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                          color: F3Colors.accent.withValues(alpha: 0.35)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.camera_alt_rounded,
+                            color: F3Colors.accent, size: 18),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Got ${fngCount == 1 ? "an FNG" : "$fngCount FNGs"} today — snap a welcome photo below!',
+                            style: TextStyle(
+                                color: context.f3textSecondary, fontSize: 12),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+
+              // ── Pic-o-Rama ─────────────────────────────────────────────
+              Text(
+                'PIC-O-RAMA (optional)',
+                style: TextStyle(
+                    color: context.f3textMuted,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.2),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                height: 84,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  children: [
+                    for (int i = 0; i < _photoPaths.length; i++)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: Stack(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(10),
+                              child: Image.file(
+                                File(_photoPaths[i]),
+                                width: 84,
+                                height: 84,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                            Positioned(
+                              top: 2,
+                              right: 2,
+                              child: GestureDetector(
+                                onTap: () => _removePhoto(i),
+                                child: Container(
+                                  padding: const EdgeInsets.all(2),
+                                  decoration: const BoxDecoration(
+                                      color: Colors.black54,
+                                      shape: BoxShape.circle),
+                                  child: const Icon(Icons.close_rounded,
+                                      color: Colors.white, size: 14),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    GestureDetector(
+                      onTap: _pickingPhoto ? null : _showPhotoSourceSheet,
+                      child: Container(
+                        width: 84,
+                        height: 84,
+                        decoration: BoxDecoration(
+                          color: context.f3elevated,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                              color: F3Colors.accent.withValues(alpha: 0.4)),
+                        ),
+                        child: _pickingPhoto
+                            ? const Center(
+                                child: SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2)))
+                            : const Icon(Icons.add_a_photo_rounded,
+                                color: F3Colors.accent),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
               const SizedBox(height: 24),
 
               // ── Save button ────────────────────────────────────────────
@@ -540,6 +756,110 @@ class _Field extends StatelessWidget {
         prefixIcon: Icon(icon, size: 20),
       ),
       validator: validator,
+    );
+  }
+}
+
+// ─── Achievement unlock celebration ───────────────────────────────────────────
+// Same confetti pattern as TimerScreen's session-complete burst — self
+// contained here since a save can happen from more than one entry point.
+class _AchievementUnlockedDialog extends StatefulWidget {
+  final Achievement achievement;
+  const _AchievementUnlockedDialog({required this.achievement});
+
+  @override
+  State<_AchievementUnlockedDialog> createState() =>
+      _AchievementUnlockedDialogState();
+}
+
+class _AchievementUnlockedDialogState
+    extends State<_AchievementUnlockedDialog> {
+  late final ConfettiController _confettiCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _confettiCtrl = ConfettiController(duration: const Duration(seconds: 3));
+    _confettiCtrl.play();
+  }
+
+  @override
+  void dispose() {
+    _confettiCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final a = widget.achievement;
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      child: Stack(
+        alignment: Alignment.topCenter,
+        children: [
+          Container(
+            margin: const EdgeInsets.only(top: 24),
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: context.f3card,
+              borderRadius: BorderRadius.circular(20),
+              border:
+                  Border.all(color: F3Colors.accent.withValues(alpha: 0.5)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(a.emoji, style: const TextStyle(fontSize: 48)),
+                const SizedBox(height: 12),
+                const Text(
+                  'ACHIEVEMENT UNLOCKED',
+                  style: TextStyle(
+                      color: F3Colors.accent,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.5),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  a.title,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      color: context.f3textPrimary,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  a.description,
+                  textAlign: TextAlign.center,
+                  style:
+                      TextStyle(color: context.f3textSecondary, fontSize: 13),
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('LET\'S GO'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          ConfettiWidget(
+            confettiController: _confettiCtrl,
+            blastDirection: 1.5708, // pi/2, straight down
+            numberOfParticles: 30,
+            gravity: 0.25,
+            emissionFrequency: 0.08,
+            colors: const [
+              F3Colors.accent,
+              Colors.white,
+              Colors.yellow,
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

@@ -4,6 +4,32 @@
 import 'exercise.dart';
 import 'workout_settings.dart';
 
+/// How the Q calls the count for a block's exercises — a live call the Q
+/// makes, not a fixed property of any one exercise (the same move can be
+/// called differently by different Qs), so this lives on the block, not on
+/// individual exercises in the Exicon.
+enum CallStyle {
+  onYourOwn,
+  inCadence,
+  onMyUp,
+  onMyDown;
+
+  String get displayName => switch (this) {
+    CallStyle.onYourOwn => 'On Your Own',
+    CallStyle.inCadence  => 'In Cadence',
+    CallStyle.onMyUp     => 'On My Up',
+    CallStyle.onMyDown   => 'On My Down',
+  };
+
+  /// Short form for the TTS callout ("...OYO, go!").
+  String get calloutPhrase => switch (this) {
+    CallStyle.onYourOwn => 'On your own',
+    CallStyle.inCadence  => 'In cadence',
+    CallStyle.onMyUp     => 'On my up',
+    CallStyle.onMyDown   => 'On my down',
+  };
+}
+
 class WorkoutBlock {
   final String label;
   final ExerciseCategory category;
@@ -13,6 +39,7 @@ class WorkoutBlock {
   final int rounds;
   // exerciseId → Q note (e.g. "OYO", "do in cadence", "flapjack at halfway")
   final Map<String, String> exerciseNotes;
+  final CallStyle callStyle;
 
   const WorkoutBlock({
     required this.label,
@@ -22,6 +49,7 @@ class WorkoutBlock {
     this.notes = '',
     this.rounds = 1,
     this.exerciseNotes = const {},
+    this.callStyle = CallStyle.onYourOwn,
   });
 
   String noteFor(String exerciseId) => exerciseNotes[exerciseId] ?? '';
@@ -41,6 +69,7 @@ class WorkoutBlock {
       notes: notes,
       rounds: rounds,
       exerciseNotes: updated,
+      callStyle: callStyle,
     );
   }
 
@@ -54,6 +83,7 @@ class WorkoutBlock {
         notes: notes,
         rounds: rounds,
         exerciseNotes: exerciseNotes,
+        callStyle: callStyle,
       );
 
   /// Duration scaled to a new exercise count, holding per-exercise time
@@ -65,6 +95,21 @@ class WorkoutBlock {
     return (perExercise * newExerciseCount).round();
   }
 
+  /// A refined minutes estimate that uses real per-exercise timing
+  /// (`secondsPerSet`, set on custom/Q-written exercises) where available,
+  /// instead of the generic block-level [durationMinutes] split evenly
+  /// across exercises. Display-only — doesn't change the timer's actual
+  /// phase countdown, which still runs off [durationMinutes].
+  int get refinedMinutes {
+    if (exercises.isEmpty) return durationMinutes * rounds;
+    final withTiming = exercises.where((e) => e.secondsPerSet != null);
+    if (withTiming.isEmpty) return durationMinutes * rounds;
+    final perExerciseSecs = durationMinutes * 60 / exercises.length;
+    final totalSecs = exercises.fold<double>(
+        0, (sum, e) => sum + (e.secondsPerSet ?? perExerciseSecs));
+    return ((totalSecs / 60) * rounds).round();
+  }
+
   WorkoutBlock copyWithLabel(String newLabel) => WorkoutBlock(
         label: newLabel,
         category: category,
@@ -73,6 +118,7 @@ class WorkoutBlock {
         notes: notes,
         rounds: rounds,
         exerciseNotes: exerciseNotes,
+        callStyle: callStyle,
       );
 
   WorkoutBlock copyWithRounds(int newRounds) => WorkoutBlock(
@@ -83,6 +129,18 @@ class WorkoutBlock {
         notes: notes,
         rounds: newRounds,
         exerciseNotes: exerciseNotes,
+        callStyle: callStyle,
+      );
+
+  WorkoutBlock copyWithCallStyle(CallStyle newStyle) => WorkoutBlock(
+        label: label,
+        category: category,
+        exercises: exercises,
+        durationMinutes: durationMinutes,
+        notes: notes,
+        rounds: rounds,
+        exerciseNotes: exerciseNotes,
+        callStyle: newStyle,
       );
 }
 
@@ -105,6 +163,13 @@ class WorkoutPlan {
       blocks.fold(0, (sum, b) => sum + b.durationMinutes * b.rounds);
 
   int get totalMinutes => nonExercisePhaseMinutes + exerciseMinutes;
+
+  /// [totalMinutes], but using each block's [WorkoutBlock.refinedMinutes]
+  /// where custom exercises carry real per-set timing — a more accurate
+  /// budget-bar estimate without changing the timer's own countdown logic.
+  int get refinedTotalMinutes =>
+      nonExercisePhaseMinutes +
+      blocks.fold(0, (sum, b) => sum + b.refinedMinutes);
 
   List<Exercise> get allExercises =>
       blocks.expand((b) => b.exercises).toList();

@@ -5,6 +5,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 import '../services/app_profile_service.dart';
 import '../services/emergency_service.dart';
 import '../theme/app_theme.dart';
@@ -12,6 +13,28 @@ import 'emergency_edit_screen.dart';
 
 class EmergencyScreen extends StatelessWidget {
   const EmergencyScreen({super.key});
+
+  // Personal-medical fields only — the AO-site section is about a location,
+  // not the PAX, so it's left out of a "share my emergency card" send.
+  void _share(BuildContext context, EmergencyInfo i) {
+    final buf = StringBuffer()..writeln('EMERGENCY INFO');
+    final contact = _join([i.contactName, i.contactRelationship]);
+    if (contact.isNotEmpty || i.contactPhone.isNotEmpty) {
+      buf.writeln(
+          'Contact: $contact${i.contactPhone.isNotEmpty ? ' (${i.contactPhone})' : ''}');
+    }
+    if (i.bloodType.isNotEmpty) buf.writeln('Blood type: ${i.bloodType}');
+    if (i.allergies.isNotEmpty) buf.writeln('Allergies: ${i.allergies}');
+    if (i.conditions.isNotEmpty) buf.writeln('Conditions: ${i.conditions}');
+    if (i.medications.isNotEmpty) {
+      buf.writeln('Medications: ${i.medications}');
+    }
+    if (i.preferredHospital.isNotEmpty) {
+      buf.writeln('Preferred hospital: ${i.preferredHospital}');
+    }
+    if (i.organDonor) buf.writeln('Organ donor: Yes');
+    Share.share(buf.toString().trim());
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -22,6 +45,17 @@ class EmergencyScreen extends StatelessWidget {
         foregroundColor: Colors.white,
         title: const Text('Emergency Info'),
         actions: [
+          Consumer2<EmergencyService, AppProfileService>(
+            builder: (context, svc, profile, _) {
+              final i = svc.infoFor(profile.authUserId);
+              if (!i.hasMedical) return const SizedBox.shrink();
+              return IconButton(
+                icon: const Icon(Icons.share_rounded),
+                tooltip: 'Share with a fellow PAX',
+                onPressed: () => _share(context, i),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.edit_rounded),
             tooltip: 'Edit',

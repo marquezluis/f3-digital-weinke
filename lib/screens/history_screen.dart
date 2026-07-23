@@ -14,6 +14,7 @@ import '../services/history_service.dart';
 import '../services/backblast_formatter.dart';
 import '../services/f3_api_service.dart';
 import '../theme/app_theme.dart';
+import 'beatdown_card_preview_screen.dart';
 
 /// The Q's choice in the publish event picker: an existing scheduled instance,
 /// a new unscheduled event, or cancel.
@@ -34,8 +35,15 @@ class _EventChoice {
   int get hashCode => Object.hash(instance?.id, isCancel);
 }
 
-class HistoryScreen extends StatelessWidget {
+class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
+
+  @override
+  State<HistoryScreen> createState() => _HistoryScreenState();
+}
+
+class _HistoryScreenState extends State<HistoryScreen> {
+  bool _favoritesOnly = false;
 
   @override
   Widget build(BuildContext context) {
@@ -45,6 +53,16 @@ class HistoryScreen extends StatelessWidget {
         title: const Text('History'),
         backgroundColor: context.f3bg,
         actions: [
+          IconButton(
+            icon: Icon(
+              _favoritesOnly ? Icons.star_rounded : Icons.star_border_rounded,
+              color: _favoritesOnly ? F3Colors.phaseThang : null,
+            ),
+            tooltip: _favoritesOnly
+                ? 'Showing greatest hits only'
+                : 'Show greatest hits only',
+            onPressed: () => setState(() => _favoritesOnly = !_favoritesOnly),
+          ),
           Consumer<HistoryService>(
             builder: (context, svc, _) {
               if (svc.all.isEmpty) return const SizedBox.shrink();
@@ -60,11 +78,17 @@ class HistoryScreen extends StatelessWidget {
       body: Consumer<HistoryService>(
         builder: (context, svc, _) {
           if (svc.all.isEmpty) return const _EmptyState();
+          final entries = _favoritesOnly
+              ? svc.all.where((e) => e.rating == 1).toList()
+              : svc.all;
+          if (entries.isEmpty) {
+            return const _EmptyFavoritesState();
+          }
           return ListView.builder(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-            itemCount: svc.all.length,
+            itemCount: entries.length,
             itemBuilder: (context, i) {
-              final entry = svc.all[i];
+              final entry = entries[i];
               return Dismissible(
                 key: ValueKey(entry.id),
                 direction: DismissDirection.endToStart,
@@ -167,6 +191,46 @@ class HistoryScreen extends StatelessWidget {
                 const Text('Clear All', style: TextStyle(color: Colors.white)),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ─── Empty favorites state ────────────────────────────────────────────────────
+
+class _EmptyFavoritesState extends StatelessWidget {
+  const _EmptyFavoritesState();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(36),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.star_border_rounded,
+                color: F3Colors.phaseThang.withValues(alpha: 0.5), size: 72),
+            const SizedBox(height: 20),
+            Text(
+              'NO GREATEST HITS YET',
+              style: TextStyle(
+                color: context.f3textPrimary,
+                fontSize: 22,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1.2,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Thumbs-up a session from its backblast screen\n'
+              'to pin it here.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                  color: context.f3textSecondary, fontSize: 14, height: 1.5),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -599,7 +663,28 @@ class _BackblastScreenState extends State<BackblastScreen> {
 
   Future<void> _share() async {
     HapticFeedback.lightImpact();
-    await Share.share(_backblast, subject: widget.entry.title);
+    final photos = widget.entry.photoPaths;
+    if (photos.isEmpty) {
+      await Share.share(_backblast, subject: widget.entry.title);
+      return;
+    }
+    // Attach Pic-o-Rama photos alongside the backblast text — bridges local
+    // capture to sharing without waiting on an F3 Nation image-upload API.
+    await Share.shareXFiles(
+      photos.map((p) => XFile(p)).toList(),
+      text: _backblast,
+      subject: widget.entry.title,
+    );
+  }
+
+  void _shareAsImage() {
+    HapticFeedback.lightImpact();
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => BeatdownCardPreviewScreen(entry: widget.entry),
+      ),
+    );
   }
 
   void _setRating(int rating) {
@@ -659,6 +744,11 @@ class _BackblastScreenState extends State<BackblastScreen> {
                 Text(entry.title, maxLines: 1, overflow: TextOverflow.ellipsis),
             backgroundColor: context.f3bg,
             actions: [
+              IconButton(
+                icon: const Icon(Icons.image_rounded),
+                tooltip: 'Share as image',
+                onPressed: _shareAsImage,
+              ),
               IconButton(
                 icon: const Icon(Icons.share_rounded),
                 tooltip: 'Share backblast',

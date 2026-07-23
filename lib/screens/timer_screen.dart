@@ -98,18 +98,30 @@ class _TimerScreenState extends State<TimerScreen> {
     // Apply saved TTS voice after first frame (context is safe here).
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      final ttsLocale = _ttsLocaleFor(context.read<SettingsService>().locale);
+      _tts.setLanguage(ttsLocale);
       final voice = context.read<SettingsService>().ttsVoice;
       if (voice.isNotEmpty) {
-        _tts.setVoice({'name': voice, 'locale': 'en-US'});
+        _tts.setVoice({'name': voice, 'locale': ttsLocale});
       }
     });
   }
 
   Future<void> _initTts() async {
-    await _tts.setLanguage('en-US');
+    await _tts.setLanguage(
+        _ttsLocaleFor(context.read<SettingsService>().locale));
     await _tts.setSpeechRate(0.72);
     await _tts.setPitch(1.0);
   }
+
+  /// Match the TTS voice to the app's language setting — Digital Weinke
+  /// ships Spanish/French for the core loop, so the voice should follow suit
+  /// instead of always announcing in English regardless of app language.
+  String _ttsLocaleFor(Locale locale) => switch (locale.languageCode) {
+        'es' => 'es-ES',
+        'fr' => 'fr-FR',
+        _ => 'en-US',
+      };
 
 
   Future<void> _speak(String text) async {
@@ -117,6 +129,28 @@ class _TimerScreenState extends State<TimerScreen> {
     if (!voiceOn || _ttsMuted) return;
     await _tts.stop();
     await _tts.speak(text);
+  }
+
+  /// Which block a given exercise belongs to determines its call style — the
+  /// Q's live call, not a fixed Exicon property (see CallStyle's doc comment).
+  CallStyle _callStyleFor(String exerciseId, WorkoutPlan plan) {
+    for (final b in plan.blocks) {
+      if (b.exercises.any((e) => e.id == exerciseId)) return b.callStyle;
+    }
+    return CallStyle.onYourOwn;
+  }
+
+  /// Full exercise-change callout: name, a beat to get into position, then
+  /// the call style so PAX know how to count it before "Go!".
+  Future<void> _announceExercise(
+      String name, bool isFirst, CallStyle style) async {
+    await _speak(isFirst ? 'First up: $name' : 'Next exercise: $name');
+    await Future.delayed(const Duration(seconds: 2));
+    if (!mounted) return;
+    await _speak('Get in position');
+    await Future.delayed(const Duration(seconds: 1));
+    if (!mounted) return;
+    await _speak('${style.calloutPhrase}. Go!');
   }
 
   String _phaseAnnouncement(BootcampPhase phase) {
@@ -159,6 +193,9 @@ class _TimerScreenState extends State<TimerScreen> {
         .toList();
     // Real minutes the timer actually ran (0 if never started).
     final actualMins = context.read<TimerService>().elapsedRealMinutes;
+    // Live rep count, if the Q used the rep counter overlay during the run —
+    // otherwise this data is silently lost once the session ends.
+    final repCount = _repCount > 0 ? _repCount : null;
     _WorkoutSummarySheet.show(context, plan: plan, actualMinutes: actualMins,
         onSave: (String rolledPax) {
       SaveSessionSheet.show(
@@ -166,6 +203,7 @@ class _TimerScreenState extends State<TimerScreen> {
         blocks: blocks,
         initialPax: rolledPax,
         actualDurationMinutes: actualMins > 0 ? actualMins : null,
+        initialRepCount: repCount,
       );
     });
   }
@@ -316,11 +354,10 @@ class _TimerScreenState extends State<TimerScreen> {
         if (currentName != null && currentName != _lastExerciseName) {
           final isFirst = _lastExerciseName == null;
           _lastExerciseName = currentName;
+          final style = _callStyleFor(currentExercise!.id, plan);
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted) {
-              _speak(isFirst
-                  ? 'First up: $currentName'
-                  : 'Next exercise: $currentName');
+              _announceExercise(currentName, isFirst, style);
             }
           });
         }

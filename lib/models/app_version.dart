@@ -25,13 +25,34 @@ class AppVersion {
   // automatically, since release notes are hand-written prose. Update these
   // four constants and add a new AppRelease entry below whenever you want a
   // build's changes to actually show up in the in-app Release Log.
-  static const String current = '2.4.2';
-  static const String versionName = '2.4.2';
-  static const String buildNumber = '14';
-  static const String displayName = 'Digital Weinke v2.4.2';
-  static const String fullDisplayName = 'Digital Weinke v2.4.2+14';
+  static const String current = '2.4.3';
+  static const String versionName = '2.4.3';
+  static const String buildNumber = '15';
+  static const String displayName = 'Digital Weinke v2.4.3';
+  static const String fullDisplayName = 'Digital Weinke v2.4.3+15';
 
   static const List<AppRelease> releases = [
+    AppRelease(
+      version: '2.4.3',
+      title: 'The Pic-o-Rama Update',
+      summary:
+          'Capture and share photos from your beatdowns, richer TTS callouts, and a batch of history/community polish.',
+      newItems: [
+        'Pic-o-Rama — snap or pick photos when saving a session, view them on Heatmap days and per-AO on Browse AOs, and share them alongside your backblast text.',
+        'Share any past beatdown as a shareable image card, not just plain text.',
+        'A per-block "call style" (In Cadence / On Your Own / On My Up / On My Down) you set while building — the live timer now announces it before each exercise.',
+        'Achievement unlocks now get a real celebration (confetti) instead of just showing up quietly in the Achievements list.',
+        'History has a Favorites filter for your thumbs-up sessions.',
+        'A "this month vs last month" comparison (sessions, FNGs, coupon sessions) on the Heatmap screen.',
+        'Share your emergency medical info to a fellow PAX before a hard workout.',
+      ],
+      enhancements: [
+        'Posting a preblast now auto-sets your event reminder, the same as HC\'ing or taking Q already did.',
+        'The live rep counter, if you used it, now carries over into the backblast notes instead of being lost when you save.',
+        'TTS voice now follows the app\'s language setting (English/Spanish/French) instead of always speaking English.',
+        'The Weinke builder\'s time-budget bar accounts for real per-exercise timing on custom exercises instead of a generic estimate.',
+      ],
+    ),
     AppRelease(
       version: '2.4.2',
       title: 'The Weinke-to-Preblast Update',

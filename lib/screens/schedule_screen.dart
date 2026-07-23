@@ -1057,6 +1057,10 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
         _flash = err ?? l10n.schedulePreblastPosted;
       });
     }
+    // A posted preblast means the Q is running this beatdown — set their
+    // reminder automatically instead of requiring a separate self-HC, same
+    // as HC/take-Q already do.
+    if (err == null) _scheduleReminders(isQ: true);
   }
 
   /// Assembles the real F3 Nation preblast format (matches what slackbot
