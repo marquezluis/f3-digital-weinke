@@ -13,6 +13,7 @@
 //     Live tab, syncing the plan to the timer screen.
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../models/exercise.dart';
@@ -43,7 +44,19 @@ class WorkoutScreen extends StatefulWidget {
   /// event; this screen only needs to hand back the plan itself).
   final bool forPreblast;
 
-  const WorkoutScreen({super.key, this.forPreblast = false});
+  /// The plan text from an already-posted preblast for this same event —
+  /// set when a Q is replaced (sick, conflict, etc.) and the new Q opens
+  /// "Build my Weinke" for an event someone else already planned. Shown as
+  /// a reference so they can reuse it instead of hunting for it separately;
+  /// not parsed into blocks automatically — free-form prose isn't reliably
+  /// reducible to structured exercises.
+  final String? existingPreblastPlan;
+
+  const WorkoutScreen({
+    super.key,
+    this.forPreblast = false,
+    this.existingPreblastPlan,
+  });
 
   @override
   State<WorkoutScreen> createState() => _WorkoutScreenState();
@@ -513,6 +526,9 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                               ),
                             ]),
                           ),
+                        if ((widget.existingPreblastPlan ?? '').isNotEmpty)
+                          _ExistingPlanBanner(
+                              plan: widget.existingPreblastPlan!),
                         _GenOptions(onChanged: _generate),
                         Padding(
                           padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
@@ -971,6 +987,87 @@ class _EmptyState extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ─── Existing plan reference (Q replaced) ──────────────────────────────────────
+
+/// Shown when a new Q is building a Weinke for an event someone else already
+/// posted a preblast for (e.g. the original Q got sick and dropped Q). Just
+/// a reference to copy from — not parsed into blocks, since free-form prose
+/// isn't reliably reducible to structured exercises.
+class _ExistingPlanBanner extends StatefulWidget {
+  final String plan;
+  const _ExistingPlanBanner({required this.plan});
+
+  @override
+  State<_ExistingPlanBanner> createState() => _ExistingPlanBannerState();
+}
+
+class _ExistingPlanBannerState extends State<_ExistingPlanBanner> {
+  bool _expanded = false;
+  bool _copied = false;
+
+  Future<void> _copy() async {
+    await Clipboard.setData(ClipboardData(text: widget.plan));
+    if (!mounted) return;
+    setState(() => _copied = true);
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) setState(() => _copied = false);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: context.f3card,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: context.f3divider),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.history_edu_rounded,
+                  color: context.f3textMuted, size: 16),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  'Previous Q\'s plan for this beatdown',
+                  style: TextStyle(
+                      color: context.f3textMuted,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.8),
+                ),
+              ),
+              IconButton(
+                tooltip: 'Copy',
+                visualDensity: VisualDensity.compact,
+                icon: Icon(_copied ? Icons.check_rounded : Icons.copy_rounded,
+                    size: 16,
+                    color: _copied ? F3Colors.accent : context.f3textMuted),
+                onPressed: _copy,
+              ),
+            ],
+          ),
+          GestureDetector(
+            onTap: () => setState(() => _expanded = !_expanded),
+            child: Text(
+              widget.plan,
+              maxLines: _expanded ? null : 2,
+              overflow: _expanded ? null : TextOverflow.ellipsis,
+              style: TextStyle(color: context.f3textSecondary, fontSize: 13),
+            ),
+          ),
+        ],
       ),
     );
   }

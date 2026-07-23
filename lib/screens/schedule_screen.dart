@@ -1147,9 +1147,18 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
   /// the plan already summarized into the Plan field and Coupon pre-set
   /// from whatever's actually in the plan — nothing to retype.
   Future<void> _buildWeinke() async {
+    // If someone already posted a preblast for this event (e.g. the
+    // original Q got sick and dropped Q), surface their plan text as a
+    // reference for whoever's building the Weinke now.
+    final existingPlan = _parseDraftFromText(_event.preblast)?.plan;
     final plan = await Navigator.push<WorkoutPlan>(
       context,
-      MaterialPageRoute(builder: (_) => const WorkoutScreen(forPreblast: true)),
+      MaterialPageRoute(
+        builder: (_) => WorkoutScreen(
+          forPreblast: true,
+          existingPreblastPlan: existingPlan,
+        ),
+      ),
     );
     if (plan == null || !mounted) return;
     await _postPreblast(
