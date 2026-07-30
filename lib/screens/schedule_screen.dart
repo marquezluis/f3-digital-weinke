@@ -691,9 +691,16 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   /// Not a data-driven string list like AO/Type, so this doesn't reuse
   /// showFilterPickerSheet (shared with Browse AOs) — a small dedicated
   /// sheet for this one enum-shaped filter.
+  ///
+  /// Sheet result is wrapped in a record so "explicitly chose All" (a
+  /// non-null record wrapping a null value) is distinguishable from
+  /// "dismissed without choosing" (showModalBottomSheet always resolves bare
+  /// `null` on barrier dismiss, regardless of T) — using `MineFilter?`
+  /// directly as T here previously meant both cases arrived as `null` and
+  /// dismissing the sheet silently cleared whatever filter was already set.
   Future<void> _pickMineFilter() async {
     final l10n = AppLocalizations.of(context)!;
-    final picked = await showModalBottomSheet<MineFilter?>(
+    final picked = await showModalBottomSheet<({MineFilter? value})>(
       context: context,
       backgroundColor: context.f3card,
       shape: const RoundedRectangleBorder(
@@ -717,7 +724,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               trailing: _mineFilter == null
                   ? const Icon(Icons.check_rounded, color: F3Colors.accent)
                   : null,
-              onTap: () => Navigator.pop(sheetContext, null),
+              onTap: () => Navigator.pop(sheetContext, (value: null)),
             ),
             for (final option in MineFilter.values)
               ListTile(
@@ -732,15 +739,15 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 trailing: _mineFilter == option
                     ? const Icon(Icons.check_rounded, color: F3Colors.accent)
                     : null,
-                onTap: () => Navigator.pop(sheetContext, option),
+                onTap: () => Navigator.pop(sheetContext, (value: option)),
               ),
             const SizedBox(height: 12),
           ],
         ),
       ),
     );
-    if (!mounted) return;
-    setState(() => _mineFilter = picked);
+    if (!mounted || picked == null) return; // dismissed without a choice
+    setState(() => _mineFilter = picked.value);
   }
 }
 
@@ -860,13 +867,25 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
   // change can silently re-assemble and re-post with fresh counts/names
   // without re-prompting the Q to retype what they already wrote.
   _PreblastDraft? _lastDraft;
+  // event.orgId is already the AO-level org (not the region) — see
+  // f3_api_models.dart's F3EventInstance doc — so this looks the logo up
+  // directly with no location join needed.
+  String? _aoLogoUrl;
 
   @override
   void initState() {
     super.initState();
     _loadAttendance();
     _loadLocation();
+    _loadAoLogo();
     _refreshPreblastIfNeeded();
+  }
+
+  Future<void> _loadAoLogo() async {
+    final orgId = widget.event.orgId;
+    if (orgId == null) return;
+    final logos = await context.read<F3ApiService>().getAoLogos();
+    if (mounted) setState(() => _aoLogoUrl = logos['$orgId']);
   }
 
   /// calendar-home-schedule (Schedule's main fetch) only ever sends a
@@ -1379,6 +1398,19 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
                 ),
               ),
               const SizedBox(width: 8),
+              if ((_aoLogoUrl ?? '').isNotEmpty) ...[
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.network(
+                    _aoLogoUrl!,
+                    width: 32,
+                    height: 32,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
               Expanded(
                 child: Text(
                     e.orgName ??

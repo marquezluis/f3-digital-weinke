@@ -419,6 +419,58 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         icon: Icons.map_rounded,
                         label: l10n.profileHomeRegionField,
                         value: _f3!.homeRegionName!),
+                  if ((_f3?.f3NameOrigin ?? '').isNotEmpty)
+                    _InfoRow(
+                        icon: Icons.auto_awesome_rounded,
+                        label: l10n.profileF3NameOriginField,
+                        value: _f3!.f3NameOrigin!),
+                  if ((_f3?.myF3Why ?? '').isNotEmpty)
+                    _InfoRow(
+                        icon: Icons.favorite_rounded,
+                        label: l10n.profileMyF3WhyField,
+                        value: _f3!.myF3Why!),
+                  if ((_f3?.roles ?? const []).isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    _SectionLabel(l10n.profileSectionRoles),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: _f3!.roles
+                          .map((r) => Chip(
+                                label: Text(
+                                    '${r.roleName} · ${r.orgName}',
+                                    style: const TextStyle(fontSize: 12)),
+                                visualDensity: VisualDensity.compact,
+                                materialTapTargetSize:
+                                    MaterialTapTargetSize.shrinkWrap,
+                                backgroundColor:
+                                    F3Colors.accent.withValues(alpha: 0.12),
+                                side: BorderSide(color: context.f3divider),
+                              ))
+                          .toList(),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  if ((_f3?.positions ?? const []).isNotEmpty) ...[
+                    _SectionLabel(l10n.profileSectionPositions),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: _f3!.positions
+                          .map((p) => Chip(
+                                label: Text(
+                                    '${p.positionName} · ${p.orgName}',
+                                    style: const TextStyle(fontSize: 12)),
+                                visualDensity: VisualDensity.compact,
+                                materialTapTargetSize:
+                                    MaterialTapTargetSize.shrinkWrap,
+                                backgroundColor: context.f3card,
+                                side: BorderSide(color: context.f3divider),
+                              ))
+                          .toList(),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
                   const SizedBox(height: 8),
                   Material(
                     color: context.f3card,

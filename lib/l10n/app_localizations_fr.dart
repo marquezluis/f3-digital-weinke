@@ -792,6 +792,18 @@ class AppLocalizationsFr extends AppLocalizations {
   String get profileHomeRegionField => 'Région d\'origine';
 
   @override
+  String get profileF3NameOriginField => 'Origine du nom F3';
+
+  @override
+  String get profileMyF3WhyField => 'Mon pourquoi F3';
+
+  @override
+  String get profileSectionRoles => 'RÔLES';
+
+  @override
+  String get profileSectionPositions => 'POSTES';
+
+  @override
   String get profileEmergencyInfo => 'Informations d\'urgence';
 
   @override

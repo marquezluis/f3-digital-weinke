@@ -790,6 +790,18 @@ class AppLocalizationsEs extends AppLocalizations {
   String get profileHomeRegionField => 'Región de origen';
 
   @override
+  String get profileF3NameOriginField => 'Origen del nombre F3';
+
+  @override
+  String get profileMyF3WhyField => 'Mi por qué F3';
+
+  @override
+  String get profileSectionRoles => 'ROLES';
+
+  @override
+  String get profileSectionPositions => 'PUESTOS';
+
+  @override
   String get profileEmergencyInfo => 'Información de emergencia';
 
   @override

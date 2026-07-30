@@ -1,6 +1,56 @@
 // lib/models/f3_api_models.dart
 // Response models for the F3 Nation REST API (api.f3nation.com).
 
+import 'dart:convert';
+
+/// One org-scoped role assignment (e.g. "editor" on an AO) — read-only here,
+/// same as the real F3 Me site (its Roles card is informational, assignment
+/// is an admin action elsewhere).
+class F3UserRole {
+  final String roleId;
+  final String orgId;
+  final String orgName;
+  final String roleName;
+
+  const F3UserRole({
+    required this.roleId,
+    required this.orgId,
+    required this.orgName,
+    required this.roleName,
+  });
+
+  factory F3UserRole.fromJson(Map<String, dynamic> json) => F3UserRole(
+        roleId: json['roleId']?.toString() ?? '',
+        orgId: json['orgId']?.toString() ?? '',
+        orgName: json['orgName']?.toString() ?? '',
+        roleName: json['roleName']?.toString() ?? '',
+      );
+}
+
+/// One org-scoped position (e.g. "Site Q") — same read-only treatment as
+/// [F3UserRole].
+class F3UserPosition {
+  final String positionId;
+  final String orgId;
+  final String positionName;
+  final String orgName;
+
+  const F3UserPosition({
+    required this.positionId,
+    required this.orgId,
+    required this.positionName,
+    required this.orgName,
+  });
+
+  factory F3UserPosition.fromJson(Map<String, dynamic> json) =>
+      F3UserPosition(
+        positionId: json['positionId']?.toString() ?? '',
+        orgId: json['orgId']?.toString() ?? '',
+        positionName: json['positionName']?.toString() ?? '',
+        orgName: json['orgName']?.toString() ?? '',
+      );
+}
+
 class F3UserProfile {
   final String id;
   final String f3Name;
@@ -11,6 +61,17 @@ class F3UserProfile {
   final String? homeRegionName;
   final String? avatarUrl;
   final String? phone;
+  // Sourced from the freeform `meta` object — confirmed real keys (per the
+  // `/v1/me/profile` PATCH schema's own description: "JSON meta fields to
+  // merge with existing meta (e.g. f3_name_origin, my_f3_why)"). Other About
+  // Me fields shown on the real F3 Me site (Start Date, Who Brought You)
+  // aren't documented anywhere in the API schema, so they're deliberately
+  // not guessed at here — would need confirming with the F3 Nation team
+  // before parsing a key name that might just be wrong.
+  final String? f3NameOrigin;
+  final String? myF3Why;
+  final List<F3UserRole> roles;
+  final List<F3UserPosition> positions;
 
   const F3UserProfile({
     required this.id,
@@ -22,6 +83,10 @@ class F3UserProfile {
     this.homeRegionName,
     this.avatarUrl,
     this.phone,
+    this.f3NameOrigin,
+    this.myF3Why,
+    this.roles = const [],
+    this.positions = const [],
   });
 
   /// Tolerant of the /me/profile shape: numeric ids arrive as ints (the API
@@ -38,6 +103,38 @@ class F3UserProfile {
     }
 
     final homeRegion = data['homeRegion'];
+
+    // `meta` is documented as either an object or a JSON-encoded string —
+    // tolerant of both rather than assuming the API always sends one shape.
+    Map<String, dynamic> meta = const {};
+    final rawMeta = data['meta'];
+    if (rawMeta is Map<String, dynamic>) {
+      meta = rawMeta;
+    } else if (rawMeta is String && rawMeta.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(rawMeta);
+        if (decoded is Map<String, dynamic>) meta = decoded;
+      } catch (_) {
+        // Not valid JSON — leave meta empty rather than crash the whole
+        // profile parse over one malformed field.
+      }
+    }
+
+    final rawRoles = data['roles'];
+    final roles = rawRoles is List
+        ? rawRoles
+            .whereType<Map<String, dynamic>>()
+            .map(F3UserRole.fromJson)
+            .toList()
+        : const <F3UserRole>[];
+    final rawPositions = data['positions'];
+    final positions = rawPositions is List
+        ? rawPositions
+            .whereType<Map<String, dynamic>>()
+            .map(F3UserPosition.fromJson)
+            .toList()
+        : const <F3UserPosition>[];
+
     return F3UserProfile(
       id: str(data['id']) ?? '',
       f3Name: str(data['f3Name']) ?? '',
@@ -50,6 +147,10 @@ class F3UserProfile {
           : data['homeRegionName'] ?? data['homeRegionOrgName']),
       avatarUrl: str(data['avatarUrl']),
       phone: str(data['phone']),
+      f3NameOrigin: str(meta['f3_name_origin']),
+      myF3Why: str(meta['my_f3_why']),
+      roles: roles,
+      positions: positions,
     );
   }
 
@@ -104,6 +205,10 @@ class F3Location {
   // The AO's own display name (distinct from the region) — only known once
   // joined against `/v1/event`, since `/v1/location` itself doesn't carry it.
   final String? aoName;
+  // The AO's own org id (distinct from [orgId], which is the region) —
+  // joined the same way as [aoName], via `/v1/event`'s `parents[].parentId`.
+  // Used to look up the AO's logo from `/v1/org`, which is keyed by org id.
+  final String? aoOrgId;
 
   const F3Location({
     required this.id,
@@ -118,9 +223,11 @@ class F3Location {
     this.city,
     this.schedule = const [],
     this.aoName,
+    this.aoOrgId,
   });
 
-  F3Location withSchedule(List<F3WeeklyWorkout> schedule, {String? aoName}) =>
+  F3Location withSchedule(List<F3WeeklyWorkout> schedule,
+          {String? aoName, String? aoOrgId}) =>
       F3Location(
         id: id,
         name: name,
@@ -134,6 +241,7 @@ class F3Location {
         city: city,
         schedule: schedule,
         aoName: aoName ?? this.aoName,
+        aoOrgId: aoOrgId ?? this.aoOrgId,
       );
 
   /// `GET /v1/location` returns `locationName`/`latitude`/`longitude`/
@@ -333,12 +441,16 @@ class F3Org {
   final String name;
   final String type;
   final String? parentId;
+  // AO/region logo, hosted on F3 Nation's own storage (GCS). Empty string
+  // (not null) when the org hasn't uploaded one — most AOs haven't.
+  final String? logoUrl;
 
   const F3Org({
     required this.id,
     required this.name,
     required this.type,
     this.parentId,
+    this.logoUrl,
   });
 
   factory F3Org.fromJson(Map<String, dynamic> json) => F3Org(
@@ -349,5 +461,6 @@ class F3Org {
         name: json['name'] as String? ?? '',
         type: json['orgType'] as String? ?? '',
         parentId: json['parentId']?.toString(),
+        logoUrl: json['logoUrl'] as String?,
       );
 }

@@ -300,13 +300,22 @@ class F3ApiService extends ChangeNotifier {
   /// data the F3 Nation admin's "Events" table shows (AO, Location, Day of
   /// Week). Also carries each location's AO display name, which
   /// `/v1/location` itself doesn't expose.
-  Future<Map<String, ({List<F3WeeklyWorkout> schedule, String? aoName})>>
-      getLocationSchedules() async {
+  Future<
+      Map<String,
+          ({
+            List<F3WeeklyWorkout> schedule,
+            String? aoName,
+            String? aoOrgId
+          })>> getLocationSchedules() async {
     final data = await _get('/v1/event?pageSize=10000');
     if (data == null) return {};
     final events = data['events'] as List<dynamic>? ?? [];
-    final result =
-        <String, ({List<F3WeeklyWorkout> schedule, String? aoName})>{};
+    final result = <String,
+        ({
+          List<F3WeeklyWorkout> schedule,
+          String? aoName,
+          String? aoOrgId
+        })>{};
     for (final e in events) {
       if (e is! Map) continue;
       final locationId = e['locationId']?.toString();
@@ -320,18 +329,36 @@ class F3ApiService extends ChangeNotifier {
       }
       final parents = e['parents'];
       String? aoName;
+      String? aoOrgId;
       if (parents is List && parents.isNotEmpty && parents.first is Map) {
-        aoName = (parents.first as Map)['parentName']?.toString();
+        final parent = parents.first as Map;
+        aoName = parent['parentName']?.toString();
+        aoOrgId = parent['parentId']?.toString();
       }
       final existing = result[locationId];
       final schedule = [
         ...?existing?.schedule,
         F3WeeklyWorkout(weekday: weekday, time: time, eventTypeName: typeName),
       ];
-      result[locationId] =
-          (schedule: schedule, aoName: aoName ?? existing?.aoName);
+      result[locationId] = (
+        schedule: schedule,
+        aoName: aoName ?? existing?.aoName,
+        aoOrgId: aoOrgId ?? existing?.aoOrgId,
+      );
     }
     return result;
+  }
+
+  /// AO logo URLs, keyed by AO org id — sourced from `/v1/org` (the same
+  /// cached fetch [getOrgs] already makes for the region picker), filtered
+  /// to orgs that actually have one uploaded. Empty/missing `logoUrl` is the
+  /// common case (most AOs haven't uploaded a logo), not an error.
+  Future<Map<String, String>> getAoLogos({bool forceRefresh = false}) async {
+    final orgs = await getOrgs(forceRefresh: forceRefresh);
+    return {
+      for (final o in orgs)
+        if ((o.logoUrl ?? '').isNotEmpty) o.id: o.logoUrl!
+    };
   }
 
   // ── Events / Beatdowns ────────────────────────────────────────────────────

@@ -1468,6 +1468,30 @@ abstract class AppLocalizations {
   /// **'Home Region'**
   String get profileHomeRegionField;
 
+  /// No description provided for @profileF3NameOriginField.
+  ///
+  /// In en, this message translates to:
+  /// **'F3 Name Origin'**
+  String get profileF3NameOriginField;
+
+  /// No description provided for @profileMyF3WhyField.
+  ///
+  /// In en, this message translates to:
+  /// **'My F3 Why'**
+  String get profileMyF3WhyField;
+
+  /// No description provided for @profileSectionRoles.
+  ///
+  /// In en, this message translates to:
+  /// **'ROLES'**
+  String get profileSectionRoles;
+
+  /// No description provided for @profileSectionPositions.
+  ///
+  /// In en, this message translates to:
+  /// **'POSITIONS'**
+  String get profileSectionPositions;
+
   /// No description provided for @profileEmergencyInfo.
   ///
   /// In en, this message translates to:

@@ -99,27 +99,40 @@ class _BrowseAosScreenState extends State<BrowseAosScreen> {
     });
   }
 
+  Map<String, String> _aoLogos = const {};
+
   Future<void> _load() async {
     setState(() => _loading = true);
     final api = context.read<F3ApiService>();
     final results = await Future.wait([
       api.getLocations(),
       api.getLocationSchedules(),
+      api.getAoLogos(),
     ]);
     final locations = results[0] as List<F3Location>;
-    final schedules = results[1]
-        as Map<String, ({List<F3WeeklyWorkout> schedule, String? aoName})>;
+    final schedules = results[1] as Map<
+        String,
+        ({
+          List<F3WeeklyWorkout> schedule,
+          String? aoName,
+          String? aoOrgId
+        })>;
+    final logos = results[2] as Map<String, String>;
     final merged = locations.map((loc) {
       final s = schedules[loc.id];
-      return loc.withSchedule(s?.schedule ?? const [], aoName: s?.aoName);
+      return loc.withSchedule(s?.schedule ?? const [],
+          aoName: s?.aoName, aoOrgId: s?.aoOrgId);
     }).toList();
     if (!mounted) return;
     setState(() {
       _locations = merged;
+      _aoLogos = logos;
       _loading = false;
     });
     _findMe();
   }
+
+  String? _logoFor(F3Location loc) => _aoLogos[loc.aoOrgId];
 
   // Cascading: picking a region narrows the state list to states that
   // region actually has AOs in, and vice versa.
@@ -314,6 +327,7 @@ class _BrowseAosScreenState extends State<BrowseAosScreen> {
       ),
       builder: (_) => _AoDetailSheet(
         location: loc,
+        logoUrl: _logoFor(loc),
         onOpenMaps: () => _openInMaps(loc),
         onSeeBeatdowns: () {
           Navigator.pop(context); // close the sheet before navigating
@@ -416,6 +430,7 @@ class _BrowseAosScreenState extends State<BrowseAosScreen> {
                                   final distance = _distanceMiles(loc);
                                   return _AoTile(
                                     location: loc,
+                                    logoUrl: _logoFor(loc),
                                     distanceMiles: distance,
                                     mapNumber: _mapNumber(loc),
                                     onTap: () => _openDetails(loc),
@@ -690,6 +705,7 @@ class _BrowseAosScreenState extends State<BrowseAosScreen> {
 
 class _AoTile extends StatelessWidget {
   final F3Location location;
+  final String? logoUrl;
   final double? distanceMiles;
   final int? mapNumber;
   final VoidCallback? onTap;
@@ -699,6 +715,7 @@ class _AoTile extends StatelessWidget {
     required this.location,
     required this.distanceMiles,
     required this.onTap,
+    this.logoUrl,
     this.mapNumber,
     this.onTapNumber,
   });
@@ -744,8 +761,22 @@ class _AoTile extends StatelessWidget {
                               fontWeight: FontWeight.w900,
                             ),
                           )
-                        : const Icon(Icons.shield_rounded,
-                            color: F3Colors.accent, size: 22),
+                        : (logoUrl ?? '').isNotEmpty
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(10),
+                                child: Image.network(
+                                  logoUrl!,
+                                  width: 44,
+                                  height: 44,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => const Icon(
+                                      Icons.shield_rounded,
+                                      color: F3Colors.accent,
+                                      size: 22),
+                                ),
+                              )
+                            : const Icon(Icons.shield_rounded,
+                                color: F3Colors.accent, size: 22),
                   ),
                 ),
               ),
@@ -837,12 +868,14 @@ class _AoTile extends StatelessWidget {
 /// (e.g. a Slack channel-id lookup).
 class _AoDetailSheet extends StatelessWidget {
   final F3Location location;
+  final String? logoUrl;
   final VoidCallback onOpenMaps;
   final VoidCallback onSeeBeatdowns;
   const _AoDetailSheet({
     required this.location,
     required this.onOpenMaps,
     required this.onSeeBeatdowns,
+    this.logoUrl,
   });
 
   Widget _row(BuildContext context, String label, String value) {
@@ -900,11 +933,31 @@ class _AoDetailSheet extends StatelessWidget {
                 color: context.f3divider,
                 borderRadius: BorderRadius.circular(2)),
           ),
-          Text(location.aoName ?? location.name,
-              style: TextStyle(
-                  color: context.f3textPrimary,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w900)),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              if ((logoUrl ?? '').isNotEmpty) ...[
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Image.network(
+                    logoUrl!,
+                    width: 40,
+                    height: 40,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                  ),
+                ),
+                const SizedBox(width: 10),
+              ],
+              Expanded(
+                child: Text(location.aoName ?? location.name,
+                    style: TextStyle(
+                        color: context.f3textPrimary,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900)),
+              ),
+            ],
+          ),
           const SizedBox(height: 16),
           if (location.regionName != null)
             _row(context, l10n.browseAosRegion, location.regionName!),
