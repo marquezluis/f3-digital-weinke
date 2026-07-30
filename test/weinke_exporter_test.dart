@@ -6,6 +6,7 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:f3_nation_app/models/exercise.dart';
+import 'package:f3_nation_app/models/workout_history.dart';
 import 'package:f3_nation_app/models/workout_plan.dart';
 import 'package:f3_nation_app/models/workout_settings.dart';
 import 'package:f3_nation_app/services/exercise_service.dart';
@@ -179,6 +180,78 @@ THE THANG — Bodyweight (20 min) [bodyweight]
         blocks: [block('Warm-O-Rama', ExerciseCategory.warmup, [_ex('ssh2', 'SSH', ExerciseCategory.warmup)])],
       );
       expect(WeinkeExporter.inferCouponMode(plan), isNull);
+    });
+  });
+
+  group('WeinkeExporter.buildPlanFromHistory', () {
+    test('rebuilds a plan from a past session, resolving real exercises', () {
+      final history = WorkoutHistory(
+        id: 'h1',
+        title: 'AGOGE',
+        date: DateTime(2026, 1, 1),
+        blocks: const [
+          HistoryBlock(
+            label: 'Warm-O-Rama',
+            category: 'warmup',
+            durationMinutes: 7,
+            exerciseNames: ['SSH'],
+          ),
+          HistoryBlock(
+            label: 'THE THANG',
+            category: 'bodyweight',
+            durationMinutes: 20,
+            rounds: 3,
+            exerciseNames: ['Merkin'],
+          ),
+        ],
+      );
+
+      final plan = WeinkeExporter.buildPlanFromHistory(history, service);
+
+      expect(plan.blocks, hasLength(2));
+      expect(plan.blocks[0].exercises.single, same(service.all[0]));
+      expect(plan.blocks[1].rounds, 3);
+      expect(plan.blocks[1].exercises.single, same(service.all[1]));
+    });
+
+    test('falls back to a placeholder for an unrecognized exercise name', () {
+      final history = WorkoutHistory(
+        id: 'h1',
+        title: 'AGOGE',
+        date: DateTime(2026, 1, 1),
+        blocks: const [
+          HistoryBlock(
+            label: 'THE THANG',
+            category: 'bodyweight',
+            durationMinutes: 10,
+            exerciseNames: ['Some Retired Move'],
+          ),
+        ],
+      );
+
+      final plan = WeinkeExporter.buildPlanFromHistory(history, service);
+      final ex = plan.blocks.single.exercises.single;
+      expect(ex.name, 'Some Retired Move');
+      expect(ex.id, startsWith('parsed-'));
+    });
+
+    test('gives the rebuilt plan a fresh id, distinct from the history entry',
+        () {
+      final history = WorkoutHistory(
+        id: 'h1',
+        title: 'AGOGE',
+        date: DateTime(2026, 1, 1),
+        blocks: const [
+          HistoryBlock(
+            label: 'Mary',
+            category: 'mary',
+            durationMinutes: 8,
+            exerciseNames: ['LBC'],
+          ),
+        ],
+      );
+      final plan = WeinkeExporter.buildPlanFromHistory(history, service);
+      expect(plan.id, isNot('h1'));
     });
   });
 }

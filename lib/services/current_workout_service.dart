@@ -98,12 +98,74 @@ class CurrentWorkoutService extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Sets (or clears, if [reps] is null) the target rep count for one
+  /// exercise in the draft plan — shown on the Live screen so the Q knows
+  /// when to call the exercise instead of estimating off the clock.
+  void setExerciseRepsInDraftBlock(
+      int blockIndex, String exerciseId, int? reps) {
+    if (_draftPlan == null) return;
+    final newBlocks = List<WorkoutBlock>.from(_draftPlan!.blocks);
+    if (blockIndex < 0 || blockIndex >= newBlocks.length) return;
+    newBlocks[blockIndex] =
+        newBlocks[blockIndex].copyWithExerciseReps(exerciseId, reps);
+    _draftPlan = WorkoutPlan(
+      id: _draftPlan!.id,
+      generatedAt: _draftPlan!.generatedAt,
+      blocks: newBlocks,
+      settings: _draftPlan!.settings,
+    );
+    notifyListeners();
+  }
+
   /// Rename a block in the draft plan.
   void renameDraftBlock(int blockIndex, String newLabel) {
     if (_draftPlan == null) return;
     final newBlocks = List<WorkoutBlock>.from(_draftPlan!.blocks);
     if (blockIndex < 0 || blockIndex >= newBlocks.length) return;
     newBlocks[blockIndex] = newBlocks[blockIndex].copyWithLabel(newLabel);
+    _draftPlan = WorkoutPlan(
+      id: _draftPlan!.id,
+      generatedAt: _draftPlan!.generatedAt,
+      blocks: newBlocks,
+      settings: _draftPlan!.settings,
+    );
+    notifyListeners();
+  }
+
+  /// Inserts a brand-new, empty block into the draft — the only way to
+  /// split what would otherwise be one big Thang block into separate named
+  /// sections (e.g. "Part 1 — 3 Rounds" / "Part 2 — Four Corners"), matching
+  /// how a real posted beatdown is often actually structured. Placed right
+  /// before the closing Mary block if one exists, so Mary stays last;
+  /// otherwise appended at the end.
+  void addBlockToDraft(WorkoutBlock block) {
+    if (_draftPlan == null) return;
+    final newBlocks = List<WorkoutBlock>.from(_draftPlan!.blocks);
+    final maryIndex =
+        newBlocks.lastIndexWhere((b) => b.category == ExerciseCategory.mary);
+    if (maryIndex == -1) {
+      newBlocks.add(block);
+    } else {
+      newBlocks.insert(maryIndex, block);
+    }
+    _draftPlan = WorkoutPlan(
+      id: _draftPlan!.id,
+      generatedAt: _draftPlan!.generatedAt,
+      blocks: newBlocks,
+      settings: _draftPlan!.settings,
+    );
+    notifyListeners();
+  }
+
+  /// Removes a whole block from the draft — the inverse of
+  /// [addBlockToDraft]. Refuses to remove the last remaining block so the
+  /// plan is never left empty.
+  void removeBlockFromDraft(int blockIndex) {
+    if (_draftPlan == null) return;
+    final newBlocks = List<WorkoutBlock>.from(_draftPlan!.blocks);
+    if (blockIndex < 0 || blockIndex >= newBlocks.length) return;
+    if (newBlocks.length <= 1) return;
+    newBlocks.removeAt(blockIndex);
     _draftPlan = WorkoutPlan(
       id: _draftPlan!.id,
       generatedAt: _draftPlan!.generatedAt,

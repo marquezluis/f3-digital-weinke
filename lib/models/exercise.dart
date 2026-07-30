@@ -1,6 +1,8 @@
 // lib/models/exercise.dart
 // Core data model for a single F3 Exicon exercise.
 
+import 'workout_plan.dart' show CallStyle, callStyleFromString;
+
 enum ExerciseCategory {
   warmup,
   bodyweight,
@@ -91,6 +93,13 @@ class Exercise {
   // an unusual movement (a long hold, a distance run) doesn't silently get
   // the same generic split as a 10-rep bodyweight move.
   final int? secondsPerSet;
+  // Known cadence from a curated Exicon reference, when available. Still
+  // just a suggestion — see WorkoutBlock.callStyleFor, where a Q's explicit
+  // per-workout override always wins over this.
+  final CallStyle? callStyle;
+  final String? simpleExplanation;
+  final String? modification;
+  final String? safetyCue;
 
   const Exercise({
     required this.id,
@@ -101,6 +110,10 @@ class Exercise {
     required this.equipment,
     required this.intensity,
     this.secondsPerSet,
+    this.callStyle,
+    this.simpleExplanation,
+    this.modification,
+    this.safetyCue,
   });
 
   factory Exercise.fromJson(Map<String, dynamic> json) {
@@ -119,6 +132,10 @@ class Exercise {
       intensity: Intensity.fromString(
           json['intensity'] as String? ?? 'intermediate'),
       secondsPerSet: (json['secondsPerSet'] as num?)?.toInt(),
+      callStyle: callStyleFromString(json['callStyle'] as String?),
+      simpleExplanation: json['simpleExplanation'] as String?,
+      modification: json['modification'] as String?,
+      safetyCue: json['safetyCue'] as String?,
     );
   }
 
@@ -131,6 +148,10 @@ class Exercise {
         'equipment': equipment.name,
         'intensity': intensity.name,
         if (secondsPerSet != null) 'secondsPerSet': secondsPerSet,
+        if (callStyle != null) 'callStyle': callStyle!.name,
+        if (simpleExplanation != null) 'simpleExplanation': simpleExplanation,
+        if (modification != null) 'modification': modification,
+        if (safetyCue != null) 'safetyCue': safetyCue,
       };
 
   /// Returns a copy with a different category — used for "swap" logic.
@@ -143,6 +164,10 @@ class Exercise {
         equipment: equipment,
         intensity: intensity,
         secondsPerSet: secondsPerSet,
+        callStyle: callStyle,
+        simpleExplanation: simpleExplanation,
+        modification: modification,
+        safetyCue: safetyCue,
       );
 
   @override

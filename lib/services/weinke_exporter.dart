@@ -12,6 +12,7 @@
 
 import 'package:uuid/uuid.dart';
 import '../models/exercise.dart';
+import '../models/workout_history.dart';
 import '../models/workout_plan.dart';
 import '../models/workout_settings.dart';
 import 'exercise_service.dart';
@@ -160,6 +161,38 @@ class WeinkeExporter {
     return buf.toString().trimRight();
   }
 
+  /// Rebuilds a real [WorkoutPlan] from a saved [WorkoutHistory] entry (a
+  /// past completed session OR a saved template — both use the same
+  /// [HistoryBlock] snapshot shape) so it can be reused as a fresh draft for
+  /// another day. Exercise names are resolved against the real Exicon via
+  /// [resolveExercise] — same fallback-to-placeholder behavior as parsing a
+  /// posted preblast, so a since-renamed or custom exercise still shows up
+  /// instead of silently being swapped for something unrelated.
+  static WorkoutPlan buildPlanFromHistory(
+    WorkoutHistory history,
+    ExerciseService service,
+  ) {
+    final blocks = history.blocks.map((b) {
+      final category =
+          ExerciseCategory.values.firstWhere((c) => c.name == b.category,
+              orElse: () => ExerciseCategory.bodyweight);
+      final exercises =
+          b.exerciseNames.map((name) => resolveExercise(name, service)).toList();
+      return WorkoutBlock(
+        label: b.label,
+        category: category,
+        exercises: exercises,
+        durationMinutes: b.durationMinutes,
+        rounds: b.rounds,
+      );
+    }).toList();
+    return WorkoutPlan(
+      id: const Uuid().v4(),
+      generatedAt: DateTime.now(),
+      blocks: blocks,
+    );
+  }
+
   static final _blockHeaderRe = RegExp(
     r'^(.+?)\s*\((\d+)\s*min(?:\s*·\s*(\d+)\s*rounds)?\)\s*\[(\w+)\]$',
   );
@@ -199,7 +232,7 @@ class WeinkeExporter {
         category = ExerciseCategory.fromString(m.group(4) ?? '');
         exercises = [];
       } else if (line.startsWith('- ')) {
-        exercises.add(_resolveExercise(line.substring(2).trim(), service));
+        exercises.add(resolveExercise(line.substring(2).trim(), service));
       }
     }
     flush();
@@ -215,8 +248,9 @@ class WeinkeExporter {
   /// alias, case-insensitive) so it keeps its real description/hint/
   /// equipment; falls back to a lightweight ad-hoc entry (same idea as a
   /// custom exercise) so an unrecognized name still shows up in the block
-  /// instead of silently vanishing.
-  static Exercise _resolveExercise(String name, ExerciseService service) {
+  /// instead of silently vanishing. Public — also used by the Spartan
+  /// plan builder to resolve exercise names Gemini returns as plain text.
+  static Exercise resolveExercise(String name, ExerciseService service) {
     final lower = name.toLowerCase();
     for (final ex in service.all) {
       if (ex.name.toLowerCase() == lower ||

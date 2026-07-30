@@ -5,9 +5,9 @@ import 'exercise.dart';
 import 'workout_settings.dart';
 
 /// How the Q calls the count for a block's exercises — a live call the Q
-/// makes, not a fixed property of any one exercise (the same move can be
-/// called differently by different Qs), so this lives on the block, not on
-/// individual exercises in the Exicon.
+/// makes for that workout. An exercise may carry a known/typical cadence
+/// (see [Exercise.callStyle]) as a starting suggestion, but the Q can always
+/// override it per exercise or per block — see [WorkoutBlock.callStyleFor].
 enum CallStyle {
   onYourOwn,
   inCadence,
@@ -28,6 +28,19 @@ enum CallStyle {
     CallStyle.onMyUp     => 'On my up',
     CallStyle.onMyDown   => 'On my down',
   };
+}
+
+/// Shared string → [CallStyle] mapping — used by [Exercise.fromJson] (the
+/// bundled/curated Exicon data) and by anything else that has to parse a
+/// call style out of plain text/JSON (e.g. a Spartan-generated plan).
+CallStyle? callStyleFromString(String? value) {
+  switch (value) {
+    case 'onYourOwn': return CallStyle.onYourOwn;
+    case 'inCadence': return CallStyle.inCadence;
+    case 'onMyUp': return CallStyle.onMyUp;
+    case 'onMyDown': return CallStyle.onMyDown;
+    default: return null;
+  }
 }
 
 /// Best-effort call style read off an exercise's own F3 Exicon description —
@@ -61,10 +74,16 @@ class WorkoutBlock {
   final Map<String, String> exerciseNotes;
   final CallStyle callStyle;
   // exerciseId → the Q's explicit per-exercise call style override. Takes
-  // priority over [suggestedCallStyleFor] (the exercise's own Exicon text),
+  // priority over the exercise's own known cadence (curated Exicon data, or
+  // failing that [suggestedCallStyleFor]'s guess from its description),
   // which in turn takes priority over the block's own [callStyle] default —
   // see [callStyleFor].
   final Map<String, CallStyle> exerciseCallStyles;
+  // exerciseId → target rep count the Q set for this exercise, this workout
+  // — shown prominently on the Live screen so the Q knows when to call it
+  // instead of estimating off the clock. Not a fixed Exicon property (the
+  // same move gets different rep targets on different days).
+  final Map<String, int> exerciseReps;
 
   const WorkoutBlock({
     required this.label,
@@ -76,18 +95,24 @@ class WorkoutBlock {
     this.exerciseNotes = const {},
     this.callStyle = CallStyle.onYourOwn,
     this.exerciseCallStyles = const {},
+    this.exerciseReps = const {},
   });
 
   String noteFor(String exerciseId) => exerciseNotes[exerciseId] ?? '';
 
+  /// Target rep count the Q set for this exercise, if any.
+  int? repsFor(String exerciseId) => exerciseReps[exerciseId];
+
   /// Resolves the actual call style to use for one exercise: an explicit
-  /// per-exercise override the Q set, else what that exercise's own Exicon
-  /// description suggests, else this block's overall default.
+  /// per-exercise override the Q set, else that exercise's known cadence
+  /// from a curated Exicon reference, else a best-effort guess from its own
+  /// Exicon description, else this block's overall default.
   CallStyle callStyleFor(String exerciseId) {
     final override = exerciseCallStyles[exerciseId];
     if (override != null) return override;
     final exercise = exercises.where((e) => e.id == exerciseId).firstOrNull;
     if (exercise != null) {
+      if (exercise.callStyle != null) return exercise.callStyle!;
       final suggested = suggestedCallStyleFor(exercise.description);
       if (suggested != null) return suggested;
     }
@@ -111,6 +136,7 @@ class WorkoutBlock {
       exerciseNotes: updated,
       callStyle: callStyle,
       exerciseCallStyles: exerciseCallStyles,
+      exerciseReps: exerciseReps,
     );
   }
 
@@ -133,6 +159,30 @@ class WorkoutBlock {
       exerciseNotes: exerciseNotes,
       callStyle: callStyle,
       exerciseCallStyles: updated,
+      exerciseReps: exerciseReps,
+    );
+  }
+
+  /// Sets (or clears, if [reps] is null) the target rep count for one
+  /// exercise this workout.
+  WorkoutBlock copyWithExerciseReps(String exerciseId, int? reps) {
+    final updated = Map<String, int>.from(exerciseReps);
+    if (reps == null) {
+      updated.remove(exerciseId);
+    } else {
+      updated[exerciseId] = reps;
+    }
+    return WorkoutBlock(
+      label: label,
+      category: category,
+      exercises: exercises,
+      durationMinutes: durationMinutes,
+      notes: notes,
+      rounds: rounds,
+      exerciseNotes: exerciseNotes,
+      callStyle: callStyle,
+      exerciseCallStyles: exerciseCallStyles,
+      exerciseReps: updated,
     );
   }
 
@@ -148,6 +198,7 @@ class WorkoutBlock {
         exerciseNotes: exerciseNotes,
         callStyle: callStyle,
         exerciseCallStyles: exerciseCallStyles,
+        exerciseReps: exerciseReps,
       );
 
   /// Duration scaled to a new exercise count, holding per-exercise time
@@ -184,6 +235,7 @@ class WorkoutBlock {
         exerciseNotes: exerciseNotes,
         callStyle: callStyle,
         exerciseCallStyles: exerciseCallStyles,
+        exerciseReps: exerciseReps,
       );
 
   WorkoutBlock copyWithRounds(int newRounds) => WorkoutBlock(
@@ -196,6 +248,7 @@ class WorkoutBlock {
         exerciseNotes: exerciseNotes,
         callStyle: callStyle,
         exerciseCallStyles: exerciseCallStyles,
+        exerciseReps: exerciseReps,
       );
 
   WorkoutBlock copyWithCallStyle(CallStyle newStyle) => WorkoutBlock(
@@ -208,6 +261,7 @@ class WorkoutBlock {
         exerciseNotes: exerciseNotes,
         callStyle: newStyle,
         exerciseCallStyles: exerciseCallStyles,
+        exerciseReps: exerciseReps,
       );
 }
 

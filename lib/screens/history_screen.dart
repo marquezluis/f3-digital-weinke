@@ -10,11 +10,15 @@ import '../models/f3_api_models.dart';
 import '../models/workout_history.dart';
 import '../services/app_profile_service.dart' hide AppRole;
 import '../services/auth_service.dart';
+import '../services/current_workout_service.dart';
+import '../services/exercise_service.dart';
 import '../services/history_service.dart';
 import '../services/backblast_formatter.dart';
 import '../services/f3_api_service.dart';
+import '../services/weinke_exporter.dart';
 import '../theme/app_theme.dart';
 import 'beatdown_card_preview_screen.dart';
+import 'workout_screen.dart';
 
 /// The Q's choice in the publish event picker: an existing scheduled instance,
 /// a new unscheduled event, or cancel.
@@ -695,6 +699,20 @@ class _BackblastScreenState extends State<BackblastScreen> {
     HapticFeedback.lightImpact();
   }
 
+  /// Rebuilds this past beatdown as a fresh draft Weinke — reusing it for
+  /// another day instead of building the same plan again by hand. Exercise
+  /// names are resolved back against the real Exicon (same fallback
+  /// behavior as parsing a posted preblast) via WeinkeExporter.
+  void _regenerate(BuildContext context, WorkoutHistory entry) {
+    final plan = WeinkeExporter.buildPlanFromHistory(
+        entry, context.read<ExerciseService>());
+    context.read<CurrentWorkoutService>().setDraftPlan(plan);
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const WorkoutScreen()),
+    );
+  }
+
   void _delete(BuildContext context) {
     showDialog(
       context: context,
@@ -744,6 +762,11 @@ class _BackblastScreenState extends State<BackblastScreen> {
                 Text(entry.title, maxLines: 1, overflow: TextOverflow.ellipsis),
             backgroundColor: context.f3bg,
             actions: [
+              IconButton(
+                icon: const Icon(Icons.replay_rounded),
+                tooltip: 'Use this beatdown again',
+                onPressed: () => _regenerate(context, entry),
+              ),
               IconButton(
                 icon: const Icon(Icons.image_rounded),
                 tooltip: 'Share as image',

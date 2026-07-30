@@ -335,14 +335,13 @@ class _TimerScreenState extends State<TimerScreen> {
         }
         if (exIndexChanged || _lastPhase != state.currentPhase) {
           // Reset auto-advance baseline whenever exercise or phase changes.
-          final elapsed = TimerState.totalBootcampSeconds - state.totalRemainingSeconds;
-          _autoAdvanceElapsedAtLastAdvance = elapsed;
+          _autoAdvanceElapsedAtLastAdvance = state.elapsedTotalSeconds;
         }
         _lastExIdx = exIdx;
 
         // Auto-advance: fire when enough time has passed since last advance.
         if (_autoAdvance && !state.isFinished && exercises.isNotEmpty && _restCountdown == 0) {
-          final elapsed = TimerState.totalBootcampSeconds - state.totalRemainingSeconds;
+          final elapsed = state.elapsedTotalSeconds;
           _autoAdvanceElapsedAtLastAdvance ??= elapsed;
           if (elapsed - _autoAdvanceElapsedAtLastAdvance! >= _autoAdvanceSecs) {
             _autoAdvanceElapsedAtLastAdvance = elapsed;
@@ -596,6 +595,13 @@ class _TimerScreenState extends State<TimerScreen> {
                               if (n.isNotEmpty) return n;
                             }
                             return '';
+                          },
+                          getExerciseReps: (id) {
+                            for (final b in plan.blocks) {
+                              final r = b.repsFor(id);
+                              if (r != null) return r;
+                            }
+                            return null;
                           },
                         ),
                       ),
@@ -1144,8 +1150,14 @@ class _PhaseTimer extends StatelessWidget {
     final timerFontSize = height < 700 ? 54.0 : 72.0;
     return Column(
       children: [
+        // A single continuous elapsed clock for the whole session (0:00 up
+        // to the full planned duration, including COT) rather than a
+        // countdown per phase — the countdown framing made it easy to lose
+        // track of real elapsed time across phase transitions.
         Text(
-          isFinished ? '00:00' : state.formattedPhaseRemaining,
+          isFinished
+              ? state.formattedTotalPlanned
+              : state.formattedElapsedTotal,
           style: TextStyle(
             color: isFinished
                 ? F3Colors.phaseThang.withValues(alpha: 0.4)
@@ -1161,7 +1173,7 @@ class _PhaseTimer extends StatelessWidget {
         Text(
           isFinished
               ? 'SESSION COMPLETE'
-              : 'total: ${state.formattedTotalRemaining}',
+              : 'of ${state.formattedTotalPlanned} total',
           style: TextStyle(
             color: context.f3textMuted,
             fontSize: 12,
@@ -1182,6 +1194,7 @@ class _ExerciseDisplay extends StatefulWidget {
   final VoidCallback? onSwap;
   final Exercise? nextExercise;
   final String Function(String exerciseId)? getExerciseNote;
+  final int? Function(String exerciseId)? getExerciseReps;
 
   const _ExerciseDisplay({
     required this.phase,
@@ -1190,6 +1203,7 @@ class _ExerciseDisplay extends StatefulWidget {
     required this.onSwap,
     this.nextExercise,
     this.getExerciseNote,
+    this.getExerciseReps,
   });
 
   @override
@@ -1280,6 +1294,7 @@ class _ExerciseDisplayState extends State<_ExerciseDisplay> {
             itemBuilder: (_, idx) {
               final pageEx = exercises[idx];
               final exNote = widget.getExerciseNote?.call(pageEx.id) ?? '';
+              final exReps = widget.getExerciseReps?.call(pageEx.id);
               return Container(
                 margin: const EdgeInsets.symmetric(horizontal: 2),
                 width: double.infinity,
@@ -1342,6 +1357,19 @@ class _ExerciseDisplayState extends State<_ExerciseDisplay> {
                                   ],
                                 ),
                       ),
+                      if (exReps != null) ...[
+                        const SizedBox(height: 6),
+                        Text(
+                          '×$exReps',
+                          style: TextStyle(
+                            color: phase.color,
+                            fontSize: 32,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 1,
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
+                        ),
+                      ],
                       if (exNote.isNotEmpty) ...[
                         const SizedBox(height: 8),
                         Container(

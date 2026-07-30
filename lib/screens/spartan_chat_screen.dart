@@ -1,7 +1,13 @@
 // lib/screens/spartan_chat_screen.dart
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../models/workout_plan.dart';
+import '../services/current_workout_service.dart';
+import '../services/exercise_service.dart';
+import '../services/spartan_plan_builder.dart';
 import '../services/spartan_service.dart';
 import '../theme/app_theme.dart';
+import 'workout_screen.dart';
 
 class SpartanChatScreen extends StatefulWidget {
   const SpartanChatScreen({super.key});
@@ -68,14 +74,66 @@ class _SpartanChatScreenState extends State<SpartanChatScreen> {
     _textCtrl.clear();
     _scrollToBottom();
 
-    final response = await _spartan.askSpartan(text);
+    // Fired alongside the normal chat reply — not instead of it — so a
+    // message that reads like "build me a weinke like this: ..." both gets
+    // a normal Spartan reply AND, if it actually resolves, a "Build this
+    // into my Weinke" action on that reply. Anything that doesn't look like
+    // a workout request skips the extra call entirely.
+    final askFuture = _spartan.askSpartan(text);
+    final blocksFuture = _looksLikeWorkoutRequest(text)
+        ? _spartan.generateWorkoutBlocks(text)
+        : Future<List<dynamic>?>.value(null);
+
+    final response = await askFuture;
+    final blocksJson = await blocksFuture;
 
     if (!mounted) return;
+    final plan = blocksJson == null
+        ? null
+        : buildPlanFromSpartanBlocks(blocksJson, context.read<ExerciseService>());
+
     setState(() {
-      _messages.add(_ChatMsg.spartan(response));
+      _messages.add(_ChatMsg.spartan(response, plan: plan));
       _isLoading = false;
     });
     _scrollToBottom();
+  }
+
+  /// Cheap local heuristic deciding whether a message is worth also running
+  /// through structured plan generation — avoids an extra Gemini call on
+  /// every single chat message. False positives just cost one harmless
+  /// extra call that produces no button; false negatives just mean the
+  /// dedicated "Build a Weinke" action is the way in instead.
+  bool _looksLikeWorkoutRequest(String text) {
+    final lower = text.toLowerCase();
+    const keywords = [
+      'weinke', 'beatdown', 'warm-up', 'warmup', 'warm up', 'thang', 'mary',
+      'rounds', 'workout', 'build me', 'four corners', 'indian run',
+    ];
+    if (keywords.any(lower.contains)) return true;
+    final nonEmptyLines =
+        text.split('\n').where((l) => l.trim().isNotEmpty).length;
+    final hasRepCounts = RegExp(r'\b\d+[\s-]*(?:sec|min|x)?\b').hasMatch(text);
+    return nonEmptyLines >= 4 && hasRepCounts;
+  }
+
+  /// Loads a built plan as the draft Weinke and takes the Q straight to the
+  /// editor — from there it's fully editable (swap, reorder, add exercise)
+  /// same as any generated or blank plan.
+  void _loadPlanAndOpenWeinke(WorkoutPlan plan) {
+    context.read<CurrentWorkoutService>().setDraftPlan(plan);
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const WorkoutScreen()),
+    );
+  }
+
+  Future<void> _openBuildWeinkeSheet() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _BuildWeinkeSheet(onBuilt: _loadPlanAndOpenWeinke),
+    );
   }
 
   void _reset() {
@@ -116,6 +174,11 @@ class _SpartanChatScreenState extends State<SpartanChatScreen> {
         ]),
         actions: [
           IconButton(
+            icon: const Icon(Icons.construction_rounded),
+            tooltip: 'Build a Weinke',
+            onPressed: _openBuildWeinkeSheet,
+          ),
+          IconButton(
             icon: const Icon(Icons.refresh_rounded),
             tooltip: 'New conversation',
             onPressed: _reset,
@@ -134,7 +197,10 @@ class _SpartanChatScreenState extends State<SpartanChatScreen> {
                     itemCount: _messages.length + (_isLoading ? 1 : 0),
                     itemBuilder: (context, i) {
                       if (i == _messages.length) return const _TypingBubble();
-                      return _MessageBubble(msg: _messages[i]);
+                      return _MessageBubble(
+                        msg: _messages[i],
+                        onBuildPlan: _loadPlanAndOpenWeinke,
+                      );
                     },
                   ),
           ),
@@ -251,16 +317,23 @@ class _SpartanHelmPainter extends CustomPainter {
 class _ChatMsg {
   final bool isUser;
   final String text;
+  // Set when this reply's request also resolved to a buildable workout —
+  // see _looksLikeWorkoutRequest. Lets the bubble offer "Build this into my
+  // Weinke" without the user having to use the dedicated builder separately.
+  final WorkoutPlan? plan;
 
-  const _ChatMsg.user(this.text) : isUser = true;
-  const _ChatMsg.spartan(this.text) : isUser = false;
+  const _ChatMsg.user(this.text)
+      : isUser = true,
+        plan = null;
+  const _ChatMsg.spartan(this.text, {this.plan}) : isUser = false;
 }
 
 // ── Message bubble ────────────────────────────────────────────────────────────
 
 class _MessageBubble extends StatelessWidget {
   final _ChatMsg msg;
-  const _MessageBubble({required this.msg});
+  final void Function(WorkoutPlan) onBuildPlan;
+  const _MessageBubble({required this.msg, required this.onBuildPlan});
 
   @override
   Widget build(BuildContext context) {
@@ -290,13 +363,33 @@ class _MessageBubble extends StatelessWidget {
                   bottomRight: Radius.circular(isUser ? 4 : 16),
                 ),
               ),
-              child: Text(
-                msg.text,
-                style: TextStyle(
-                  color: isUser ? Colors.white : context.f3textPrimary,
-                  fontSize: 14.5,
-                  height: 1.45,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    msg.text,
+                    style: TextStyle(
+                      color: isUser ? Colors.white : context.f3textPrimary,
+                      fontSize: 14.5,
+                      height: 1.45,
+                    ),
+                  ),
+                  if (msg.plan != null) ...[
+                    const SizedBox(height: 10),
+                    OutlinedButton.icon(
+                      onPressed: () => onBuildPlan(msg.plan!),
+                      icon: const Icon(Icons.construction_rounded, size: 16),
+                      label: const Text('BUILD THIS INTO MY WEINKE'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: F3Colors.accent,
+                        side: BorderSide(
+                            color: F3Colors.accent.withValues(alpha: 0.5)),
+                        textStyle: const TextStyle(
+                            fontSize: 11.5, fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
           ),
@@ -639,6 +732,163 @@ class _InputBar extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ── Build a Weinke sheet — dedicated entry point, skips free chat ────────────
+// Reached via the AppBar's construction icon. Sends the description straight
+// to SpartanService.generateWorkoutBlocks rather than the prose chat session,
+// so there's no ambiguity about whether the reply is "just talk" or a plan.
+
+class _BuildWeinkeSheet extends StatefulWidget {
+  final void Function(WorkoutPlan) onBuilt;
+  const _BuildWeinkeSheet({required this.onBuilt});
+
+  @override
+  State<_BuildWeinkeSheet> createState() => _BuildWeinkeSheetState();
+}
+
+class _BuildWeinkeSheetState extends State<_BuildWeinkeSheet> {
+  final _ctrl = TextEditingController();
+  bool _loading = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _build() async {
+    final text = _ctrl.text.trim();
+    if (text.isEmpty || _loading) return;
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    final blocksJson = await SpartanService.instance.generateWorkoutBlocks(text);
+    if (!mounted) return;
+
+    if (blocksJson == null) {
+      setState(() {
+        _loading = false;
+        _error = 'Couldn\'t find a workout in that. Try listing sections, '
+            'exercises, and rounds — like a warm-up, a few rounds of '
+            'exercises, and a Mary block.';
+      });
+      return;
+    }
+
+    final plan = buildPlanFromSpartanBlocks(
+        blocksJson, context.read<ExerciseService>());
+    if (plan == null) {
+      setState(() {
+        _loading = false;
+        _error = 'Spartan understood a workout was requested, but couldn\'t '
+            'pin down any actual exercises. Try being more specific.';
+      });
+      return;
+    }
+
+    if (!mounted) return;
+    Navigator.pop(context);
+    widget.onBuilt(plan);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+        decoration: BoxDecoration(
+          color: context.f3bg,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                    color: context.f3divider,
+                    borderRadius: BorderRadius.circular(2)),
+              ),
+            ),
+            const Text(
+              'BUILD A WEINKE WITH SPARTAN',
+              style: TextStyle(
+                color: F3Colors.accent,
+                fontSize: 13,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1.5,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Paste or describe the workout you want — sections, exercises, '
+              'rounds. Spartan will build it directly into your Weinke.',
+              style: TextStyle(color: context.f3textSecondary, fontSize: 13),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _ctrl,
+              autofocus: true,
+              maxLines: 8,
+              minLines: 4,
+              style: TextStyle(color: context.f3textPrimary, fontSize: 14),
+              decoration: InputDecoration(
+                hintText: 'Warm-up: 15 Michael Phelps OYO, 10 SSH IC...\n'
+                    'Part 1 — 3 rounds: 20 Coupon Squats, 15 Curls...\n'
+                    'Mary: 20 LBCs, 30-sec Plank...',
+                hintStyle: TextStyle(color: context.f3textMuted, fontSize: 12.5),
+                filled: true,
+                fillColor: context.f3elevated,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+            if (_error != null) ...[
+              const SizedBox(height: 10),
+              Text(_error!,
+                  style: const TextStyle(color: Colors.redAccent, fontSize: 12.5)),
+            ],
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: ElevatedButton.icon(
+                onPressed: _loading ? null : _build,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: F3Colors.accent,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
+                icon: _loading
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                            color: Colors.white, strokeWidth: 2),
+                      )
+                    : const Icon(Icons.construction_rounded),
+                label: Text(_loading ? 'BUILDING…' : 'BUILD MY WEINKE'),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -1,6 +1,7 @@
 // lib/services/spartan_service.dart
 // The AI Brain of the Digital Weinke, powered by Google Gemini.
 
+import 'dart:convert';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import '../models/workout_plan.dart';
 
@@ -8,14 +9,17 @@ class SpartanService {
   // Singleton instance
   static final SpartanService instance = SpartanService._internal();
 
+  String? _apiKey;
   GenerativeModel? _model;
   ChatSession? _chatSession;
+  GenerativeModel? _planModel;
 
   SpartanService._internal();
 
   /// Initialize the service with the API key from settings.
   void init(String apiKey) {
     if (apiKey.isNotEmpty) {
+      _apiKey = apiKey;
       _model = GenerativeModel(
         model: 'gemini-3.5-flash',
         apiKey: apiKey,
@@ -26,9 +30,12 @@ class SpartanService {
         ),
       );
       _chatSession = _model!.startChat();
+      _planModel = null; // rebuilt lazily against the (possibly new) key
     } else {
+      _apiKey = null;
       _model = null;
       _chatSession = null;
+      _planModel = null;
     }
   }
 
@@ -123,6 +130,104 @@ Keep the response under 4 sentences.
       return response.text ?? 'Beatdown looks fine, but Spartan is suspicious.';
     } catch (e) {
       return 'Audit failed. Trust your gut, Q.';
+    }
+  }
+
+  // ── 5. Weinke Builder (structured plan generation) ─────────────────────────
+
+  static final Schema _exerciseSchema = Schema.object(
+    properties: {
+      'name': Schema.string(
+        description:
+            'Exercise name, F3 lingo if that\'s what was said (e.g. "Merkin", '
+            '"Coupon Squat", "LBC"). Preserve the leader\'s own wording.',
+      ),
+      'callStyle': Schema.enumString(
+        enumValues: ['inCadence', 'onYourOwn', 'onMyUp', 'onMyDown'],
+        description:
+            'How the count is called for this exercise, only if the input '
+            'actually specifies it (e.g. "IC", "OYO"). Omit otherwise.',
+        nullable: true,
+      ),
+    },
+    requiredProperties: ['name'],
+  );
+
+  static final Schema _blockSchema = Schema.object(
+    properties: {
+      'label': Schema.string(
+        description:
+            'This section\'s name as given, e.g. "Warm-O-Rama", '
+            '"Part 1 — 3 Rounds", "Mary".',
+      ),
+      'category': Schema.enumString(
+        enumValues: ['warmup', 'bodyweight', 'coupon', 'mary'],
+        description:
+            'Which phase of an F3 beatdown this section is — the opening '
+            'warm-up, the main bodyweight work, coupon/weighted work, or '
+            'the closing core work (Mary).',
+      ),
+      'rounds': Schema.integer(
+        description:
+            'How many times this exercise list repeats as a circuit. 1 if '
+            'it is not a circuit.',
+      ),
+      'durationMinutes': Schema.integer(
+        description:
+            'Estimated minutes to get through this exercise list ONCE '
+            '(one round) — not multiplied by rounds.',
+      ),
+      'exercises': Schema.array(items: _exerciseSchema),
+    },
+    requiredProperties: [
+      'label',
+      'category',
+      'rounds',
+      'durationMinutes',
+      'exercises',
+    ],
+  );
+
+  static final Schema _planSchema = Schema.object(
+    properties: {'blocks': Schema.array(items: _blockSchema)},
+    requiredProperties: ['blocks'],
+  );
+
+  /// Turns a free-text description or pasted list of an F3 workout into
+  /// structured blocks the app can actually build a [WorkoutPlan] from —
+  /// unlike [askSpartan], which only ever returns prose. Uses a separate,
+  /// JSON-schema-constrained model call (not the ongoing chat session) so
+  /// normal conversation is unaffected. Returns null if Gemini isn't
+  /// configured, the request doesn't read as a workout, or the response
+  /// fails to parse.
+  Future<List<dynamic>?> generateWorkoutBlocks(String request) async {
+    if (_apiKey == null) return null;
+    _planModel ??= GenerativeModel(
+      model: 'gemini-3.5-flash',
+      apiKey: _apiKey!,
+      systemInstruction: Content.system(
+        'You convert a description or pasted list of an F3 workout '
+        '("beatdown") into structured blocks a fitness app can build. '
+        'Preserve the leader\'s actual exercise choices, order, section '
+        'labels, and round counts — do not invent or drop movements. If '
+        'the input is not a workout at all, return an empty blocks list.',
+      ),
+      generationConfig: GenerationConfig(
+        responseMimeType: 'application/json',
+        responseSchema: _planSchema,
+      ),
+    );
+
+    try {
+      final response =
+          await _planModel!.generateContent([Content.text(request)]);
+      final text = response.text;
+      if (text == null) return null;
+      final decoded = jsonDecode(text) as Map<String, dynamic>;
+      final blocks = decoded['blocks'] as List<dynamic>?;
+      return (blocks == null || blocks.isEmpty) ? null : blocks;
+    } catch (e) {
+      return null;
     }
   }
 }

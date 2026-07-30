@@ -8,7 +8,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:f3_nation_app/models/exercise.dart';
 import 'package:f3_nation_app/models/workout_plan.dart';
 
-Exercise _ex(String id, String description) => Exercise(
+Exercise _ex(String id, String description, {CallStyle? callStyle}) =>
+    Exercise(
       id: id,
       name: id,
       description: description,
@@ -16,6 +17,7 @@ Exercise _ex(String id, String description) => Exercise(
       category: ExerciseCategory.bodyweight,
       equipment: Equipment.none,
       intensity: Intensity.intermediate,
+      callStyle: callStyle,
     );
 
 void main() {
@@ -85,6 +87,19 @@ void main() {
         callStyle: CallStyle.onYourOwn,
       );
       expect(block.callStyleFor('e1'), CallStyle.inCadence);
+    });
+
+    test('uses the exercise\'s known callStyle over a description guess', () {
+      final block = WorkoutBlock(
+        label: 'THE THANG',
+        category: ExerciseCategory.bodyweight,
+        exercises: [
+          _ex('e1', 'Performed in cadence.', callStyle: CallStyle.onYourOwn),
+        ],
+        durationMinutes: 20,
+        callStyle: CallStyle.onMyUp,
+      );
+      expect(block.callStyleFor('e1'), CallStyle.onYourOwn);
     });
 
     test('an explicit per-exercise override wins over everything', () {

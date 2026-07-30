@@ -4,6 +4,7 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:f3_nation_app/models/exercise.dart';
+import 'package:f3_nation_app/models/workout_plan.dart';
 import 'package:f3_nation_app/models/workout_settings.dart';
 import 'package:f3_nation_app/services/exercise_service.dart';
 import 'package:f3_nation_app/services/workout_generator.dart';
@@ -66,6 +67,31 @@ void main() {
       expect(ex.aliases, isEmpty);
       expect(ex.category, ExerciseCategory.bodyweight);
       expect(ex.intensity, Intensity.intermediate);
+      expect(ex.callStyle, isNull);
+      expect(ex.simpleExplanation, isNull);
+      expect(ex.modification, isNull);
+      expect(ex.safetyCue, isNull);
+    });
+
+    test('parses and round-trips curated Exicon fields', () {
+      final json = {
+        'id': 'exicon-curated-seal-clap-jack',
+        'name': 'Seal Clap Jack',
+        'description': 'Jumping jack where arms stay straight and clap.',
+        'aliases': <String>[],
+        'category': 'warmup',
+        'equipment': 'none',
+        'intensity': 'intermediate',
+        'callStyle': 'inCadence',
+        'simpleExplanation': 'Jumping jack where arms stay straight and clap.',
+        'modification': 'Regular SSH instead',
+        'safetyCue': 'Watch elbows on the clap.',
+      };
+      final ex = Exercise.fromJson(json);
+      expect(ex.callStyle, CallStyle.inCadence);
+      expect(ex.modification, 'Regular SSH instead');
+      expect(ex.safetyCue, 'Watch elbows on the clap.');
+      expect(ex.toJson(), json);
     });
   });
 

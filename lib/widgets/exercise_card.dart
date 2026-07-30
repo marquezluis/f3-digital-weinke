@@ -260,6 +260,26 @@ class _ExerciseCardState extends State<ExerciseCard> {
                             CategoryChip(category: ex.category, small: true),
                             const SizedBox(width: 6),
                             IntensityBadge(intensity: ex.intensity),
+                            // Always visible, independent of expand/collapse —
+                            // when onDetail is also set (Weinke block list),
+                            // tapping the card opens the detail sheet instead
+                            // of expanding, which would otherwise strand the
+                            // swap action behind a state nothing can reach.
+                            if (widget.onSwap != null) ...[
+                              const SizedBox(width: 6),
+                              GestureDetector(
+                                onTap: () {
+                                  HapticFeedback.selectionClick();
+                                  widget.onSwap!();
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 4, vertical: 4),
+                                  child: Icon(Icons.swap_horiz_rounded,
+                                      color: context.f3textMuted, size: 20),
+                                ),
+                              ),
+                            ],
                             const SizedBox(width: 6),
                             Icon(
                               _expanded

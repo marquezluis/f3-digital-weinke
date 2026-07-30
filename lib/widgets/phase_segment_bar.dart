@@ -14,9 +14,7 @@ class PhaseSegmentBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Seconds elapsed in the full session
-    final elapsed =
-        TimerState.totalBootcampSeconds - state.totalRemainingSeconds;
+    final currentIdx = _phases.indexOf(state.currentPhase);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -24,18 +22,20 @@ class PhaseSegmentBar extends StatelessWidget {
         // ── Segment blocks ────────────────────────────────────────────────
         Row(
           children: _phases.map((phase) {
-            final phaseStart = _phaseStart(phase);
-            final phaseEnd = phaseStart + phase.durationSeconds;
-            final isCurrent = phase == state.currentPhase;
-            final isDone = elapsed >= phaseEnd;
-
+            final idx = _phases.indexOf(phase);
+            final isCurrent = idx == currentIdx;
+            // Phases before the current one are simply done, phases after
+            // haven't started — only the current phase's fraction needs the
+            // real (possibly extended/custom-Thang) duration, which is why
+            // this reads state.phaseProgress rather than re-deriving
+            // boundaries from the phases' default enum durations (that
+            // silently disagreed with the actual timer once a plan's Thang
+            // block, or an extension, differed from the 50-minute default).
             double fillFraction;
-            if (isDone) {
+            if (state.isFinished || idx < currentIdx) {
               fillFraction = 1.0;
             } else if (isCurrent) {
-              final withinPhase = elapsed - phaseStart;
-              fillFraction =
-                  (withinPhase / phase.durationSeconds).clamp(0.0, 1.0);
+              fillFraction = state.phaseProgress.clamp(0.0, 1.0);
             } else {
               fillFraction = 0.0;
             }
@@ -98,14 +98,5 @@ class PhaseSegmentBar extends StatelessWidget {
         ),
       ],
     );
-  }
-
-  static int _phaseStart(BootcampPhase phase) {
-    int start = 0;
-    for (final p in BootcampPhase.values) {
-      if (p == phase) break;
-      start += p.durationSeconds;
-    }
-    return start;
   }
 }

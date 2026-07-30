@@ -289,29 +289,8 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
   }
 
   void _loadTemplate(WorkoutHistory template) {
-    final exerciseSvc = context.read<ExerciseService>();
-    final blocks = template.blocks.map((b) {
-      final cat = ExerciseCategory.values.firstWhere(
-          (c) => c.name == b.category,
-          orElse: () => ExerciseCategory.bodyweight);
-      final exercises = b.exerciseNames
-          .map((name) => exerciseSvc.all.firstWhere((e) => e.name == name,
-              orElse: () => exerciseSvc.all.first))
-          .toList();
-      return WorkoutBlock(
-        label: b.label,
-        category: cat,
-        exercises: exercises,
-        durationMinutes: b.durationMinutes,
-        rounds: b.rounds,
-      );
-    }).toList();
-    final plan = WorkoutPlan(
-      id: const Uuid().v4(),
-      generatedAt: DateTime.now(),
-      blocks: blocks,
-      settings: const WorkoutSettings(),
-    );
+    final plan = WeinkeExporter.buildPlanFromHistory(
+        template, context.read<ExerciseService>());
     context.read<CurrentWorkoutService>().setDraftPlan(plan);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('"${template.title}" loaded.')),
@@ -770,6 +749,7 @@ class _SwipableExerciseCard extends StatelessWidget {
   final String note;
   final CallStyle callStyle;
   final bool hasCallStyleOverride;
+  final int? reps;
 
   const _SwipableExerciseCard({
     super.key,
@@ -780,7 +760,49 @@ class _SwipableExerciseCard extends StatelessWidget {
     this.note = '',
     this.callStyle = CallStyle.onYourOwn,
     this.hasCallStyleOverride = false,
+    this.reps,
   });
+
+  void _editReps(BuildContext context, CurrentWorkoutService workoutSvc) {
+    final ctrl = TextEditingController(text: reps?.toString() ?? '');
+    showDialog<void>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: context.f3card,
+        title: Text('Target reps', style: TextStyle(color: context.f3textPrimary)),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          keyboardType: TextInputType.number,
+          style: TextStyle(color: context.f3textPrimary),
+          decoration: const InputDecoration(hintText: 'e.g. 15'),
+        ),
+        actions: [
+          if (reps != null)
+            TextButton(
+              onPressed: () {
+                workoutSvc.setExerciseRepsInDraftBlock(
+                    blockIndex, exercise.id, null);
+                Navigator.pop(context);
+              },
+              child: const Text('CLEAR', style: TextStyle(color: Colors.red)),
+            ),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('CANCEL'),
+          ),
+          TextButton(
+            onPressed: () {
+              final n = int.tryParse(ctrl.text.trim());
+              workoutSvc.setExerciseRepsInDraftBlock(blockIndex, exercise.id, n);
+              Navigator.pop(context);
+            },
+            child: const Text('SAVE', style: TextStyle(color: F3Colors.accent)),
+          ),
+        ],
+      ),
+    );
+  }
 
   void _editCallStyle(BuildContext context) {
     showDialog(
@@ -882,15 +904,20 @@ class _SwipableExerciseCard extends StatelessWidget {
       },
       onDismissed: (_) {
         workoutSvc.removeExerciseFromDraftBlock(blockIndex, exercise.id);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('${exercise.name} removed'),
-          duration: const Duration(seconds: 4),
-          action: SnackBarAction(
-            label: 'UNDO',
-            onPressed: () =>
-                workoutSvc.addExerciseToDraftBlock(blockIndex, exercise),
-          ),
-        ));
+        // Clear any still-queued banner from a previous add/remove first —
+        // otherwise rapid edits queue one SnackBar per action and the bar
+        // never actually goes away until the whole backlog drains.
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(SnackBar(
+            content: Text('${exercise.name} removed'),
+            duration: const Duration(seconds: 4),
+            action: SnackBarAction(
+              label: 'UNDO',
+              onPressed: () =>
+                  workoutSvc.addExerciseToDraftBlock(blockIndex, exercise),
+            ),
+          ));
       },
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -902,10 +929,12 @@ class _SwipableExerciseCard extends StatelessWidget {
             onDuplicate: () {
               workoutSvc.duplicateExerciseInDraftBlock(
                   blockIndex, exerciseIndex);
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                content: Text('${exercise.name} duplicated'),
-                duration: const Duration(seconds: 2),
-              ));
+              ScaffoldMessenger.of(context)
+                ..clearSnackBars()
+                ..showSnackBar(SnackBar(
+                  content: Text('${exercise.name} duplicated'),
+                  duration: const Duration(seconds: 2),
+                ));
             },
           ),
           Padding(
@@ -972,6 +1001,38 @@ class _SwipableExerciseCard extends StatelessWidget {
                     Text(callStyle.displayName,
                         style: TextStyle(
                             color: hasCallStyleOverride
+                                ? F3Colors.accent
+                                : context.f3textMuted,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700)),
+                  ]),
+                ),
+              ),
+              const SizedBox(width: 6),
+              GestureDetector(
+                onTap: () => _editReps(context, workoutSvc),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: reps != null
+                        ? F3Colors.accent.withValues(alpha: 0.18)
+                        : context.f3divider.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(
+                        color: reps != null
+                            ? F3Colors.accent.withValues(alpha: 0.5)
+                            : Colors.transparent),
+                  ),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(Icons.tag_rounded,
+                        size: 10,
+                        color:
+                            reps != null ? F3Colors.accent : context.f3textMuted),
+                    const SizedBox(width: 3),
+                    Text(reps != null ? '×$reps' : 'reps',
+                        style: TextStyle(
+                            color: reps != null
                                 ? F3Colors.accent
                                 : context.f3textMuted,
                             fontSize: 10,
@@ -1406,11 +1467,122 @@ class _PlanView extends StatelessWidget {
       slivers.add(SliverPadding(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
         sliver: SliverToBoxAdapter(
-          child: _BlockSection(block: blocks[i], blockIndex: i, onSwap: onSwap),
+          child: _BlockSection(
+            block: blocks[i],
+            blockIndex: i,
+            onSwap: onSwap,
+            canRemove: blocks.length > 1,
+          ),
         ),
       ));
     }
     return slivers;
+  }
+
+  Future<void> _showAddSectionDialog(BuildContext context) async {
+    final labelCtrl = TextEditingController();
+    ExerciseCategory category = ExerciseCategory.bodyweight;
+    int rounds = 1;
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (ctx, setState) => AlertDialog(
+          backgroundColor: ctx.f3card,
+          title: Text('Add Section',
+              style: TextStyle(color: ctx.f3textPrimary)),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'A separate block, e.g. "Part 2 — Four Corners" — '
+                  'add its exercises afterward.',
+                  style: TextStyle(color: ctx.f3textSecondary, fontSize: 12.5),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: labelCtrl,
+                  autofocus: true,
+                  style: TextStyle(color: ctx.f3textPrimary),
+                  decoration: const InputDecoration(
+                    hintText: 'e.g. Part 2 — Four Corners',
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: ExerciseCategory.values.map((cat) {
+                    final selected = category == cat;
+                    final color = F3Colors.forCategory(cat.name);
+                    return ChoiceChip(
+                      label: Text(cat.displayName),
+                      selected: selected,
+                      onSelected: (_) => setState(() => category = cat),
+                      selectedColor: color.withValues(alpha: 0.2),
+                      labelStyle: TextStyle(
+                        color: selected ? color : ctx.f3textSecondary,
+                        fontWeight:
+                            selected ? FontWeight.w700 : FontWeight.w500,
+                      ),
+                      side: BorderSide(
+                          color: selected ? color : ctx.f3divider),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Text('Rounds',
+                        style: TextStyle(color: ctx.f3textSecondary)),
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.remove_circle_outline_rounded),
+                      onPressed: rounds > 1
+                          ? () => setState(() => rounds--)
+                          : null,
+                    ),
+                    Text('$rounds',
+                        style: TextStyle(
+                            color: ctx.f3textPrimary,
+                            fontWeight: FontWeight.w800)),
+                    IconButton(
+                      icon: const Icon(Icons.add_circle_outline_rounded),
+                      onPressed:
+                          rounds < 10 ? () => setState(() => rounds++) : null,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('CANCEL'),
+            ),
+            TextButton(
+              onPressed: () {
+                final label = labelCtrl.text.trim();
+                if (label.isEmpty) return;
+                ctx.read<CurrentWorkoutService>().addBlockToDraft(WorkoutBlock(
+                      label: label,
+                      category: category,
+                      exercises: const [],
+                      durationMinutes: 10,
+                      rounds: rounds,
+                    ));
+                Navigator.pop(ctx);
+              },
+              child:
+                  const Text('ADD', style: TextStyle(color: F3Colors.accent)),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -1432,6 +1604,27 @@ class _PlanView extends StatelessWidget {
         ),
         // Exercise blocks grouped under phase headers
         ..._buildBlockSlivers(plan.blocks, onSwap),
+        // Add a whole new section (separate block) — the only way to split
+        // what would otherwise be one big Thang block into named parts.
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+          sliver: SliverToBoxAdapter(
+            child: OutlinedButton.icon(
+              onPressed: () => _showAddSectionDialog(context),
+              icon: const Icon(Icons.playlist_add_rounded, size: 16),
+              label: const Text('ADD SECTION'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: context.f3textSecondary,
+                side: BorderSide(color: context.f3divider),
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                textStyle: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.5),
+              ),
+            ),
+          ),
+        ),
         // COT
         const SliverPadding(
           padding: EdgeInsets.fromLTRB(16, 4, 16, 0),
@@ -1661,12 +1854,43 @@ class _BlockSection extends StatelessWidget {
   final WorkoutBlock block;
   final int blockIndex;
   final void Function(Exercise) onSwap;
+  final bool canRemove;
 
   const _BlockSection({
     required this.block,
     required this.blockIndex,
     required this.onSwap,
+    required this.canRemove,
   });
+
+  Future<void> _removeSection(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (_) => AlertDialog(
+            backgroundColor: context.f3card,
+            title: Text('Remove "${block.label}"?',
+                style: TextStyle(color: context.f3textPrimary, fontSize: 16)),
+            content: Text(
+                'This removes the whole section${block.exercises.isNotEmpty ? ' and its ${block.exercises.length} exercise(s)' : ''}.',
+                style: TextStyle(color: context.f3textSecondary)),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('CANCEL'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('REMOVE',
+                    style: TextStyle(color: Colors.red)),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+    if (confirmed && context.mounted) {
+      context.read<CurrentWorkoutService>().removeBlockFromDraft(blockIndex);
+    }
+  }
 
   void _addRandom(BuildContext context) {
     final service = context.read<ExerciseService>();
@@ -1679,17 +1903,21 @@ class _BlockSection extends StatelessWidget {
         .toList()
       ..shuffle();
     if (pool.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('No more exercises available for this category.'),
-        duration: Duration(seconds: 2),
-      ));
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(const SnackBar(
+          content: Text('No more exercises available for this category.'),
+          duration: Duration(seconds: 2),
+        ));
       return;
     }
     workoutSvc.addExerciseToDraftBlock(blockIndex, pool.first);
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text('Added: ${pool.first.name}'),
-      duration: const Duration(seconds: 2),
-    ));
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(SnackBar(
+        content: Text('Added: ${pool.first.name}'),
+        duration: const Duration(seconds: 2),
+      ));
   }
 
   void _renameBlock(BuildContext context) {
@@ -1965,6 +2193,14 @@ class _BlockSection extends StatelessWidget {
                 ),
               ),
             ),
+            if (canRemove) ...[
+              const SizedBox(width: 4),
+              GestureDetector(
+                onTap: () => _removeSection(context),
+                child: Icon(Icons.delete_outline_rounded,
+                    color: context.f3textMuted, size: 17),
+              ),
+            ],
           ]),
         ),
         if (block.rounds > 1)
@@ -2033,6 +2269,7 @@ class _BlockSection extends StatelessWidget {
                       callStyle: block.callStyleFor(ex.id),
                       hasCallStyleOverride:
                           block.exerciseCallStyles.containsKey(ex.id),
+                      reps: block.repsFor(ex.id),
                     ),
                   ),
                 ],
@@ -2110,6 +2347,7 @@ class _AddExerciseSheetState extends State<_AddExerciseSheet> {
   final _searchCtrl = TextEditingController();
   String _query = '';
   ExerciseCategory? _categoryFilter;
+  Intensity? _intensityFilter;
 
   @override
   void initState() {
@@ -2136,10 +2374,12 @@ class _AddExerciseSheetState extends State<_AddExerciseSheet> {
         .read<CurrentWorkoutService>()
         .addExerciseToDraftBlock(widget.blockIndex, ex);
     Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text('Added: ${ex.name}'),
-      duration: const Duration(seconds: 2),
-    ));
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(SnackBar(
+        content: Text('Added: ${ex.name}'),
+        duration: const Duration(seconds: 2),
+      ));
   }
 
   @override
@@ -2152,6 +2392,9 @@ class _AddExerciseSheetState extends State<_AddExerciseSheet> {
     var pool = _query.isEmpty ? service.all : service.search(_query);
     if (_categoryFilter != null) {
       pool = pool.where((e) => e.category == _categoryFilter).toList();
+    }
+    if (_intensityFilter != null) {
+      pool = pool.where((e) => e.intensity == _intensityFilter).toList();
     }
     pool = pool.where((e) => !usedIds.contains(e.id)).toList();
 
@@ -2236,6 +2479,29 @@ class _AddExerciseSheetState extends State<_AddExerciseSheet> {
                       selected: selected,
                       selectedColor: color.withValues(alpha: 0.25),
                       onSelected: (_) => setState(() => _categoryFilter = cat),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+            const SizedBox(height: 8),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [null, ...Intensity.values].map((lvl) {
+                  final selected = _intensityFilter == lvl;
+                  final color = lvl == null
+                      ? context.f3textSecondary
+                      : F3Colors.forIntensity(lvl.name);
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: FilterChip(
+                      label: Text(lvl?.displayName ?? 'Any difficulty'),
+                      selected: selected,
+                      selectedColor: color.withValues(alpha: 0.25),
+                      onSelected: (_) =>
+                          setState(() => _intensityFilter = lvl),
                     ),
                   );
                 }).toList(),

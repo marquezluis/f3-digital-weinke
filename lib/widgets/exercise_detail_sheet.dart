@@ -98,6 +98,20 @@ class ExerciseDetailSheet extends StatelessWidget {
                             fontSize: 13,
                             fontStyle: FontStyle.italic)),
                   ],
+                  // Prefer the curated, plain-language explanation when we
+                  // have one — the official Exicon description is often
+                  // dense/jargon-heavy prose that's exactly what's confusing
+                  // about an exercise nobody on this team has actually run
+                  // before. Still shown underneath for the full detail.
+                  if (ex.simpleExplanation != null) ...[
+                    const SizedBox(height: 16),
+                    Text(ex.simpleExplanation!,
+                        style: TextStyle(
+                            color: context.f3textPrimary,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            height: 1.6)),
+                  ],
                   if (ex.description.isNotEmpty) ...[
                     const SizedBox(height: 16),
                     Text(ex.description,
@@ -105,6 +119,24 @@ class ExerciseDetailSheet extends StatelessWidget {
                             color: context.f3textSecondary,
                             fontSize: 15,
                             height: 1.6)),
+                  ],
+                  if (ex.modification != null) ...[
+                    const SizedBox(height: 12),
+                    _DetailNote(
+                      icon: Icons.tune_rounded,
+                      label: 'MODIFICATION',
+                      text: ex.modification!,
+                      color: F3Colors.accent,
+                    ),
+                  ],
+                  if (ex.safetyCue != null) ...[
+                    const SizedBox(height: 8),
+                    _DetailNote(
+                      icon: Icons.shield_rounded,
+                      label: 'SAFETY CUE',
+                      text: ex.safetyCue!,
+                      color: catColor,
+                    ),
                   ],
                   if (draft != null) ...[
                     const SizedBox(height: 24),
@@ -175,6 +207,58 @@ class ExerciseDetailSheet extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _DetailNote extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String text;
+  final Color color;
+
+  const _DetailNote({
+    required this.icon,
+    required this.label,
+    required this.text,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 15, color: color),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label,
+                    style: TextStyle(
+                        color: color,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1)),
+                const SizedBox(height: 2),
+                Text(text,
+                    style: TextStyle(
+                        color: context.f3textSecondary,
+                        fontSize: 13,
+                        height: 1.4)),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

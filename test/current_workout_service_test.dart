@@ -213,5 +213,89 @@ void main() {
       expect(svc.livePlan, isNull);
       expect(svc.currentExerciseIndex, 0);
     });
+
+    test('addBlockToDraft inserts a new section before the closing Mary block',
+        () {
+      svc.setDraftPlan(_makePlan('p'));
+      svc.addBlockToDraft(const WorkoutBlock(
+        label: 'Part 2 — Four Corners',
+        category: ExerciseCategory.bodyweight,
+        exercises: [],
+        durationMinutes: 10,
+      ));
+
+      final labels = svc.draftPlan!.blocks.map((b) => b.label).toList();
+      expect(labels, [
+        'Warm-O-Rama',
+        'The Thang',
+        'Part 2 — Four Corners',
+        'Mary',
+      ]);
+    });
+
+    test('addBlockToDraft appends at the end when there is no Mary block',
+        () {
+      svc.setDraftPlan(WorkoutPlan(
+        id: 'p',
+        generatedAt: DateTime(2025, 1, 1),
+        blocks: const [
+          WorkoutBlock(
+            label: 'Warm-O-Rama',
+            category: ExerciseCategory.warmup,
+            exercises: [],
+            durationMinutes: 7,
+          ),
+        ],
+      ));
+      svc.addBlockToDraft(const WorkoutBlock(
+        label: 'Part 1',
+        category: ExerciseCategory.bodyweight,
+        exercises: [],
+        durationMinutes: 10,
+      ));
+
+      expect(svc.draftPlan!.blocks.last.label, 'Part 1');
+    });
+
+    test('removeBlockFromDraft removes the given block', () {
+      svc.setDraftPlan(_makePlan('p'));
+      svc.removeBlockFromDraft(1); // "The Thang"
+
+      final labels = svc.draftPlan!.blocks.map((b) => b.label).toList();
+      expect(labels, ['Warm-O-Rama', 'Mary']);
+    });
+
+    test('removeBlockFromDraft refuses to remove the last remaining block',
+        () {
+      svc.setDraftPlan(WorkoutPlan(
+        id: 'p',
+        generatedAt: DateTime(2025, 1, 1),
+        blocks: const [
+          WorkoutBlock(
+            label: 'Only Block',
+            category: ExerciseCategory.bodyweight,
+            exercises: [],
+            durationMinutes: 10,
+          ),
+        ],
+      ));
+      svc.removeBlockFromDraft(0);
+      expect(svc.draftPlan!.blocks, hasLength(1));
+    });
+
+    test('setExerciseRepsInDraftBlock sets a target rep count', () {
+      svc.setDraftPlan(_makePlan('p'));
+      svc.setExerciseRepsInDraftBlock(1, 'ex-2', 15);
+      expect(svc.draftPlan!.blocks[1].repsFor('ex-2'), 15);
+      // Unrelated exercise in the same block is untouched.
+      expect(svc.draftPlan!.blocks[1].repsFor('ex-3'), isNull);
+    });
+
+    test('setExerciseRepsInDraftBlock clears reps when set to null', () {
+      svc.setDraftPlan(_makePlan('p'));
+      svc.setExerciseRepsInDraftBlock(1, 'ex-2', 15);
+      svc.setExerciseRepsInDraftBlock(1, 'ex-2', null);
+      expect(svc.draftPlan!.blocks[1].repsFor('ex-2'), isNull);
+    });
   });
 }

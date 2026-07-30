@@ -97,13 +97,25 @@ class TimerState {
 
   final BootcampPhase currentPhase;
   final int phaseRemainingSeconds; // seconds left in this phase
-  final int totalRemainingSeconds; // seconds left in entire 50-min session
+  final int totalRemainingSeconds; // seconds left in the whole session
+  // The actual planned total for this session (default 50 min, but reflects
+  // a custom Thang duration and any extendCurrentPhase calls) — carried on
+  // the snapshot itself so elapsed/progress can be derived correctly instead
+  // of assuming the fixed default, which silently produced wrong progress
+  // for any plan whose real duration differed from 50 minutes.
+  final int totalPlannedSeconds;
+  // currentPhase's real full duration (reflects a custom Thang length or an
+  // extendCurrentPhase call) — lets phaseProgress and the segment bar derive
+  // correct fractions without re-deriving durations themselves.
+  final int currentPhaseDurationSeconds;
   final TimerStatus status;
 
   const TimerState({
     this.currentPhase = BootcampPhase.disclaimer,
     this.phaseRemainingSeconds = initialPhaseSeconds,
     this.totalRemainingSeconds = totalBootcampSeconds,
+    this.totalPlannedSeconds = totalBootcampSeconds,
+    this.currentPhaseDurationSeconds = initialPhaseSeconds,
     this.status = TimerStatus.idle,
   });
 
@@ -111,6 +123,8 @@ class TimerState {
     BootcampPhase? currentPhase,
     int? phaseRemainingSeconds,
     int? totalRemainingSeconds,
+    int? totalPlannedSeconds,
+    int? currentPhaseDurationSeconds,
     TimerStatus? status,
   }) {
     return TimerState(
@@ -119,6 +133,9 @@ class TimerState {
           phaseRemainingSeconds ?? this.phaseRemainingSeconds,
       totalRemainingSeconds:
           totalRemainingSeconds ?? this.totalRemainingSeconds,
+      totalPlannedSeconds: totalPlannedSeconds ?? this.totalPlannedSeconds,
+      currentPhaseDurationSeconds:
+          currentPhaseDurationSeconds ?? this.currentPhaseDurationSeconds,
       status: status ?? this.status,
     );
   }
@@ -132,17 +149,26 @@ class TimerState {
 
   /// Progress within the current phase: 0.0 → 1.0.
   double get phaseProgress {
-    final total = currentPhase.durationSeconds;
-    if (total == 0) return 1.0;
-    return 1.0 - (phaseRemainingSeconds / total);
+    if (currentPhaseDurationSeconds == 0) return 1.0;
+    return 1.0 - (phaseRemainingSeconds / currentPhaseDurationSeconds);
   }
 
-  /// Progress across the full 50-minute session: 0.0 → 1.0.
-  double get totalProgress =>
-      1.0 - (totalRemainingSeconds / totalBootcampSeconds);
+  /// Progress across the full session: 0.0 → 1.0.
+  double get totalProgress => totalPlannedSeconds == 0
+      ? 1.0
+      : 1.0 - (totalRemainingSeconds / totalPlannedSeconds);
+
+  /// Seconds elapsed since the session began — the count-up complement to
+  /// [totalRemainingSeconds], for a single continuous clock (0:00 up to the
+  /// full planned duration, including COT) instead of a per-phase countdown.
+  int get elapsedTotalSeconds =>
+      (totalPlannedSeconds - totalRemainingSeconds)
+          .clamp(0, totalPlannedSeconds);
 
   String get formattedPhaseRemaining => _fmt(phaseRemainingSeconds);
   String get formattedTotalRemaining => _fmt(totalRemainingSeconds);
+  String get formattedElapsedTotal => _fmt(elapsedTotalSeconds);
+  String get formattedTotalPlanned => _fmt(totalPlannedSeconds);
 
   static String _fmt(int s) {
     final m = s ~/ 60;
