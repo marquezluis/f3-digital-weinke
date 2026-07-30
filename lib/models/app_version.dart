@@ -25,13 +25,27 @@ class AppVersion {
   // automatically, since release notes are hand-written prose. Update these
   // four constants and add a new AppRelease entry below whenever you want a
   // build's changes to actually show up in the in-app Release Log.
-  static const String current = '2.4.3';
-  static const String versionName = '2.4.3';
-  static const String buildNumber = '15';
-  static const String displayName = 'Digital Weinke v2.4.3';
-  static const String fullDisplayName = 'Digital Weinke v2.4.3+15';
+  static const String current = '2.4.10';
+  static const String versionName = '2.4.10';
+  static const String buildNumber = '22';
+  static const String displayName = 'Digital Weinke v2.4.10';
+  static const String fullDisplayName = 'Digital Weinke v2.4.10+22';
 
   static const List<AppRelease> releases = [
+    AppRelease(
+      version: '2.4.10',
+      title: 'The AO Logos & Full Profile Update',
+      summary:
+          'AO logos on Browse AOs and beatdown details, your full F3 Me profile (roles, positions, name origin, why), and a couple of real bug fixes.',
+      newItems: [
+        'AO logos now show on Browse AOs and a beatdown\'s detail sheet, pulled from F3 Nation\'s real org data (falls back to the shield icon for AOs that haven\'t uploaded one).',
+        'Your Profile now shows F3 Name Origin, My F3 Why, and your Roles/Positions across F3 Nation regions — the same info the real F3 Me site shows, not just name/phone/avatar.',
+      ],
+      bugFixes: [
+        'Schedule\'s "Mine" filter pill was silently clearing your selection if you reopened it and dismissed it without picking anything.',
+        'Home\'s Quick Start row ("Last Plan" button) could overflow its width when all three quick-start actions were showing.',
+      ],
+    ),
     AppRelease(
       version: '2.4.3',
       title: 'The Pic-o-Rama Update',

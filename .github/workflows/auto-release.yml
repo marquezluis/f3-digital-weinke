@@ -1,0 +1,90 @@
+name: Auto Release
+
+# Runs after Flutter CI passes on main, and only actually publishes a
+# release when pubspec.yaml's version carries a MAJOR.MINOR bump (e.g.
+# 2.4.x -> 2.5.0) since the last tag — a plain patch/build-counter bump
+# (scripts/bump_version.py runs that on every local build) does not
+# publish anything. Gating on CI success (rather than triggering on push
+# directly) means a release is never cut from code that failed analyze/test.
+on:
+  workflow_run:
+    workflows: ["Flutter CI"]
+    types: [completed]
+    branches: [main]
+
+jobs:
+  auto-release:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0 # need full tag history to find the last release
+
+      - name: Determine version and whether it's a new MAJOR.MINOR line
+        id: version
+        run: |
+          set -euo pipefail
+          LINE=$(grep '^version:' pubspec.yaml)
+          CURRENT=$(echo "$LINE" | sed -E 's/version:[[:space:]]*([0-9]+\.[0-9]+\.[0-9]+)\+([0-9]+)/\1/')
+          BUILD=$(echo "$LINE" | sed -E 's/version:[[:space:]]*[0-9]+\.[0-9]+\.[0-9]+\+([0-9]+)/\1/')
+          CURRENT_MM=$(echo "$CURRENT" | cut -d. -f1,2)
+
+          # Latest real (non pre-release/debug) tag, newest version first.
+          LATEST_TAG=$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' | grep -v '[-]' | sort -t. -k1.2,1n -k2,2n -k3,3n | tail -1 || true)
+          LATEST_MM=""
+          if [ -n "$LATEST_TAG" ]; then
+            LATEST_MM=$(echo "${LATEST_TAG#v}" | cut -d. -f1,2)
+          fi
+
+          echo "current=$CURRENT" >> "$GITHUB_OUTPUT"
+          echo "build=$BUILD" >> "$GITHUB_OUTPUT"
+          echo "current_mm=$CURRENT_MM" >> "$GITHUB_OUTPUT"
+          echo "latest_tag=$LATEST_TAG" >> "$GITHUB_OUTPUT"
+          echo "latest_mm=$LATEST_MM" >> "$GITHUB_OUTPUT"
+
+          if [ "$CURRENT_MM" = "$LATEST_MM" ]; then
+            echo "is_new_line=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_new_line=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Extract CHANGELOG.md section for this version
+        if: steps.version.outputs.is_new_line == 'true'
+        id: notes
+        run: |
+          VERSION="${{ steps.version.outputs.current }}"
+          NOTES=$(awk -v ver="$VERSION" '
+            $0 ~ "^## \\[" ver "\\]" { flag=1; next }
+            /^## \[/ { flag=0 }
+            flag { print }
+          ' CHANGELOG.md)
+          if [ -z "$NOTES" ]; then
+            NOTES="No CHANGELOG.md entry found for $VERSION yet — add one under \"## [$VERSION]\" for real release notes next time."
+          fi
+          {
+            echo "notes<<GH_NOTES_EOF"
+            echo "$NOTES"
+            echo "GH_NOTES_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create tag and GitHub Release
+        if: steps.version.outputs.is_new_line == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="v${{ steps.version.outputs.current }}"
+          git tag "$TAG" "${{ github.event.workflow_run.head_sha }}"
+          git push origin "$TAG"
+          gh release create "$TAG" \
+            --title "$TAG" \
+            --notes "${{ steps.notes.outputs.notes }}"
+
+      - name: Skip (no MAJOR.MINOR change)
+        if: steps.version.outputs.is_new_line == 'false'
+        run: |
+          echo "pubspec.yaml is still on the ${{ steps.version.outputs.current_mm }} line (last release: ${{ steps.version.outputs.latest_tag }}) — not publishing a release for a build-counter-only bump."

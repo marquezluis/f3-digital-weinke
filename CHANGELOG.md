@@ -11,6 +11,16 @@ whether or not that build shipped, so "how many builds have we done on
 
 ## [Unreleased]
 
+## [2.4.10] - 2026-07-30
+
+### Added
+- **AO logos** on Browse AOs and a beatdown's detail sheet, sourced from F3 Nation's real org data (`logoUrl` on `/v1/org`) — falls back to the existing shield icon for AOs that haven't uploaded one.
+- **Full F3 Me profile parity** — Profile now shows F3 Name Origin, My F3 Why, and your Roles/Positions across F3 Nation regions, matching what the real me.f3nation.com site shows (previously only name/phone/avatar were pulled in).
+
+### Fixed
+- Schedule's "Mine" filter pill silently cleared the active filter if the picker sheet was reopened and dismissed without choosing anything — `showModalBottomSheet` resolves to bare `null` on both an explicit "All" pick and a plain dismiss, and the two cases weren't being told apart.
+- Home's Quick Start row could overflow when all three quick-start actions (Resume/Random/Last Plan) were showing together — the widest label ("Last Plan") had no room to shrink.
+
 ## [2.4.3] - 2026-07-22
 
 ### Added
