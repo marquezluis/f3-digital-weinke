@@ -43,10 +43,9 @@ class SettingsScreen extends StatelessWidget {
             padding: const EdgeInsets.all(20),
             children: [
               // ── Profile banner ────────────────────────────────────────────
-              _ProfileBanner(isQ: true),
-
-              const SizedBox(height: 12),
-              const _F3NationAccountCard(),
+              // Already shows linked/synced status and (via Profile) email —
+              // a separate F3 Nation account card here was pure duplication.
+              const _ProfileBanner(isQ: true),
 
               const SizedBox(height: 20),
 
@@ -549,149 +548,6 @@ class _ProfileBannerState extends State<_ProfileBanner> {
             physics: const AlwaysScrollableScrollPhysics(),
             shrinkWrap: true,
             children: [banner],
-          ),
-        );
-      },
-    );
-  }
-}
-
-// ── F3 Nation account card ──────────────────────────────────────────────────
-
-class _F3NationAccountCard extends StatefulWidget {
-  const _F3NationAccountCard();
-
-  @override
-  State<_F3NationAccountCard> createState() => _F3NationAccountCardState();
-}
-
-class _F3NationAccountCardState extends State<_F3NationAccountCard> {
-  bool _busy = false;
-
-  LinkedIdentity? _f3Identity(AuthService auth) {
-    for (final identity in auth.currentUser?.identities ?? const []) {
-      if (identity.provider == AuthProvider.f3nation) return identity;
-    }
-    return null;
-  }
-
-  Future<void> _toggle(AuthService auth, bool linked) async {
-    setState(() => _busy = true);
-    try {
-      if (linked) {
-        // SSO-required: signing out of F3 signs out of the app entirely and
-        // returns to the login gate (clears the local user + F3 tokens).
-        await auth.signOut();
-      } else {
-        await auth.signInWithF3Nation();
-        // Celebrate the moment a PAX first links their real F3 identity.
-        HapticFeedback.heavyImpact();
-      }
-    } catch (e) {
-      if (mounted) _showErrorDialog('$e');
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
-
-  /// Full-detail, copyable error dialog — a transient snackbar is useless
-  /// for diagnosing OAuth failures from a screenshot.
-  void _showErrorDialog(String message) {
-    showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: context.f3card,
-        title: Text(
-          AppLocalizations.of(context)!.settingsF3SignInErrorTitle,
-          style: TextStyle(color: context.f3textPrimary, fontSize: 16),
-        ),
-        content: SingleChildScrollView(
-          child: SelectableText(
-            message,
-            style: TextStyle(
-              color: context.f3textSecondary,
-              fontSize: 12,
-              fontFamily: 'monospace',
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Clipboard.setData(ClipboardData(text: message));
-              Navigator.pop(context);
-            },
-            child: Text(AppLocalizations.of(context)!.settingsCopyAndClose),
-          ),
-        ],
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Consumer<AuthService>(
-      builder: (context, auth, _) {
-        final l10n = AppLocalizations.of(context)!;
-        final identity = _f3Identity(auth);
-        final linked = identity != null;
-        return Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: context.f3card,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: context.f3divider),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(children: [
-                Icon(
-                  linked
-                      ? Icons.verified_user_rounded
-                      : Icons.person_outline_rounded,
-                  color: linked ? F3Colors.accent : context.f3textMuted,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    linked
-                        ? (identity.email.isNotEmpty ? identity.email : l10n.settingsLinked)
-                        : l10n.settingsNotLinked,
-                    style: TextStyle(
-                      color: context.f3textPrimary,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-              ]),
-              if (!linked) ...[
-                const SizedBox(height: 10),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: _busy ? null : () => _toggle(auth, linked),
-                    icon: _busy
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.login_rounded),
-                    label: Text(_busy
-                        ? l10n.settingsWorkingCheckBrowser
-                        : l10n.loginGateSignIn),
-                  ),
-                ),
-              ],
-              const SizedBox(height: 8),
-              Text(
-                linked
-                    ? l10n.settingsSignOutRegionNote
-                    : l10n.settingsLinksAccountNote,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ],
           ),
         );
       },

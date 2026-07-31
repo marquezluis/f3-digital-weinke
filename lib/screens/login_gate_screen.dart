@@ -171,26 +171,34 @@ class _LoginGateScreenState extends State<LoginGateScreen> {
                 ),
               ),
               const SizedBox(height: 18),
-              // Language + theme, right up front — this is the very first
-              // screen a non-English-speaking PAX sees, so switching out of
-              // English shouldn't require getting through an all-English
-              // sign-in flow (and further into Settings) first.
-              Consumer<SettingsService>(
-                builder: (context, settings, _) => Column(
-                  children: [
-                    LanguagePicker(
-                      current: settings.locale.languageCode,
-                      onSelect: (code) => settings.setLocale(Locale(code)),
+              // Language + theme, right up front — but only for a PAX who's
+              // never been through onboarding. A returning user landing back
+              // here (session expired, signed out) already made this choice;
+              // re-showing it every time read as "asking again" even though
+              // it's just pre-filled with their existing setting. Settings
+              // remains reachable post-sign-in for anyone who wants to change
+              // it later.
+              Consumer<AppProfileService>(
+                builder: (context, profile, _) {
+                  if (profile.introSeen) return const SizedBox.shrink();
+                  return Consumer<SettingsService>(
+                    builder: (context, settings, _) => Column(
+                      children: [
+                        LanguagePicker(
+                          current: settings.locale.languageCode,
+                          onSelect: (code) => settings.setLocale(Locale(code)),
+                        ),
+                        const SizedBox(height: 8),
+                        ThemePicker(
+                          current: settings.themeMode,
+                          onSelect: (mode) => settings.setThemeMode(mode),
+                        ),
+                        const SizedBox(height: 18),
+                      ],
                     ),
-                    const SizedBox(height: 8),
-                    ThemePicker(
-                      current: settings.themeMode,
-                      onSelect: (mode) => settings.setThemeMode(mode),
-                    ),
-                  ],
-                ),
+                  );
+                },
               ),
-              const SizedBox(height: 18),
               Text(
                 AppLocalizations.of(context)!.loginGateSubtitle,
                 textAlign: TextAlign.center,
