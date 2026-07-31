@@ -15,12 +15,15 @@ class RegionService extends ChangeNotifier {
   List<PaxProfile> _pax = [];
   List<HardCommit> _hardCommits = [];
   List<AttendanceRecord> _attendance = [];
+  List<EhProspect> _ehProspects = [];
   SharedPreferences? _prefs;
 
   List<AreaOfOperations> get aos => List.unmodifiable(_aos);
   List<PaxProfile> get pax => List.unmodifiable(_pax);
   List<HardCommit> get hardCommits => List.unmodifiable(_hardCommits);
   List<AttendanceRecord> get attendance => List.unmodifiable(_attendance);
+  List<EhProspect> get ehProspects => List.unmodifiable(
+      [..._ehProspects]..sort((a, b) => b.dateAdded.compareTo(a.dateAdded)));
 
   int get totalHcCount =>
       _hardCommits.fold(0, (sum, hc) => sum + hc.paxNames.length);
@@ -40,6 +43,7 @@ class RegionService extends ChangeNotifier {
         pax: _pax,
         hardCommits: _hardCommits,
         attendance: _attendance,
+        ehProspects: _ehProspects,
       );
 
   Future<void> load() async {
@@ -52,11 +56,13 @@ class RegionService extends ChangeNotifier {
       _pax = snapshot.pax;
       _hardCommits = snapshot.hardCommits;
       _attendance = snapshot.attendance;
+      _ehProspects = snapshot.ehProspects;
     } catch (_) {
       _aos = [];
       _pax = [];
       _hardCommits = [];
       _attendance = [];
+      _ehProspects = [];
     }
     notifyListeners();
   }
@@ -164,6 +170,70 @@ class RegionService extends ChangeNotifier {
     _pax = snapshot.pax;
     _hardCommits = snapshot.hardCommits;
     _attendance = snapshot.attendance;
+    _ehProspects = snapshot.ehProspects;
+    notifyListeners();
+    await _save();
+  }
+
+  // ── EH tracker ─────────────────────────────────────────────────────────────
+  // Someone EH'd but not yet posted — see EhProspect's doc comment for how
+  // this differs from PaxProfile.
+
+  Future<void> addEhProspect({
+    required String name,
+    String contactInfo = '',
+    String notes = '',
+  }) async {
+    _ehProspects = [
+      ..._ehProspects,
+      EhProspect(
+        id: _uuid.v4(),
+        name: name.trim(),
+        contactInfo: contactInfo.trim(),
+        dateAdded: DateTime.now(),
+        notes: notes.trim(),
+      ),
+    ];
+    notifyListeners();
+    await _save();
+  }
+
+  Future<void> markProspectFollowedUp(String id) async {
+    _ehProspects = _ehProspects
+        .map((p) => p.id == id
+            ? EhProspect(
+                id: p.id,
+                name: p.name,
+                contactInfo: p.contactInfo,
+                dateAdded: p.dateAdded,
+                lastFollowUp: DateTime.now(),
+                notes: p.notes,
+              )
+            : p)
+        .toList();
+    notifyListeners();
+    await _save();
+  }
+
+  /// They posted — add them as a real PAX and drop them from the prospect
+  /// list. Firstpost is set to today; a Q editing history after the fact can
+  /// still correct it from the PAX detail screen like any other PaxProfile.
+  Future<void> promoteProspectToPax(String id) async {
+    final prospect = _ehProspects.where((p) => p.id == id).firstOrNull;
+    if (prospect == null) return;
+    await upsertPax(
+      name: prospect.name,
+      phoneOrSlack: prospect.contactInfo,
+      firstPost: DateTime.now(),
+      notes: prospect.notes,
+    );
+    _ehProspects = _ehProspects.where((p) => p.id != id).toList();
+    notifyListeners();
+    await _save();
+  }
+
+  Future<void> removeEhProspect(String id) async {
+    _ehProspects = _ehProspects.where((p) => p.id != id).toList();
     notifyListeners();
     await _save();
   }
@@ -184,6 +254,7 @@ class RegionService extends ChangeNotifier {
       pax: _pax,
       hardCommits: _hardCommits,
       attendance: _attendance,
+      ehProspects: _ehProspects,
     );
     await _prefs!.setString(_key, snapshot.toJsonString());
   }

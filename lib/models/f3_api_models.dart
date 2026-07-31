@@ -284,6 +284,16 @@ class F3EventInstance {
   final bool userAttending;
   final bool userIsQ;
 
+  // Only present when fetched via getEventInstanceById(includeSlackChannelId:
+  // true) — the resolved Slack destination for this event, per F3-Nation/
+  // f3-nation#693. channelId is a raw Slack channel id (e.g. "C0123ABC"),
+  // not a human-readable name — the API doesn't resolve that, since it would
+  // require a separate Slack Web API call this endpoint deliberately avoids.
+  final String? preblastSlackChannelId;
+  final String? preblastSlackChannelSource;
+  final String? backblastSlackChannelId;
+  final String? backblastSlackChannelSource;
+
   const F3EventInstance({
     required this.id,
     required this.eventId,
@@ -300,6 +310,10 @@ class F3EventInstance {
     this.hcCount,
     this.userAttending = false,
     this.userIsQ = false,
+    this.preblastSlackChannelId,
+    this.preblastSlackChannelSource,
+    this.backblastSlackChannelId,
+    this.backblastSlackChannelSource,
   });
 
   /// Returns a copy with the given fields replaced — used to fold a
@@ -361,6 +375,16 @@ class F3EventInstance {
   factory F3EventInstance.fromJson(Map<String, dynamic> json) {
     String? str(dynamic v) => v?.toString();
     final rawDate = str(json['date']) ?? str(json['startDate']) ?? '';
+    final slackChannels = json['slackChannels'];
+    String? slackChannelId(String key) {
+      final entry = slackChannels is Map ? slackChannels[key] : null;
+      return entry is Map ? str(entry['channelId']) : null;
+    }
+
+    String? slackChannelSource(String key) {
+      final entry = slackChannels is Map ? slackChannels[key] : null;
+      return entry is Map ? str(entry['source']) : null;
+    }
     final hc = json['hcCount'] ?? json['paxCount'];
     final eventTypes = json['eventTypes'];
     String? typeName;
@@ -400,6 +424,10 @@ class F3EventInstance {
       hcCount: hc is int ? hc : int.tryParse(hc?.toString() ?? ''),
       userAttending: json['userAttending'] == true,
       userIsQ: json['userIsQ'] == true,
+      preblastSlackChannelId: slackChannelId('preblast'),
+      preblastSlackChannelSource: slackChannelSource('preblast'),
+      backblastSlackChannelId: slackChannelId('backblast'),
+      backblastSlackChannelSource: slackChannelSource('backblast'),
     );
   }
 }

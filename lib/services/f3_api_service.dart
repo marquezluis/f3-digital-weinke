@@ -52,9 +52,18 @@ class F3ApiService extends ChangeNotifier {
   bool _sessionInvalid = false;
   bool get sessionInvalid => _sessionInvalid;
 
+  // Sticky counterpart to _sessionInvalid: set at the same time, but NOT
+  // cleared by clearSessionInvalid() — main.dart clears that one in the same
+  // frame it unlinks and routes to LoginGateScreen, before that screen ever
+  // builds, so it can't read _sessionInvalid to explain why the user landed
+  // there. This flag survives that unlink so the login gate can show a "your
+  // session expired" notice instead of looking like an unexplained logout.
+  bool _sessionExpiredNotice = false;
+
   void _markSessionInvalid() {
     if (_sessionInvalid) return;
     _sessionInvalid = true;
+    _sessionExpiredNotice = true;
     notifyListeners();
   }
 
@@ -63,6 +72,15 @@ class F3ApiService extends ChangeNotifier {
     if (!_sessionInvalid) return;
     _sessionInvalid = false;
     notifyListeners();
+  }
+
+  /// One-shot read for LoginGateScreen: true if the login gate was reached
+  /// because a live session just died (not a manual sign-out), and clears
+  /// the flag so it isn't shown again on a later, unrelated visit.
+  bool consumeSessionExpiredNotice() {
+    if (!_sessionExpiredNotice) return false;
+    _sessionExpiredNotice = false;
+    return true;
   }
 
   F3UserProfile? _myProfile;
@@ -626,8 +644,17 @@ class F3ApiService extends ChangeNotifier {
   /// Fetches one event instance's full record, including the actual
   /// preblast text — unlike calendar-home-schedule (Schedule's main list
   /// fetch), which only sends a `hasPreblast` boolean, never the text.
-  Future<F3EventInstance?> getEventInstanceById(int id) async {
-    final data = await _get('/v1/event-instance/id/$id');
+  ///
+  /// [includeSlackChannelId] opts into the resolved Slack destination for
+  /// this event (F3-Nation/f3-nation#693) — event meta → region settings →
+  /// AO org meta, first match wins. Off by default since it costs the API
+  /// extra lookups this call doesn't otherwise need.
+  Future<F3EventInstance?> getEventInstanceById(int id,
+      {bool includeSlackChannelId = false}) async {
+    final path = includeSlackChannelId
+        ? '/v1/event-instance/id/$id?includeSlackChannelId=true'
+        : '/v1/event-instance/id/$id';
+    final data = await _get(path);
     if (data == null) return null;
     return F3EventInstance.fromJson(data);
   }

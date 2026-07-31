@@ -90,4 +90,28 @@ void main() {
       expect(afterDropQ.userIsQ, isFalse);
     });
   });
+
+  group('F3EventInstance.fromJson slackChannels (F3-Nation/f3-nation#693)',
+      () {
+    test('parses resolved preblast and backblast channels', () {
+      final e = F3EventInstance.fromJson({
+        'id': '1',
+        'slackChannels': {
+          'preblast': {'channelId': 'C_REGION_PRE', 'source': 'region_settings'},
+          'backblast': {'channelId': 'C_REGION_BACK', 'source': 'region_settings'},
+        },
+      });
+      expect(e.preblastSlackChannelId, 'C_REGION_PRE');
+      expect(e.preblastSlackChannelSource, 'region_settings');
+      expect(e.backblastSlackChannelId, 'C_REGION_BACK');
+      expect(e.backblastSlackChannelSource, 'region_settings');
+    });
+
+    test('null when slackChannels is absent (includeSlackChannelId not requested)',
+        () {
+      final e = F3EventInstance.fromJson({'id': '1'});
+      expect(e.preblastSlackChannelId, isNull);
+      expect(e.backblastSlackChannelId, isNull);
+    });
+  });
 }

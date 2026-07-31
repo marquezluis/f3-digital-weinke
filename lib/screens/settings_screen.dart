@@ -244,6 +244,14 @@ class SettingsScreen extends StatelessWidget {
                   }
                 },
               ),
+              const SizedBox(height: 8),
+              _NavTile(
+                icon: Icons.history_toggle_off_rounded,
+                title: l10n.settingsAutoBackupRestore,
+                subtitle: l10n.settingsAutoBackupRestoreSub,
+                color: F3Colors.catMary,
+                onTap: () => _showAutoBackupSheet(context),
+              ),
               const SizedBox(height: 28),
 
               // ── About ─────────────────────────────────────────────────────
@@ -279,6 +287,98 @@ class SettingsScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+Future<void> _showAutoBackupSheet(BuildContext context) async {
+  final l10n = AppLocalizations.of(context)!;
+  final profile = context.read<AppProfileService>();
+  final history = context.read<HistoryService>();
+  final region = context.read<RegionService>();
+  final messenger = ScaffoldMessenger.of(context);
+  final backups = await LocalBackupService.listAutoBackups();
+  if (!context.mounted) return;
+
+  const months = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  ];
+  String label(DateTime d) {
+    final h = d.hour % 12 == 0 ? 12 : d.hour % 12;
+    final period = d.hour < 12 ? 'AM' : 'PM';
+    final m = d.minute.toString().padLeft(2, '0');
+    return '${months[d.month - 1]} ${d.day}, ${d.year} · $h:$m $period';
+  }
+
+  await showModalBottomSheet(
+    context: context,
+    builder: (sheetContext) => SafeArea(
+      child: backups.isEmpty
+          ? Padding(
+              padding: const EdgeInsets.all(24),
+              child: Text(l10n.settingsAutoBackupNone,
+                  style: TextStyle(color: sheetContext.f3textSecondary)),
+            )
+          : ListView(
+              shrinkWrap: true,
+              children: [
+                for (final file in backups)
+                  ListTile(
+                    leading: const Icon(Icons.restore_rounded),
+                    title: Text(
+                      label(LocalBackupService.autoBackupTimestamp(file) ??
+                          DateTime.now()),
+                    ),
+                    onTap: () async {
+                      final timestamp =
+                          LocalBackupService.autoBackupTimestamp(file) ??
+                              DateTime.now();
+                      final confirmed = await showDialog<bool>(
+                        context: sheetContext,
+                        builder: (dialogContext) => AlertDialog(
+                          title: Text(l10n.settingsAutoBackupConfirmTitle),
+                          content: Text(l10n
+                              .settingsAutoBackupConfirmBody(label(timestamp))),
+                          actions: [
+                            TextButton(
+                              onPressed: () =>
+                                  Navigator.pop(dialogContext, false),
+                              child: Text(
+                                  MaterialLocalizations.of(dialogContext)
+                                      .cancelButtonLabel),
+                            ),
+                            TextButton(
+                              onPressed: () =>
+                                  Navigator.pop(dialogContext, true),
+                              child: Text(
+                                  MaterialLocalizations.of(dialogContext)
+                                      .okButtonLabel),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (confirmed != true) return;
+                      await LocalBackupService.restoreAutoBackup(
+                        file: file,
+                        profile: profile,
+                        history: history,
+                        region: region,
+                      );
+                      if (sheetContext.mounted) {
+                        Navigator.pop(sheetContext);
+                      }
+                      if (messenger.mounted) {
+                        messenger.showSnackBar(
+                          SnackBar(
+                              content:
+                                  Text(l10n.settingsAutoBackupRestored)),
+                        );
+                      }
+                    },
+                  ),
+              ],
+            ),
+    ),
+  );
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────

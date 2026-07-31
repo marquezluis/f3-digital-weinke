@@ -4,6 +4,7 @@
 // Run with: flutter test
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:f3_nation_app/models/custom_achievement.dart';
 import 'package:f3_nation_app/models/workout_history.dart';
 import 'package:f3_nation_app/services/achievement_service.dart';
 
@@ -12,6 +13,7 @@ WorkoutHistory _session({
   List<String> pax = const [],
   int fngCount = 0,
   List<HistoryBlock> blocks = const [],
+  String ao = '',
 }) =>
     WorkoutHistory(
       id: date.toIso8601String(),
@@ -20,6 +22,7 @@ WorkoutHistory _session({
       pax: pax,
       fngCount: fngCount,
       blocks: blocks,
+      ao: ao,
     );
 
 void main() {
@@ -102,6 +105,81 @@ void main() {
 
     test('returns no dates for an empty history', () {
       expect(AchievementService.unlockDates([]), isEmpty);
+    });
+  });
+
+  group('AchievementService.computeCustom', () {
+    test('unlocks a total-sessions custom achievement at threshold', () {
+      final history = List.generate(
+        5,
+        (i) => _session(date: DateTime(2026, 1, i + 1)),
+      );
+      const def = CustomAchievement(
+        id: 'custom_1',
+        title: 'Five-timer',
+        thresholdType: CustomAchievementThreshold.totalSessions,
+        thresholdValue: 5,
+      );
+
+      final badges = AchievementService.computeCustom(history, [def]);
+
+      expect(badges.single.unlocked, isTrue);
+      expect(badges.single.isCustom, isTrue);
+    });
+
+    test('sessionsAtAo only counts sessions at the matching AO, case-insensitive', () {
+      final history = [
+        _session(date: DateTime(2026, 1, 1), ao: 'DarkRoast'),
+        _session(date: DateTime(2026, 1, 2), ao: 'darkroast'),
+        _session(date: DateTime(2026, 1, 3), ao: 'Common Ground'),
+      ];
+      const def = CustomAchievement(
+        id: 'custom_2',
+        title: 'DarkRoast Regular',
+        thresholdType: CustomAchievementThreshold.sessionsAtAo,
+        thresholdValue: 2,
+        aoFilter: 'DarkRoast',
+      );
+
+      final badges = AchievementService.computeCustom(history, [def]);
+
+      expect(badges.single.unlocked, isTrue);
+    });
+
+    test('stays locked below threshold', () {
+      final history = [_session(date: DateTime(2026, 1, 1), ao: 'DarkRoast')];
+      const def = CustomAchievement(
+        id: 'custom_3',
+        title: 'DarkRoast Regular',
+        thresholdType: CustomAchievementThreshold.sessionsAtAo,
+        thresholdValue: 2,
+        aoFilter: 'DarkRoast',
+      );
+
+      final badges = AchievementService.computeCustom(history, [def]);
+
+      expect(badges.single.unlocked, isFalse);
+    });
+
+    test('templates are excluded, matching the built-in achievements', () {
+      final history = [
+        WorkoutHistory(
+          id: 't1',
+          title: 'Template',
+          date: DateTime(2026, 1, 1),
+          isTemplate: true,
+        ),
+      ];
+      const def = CustomAchievement(
+        id: 'custom_4',
+        title: 'Any session',
+        thresholdType: CustomAchievementThreshold.totalSessions,
+        thresholdValue: 1,
+      );
+
+      final badges = AchievementService.computeCustom(history, [def]);
+
+      expect(badges.single.unlocked, isFalse);
     });
   });
 }

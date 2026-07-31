@@ -30,6 +30,25 @@ enum BeatdownTheme {
   militaryPT,
 }
 
+/// Outdoor conditions the Q is planning around — F3 runs in all weather
+/// ("Only lightning or true safety threats cancel"), so this isn't about
+/// whether to hold the beatdown, just how to shape it once you're out there.
+enum OutdoorCondition {
+  normal,
+  rain,
+  ice,
+  heat;
+
+  String get displayName {
+    switch (this) {
+      case OutdoorCondition.normal: return 'Normal';
+      case OutdoorCondition.rain:   return 'Rain';
+      case OutdoorCondition.ice:    return 'Ice';
+      case OutdoorCondition.heat:   return 'Heat';
+    }
+  }
+}
+
 enum WorkoutFormat {
   circuit,
   amrap,
@@ -59,6 +78,7 @@ class WorkoutSettings {
   final int numberOfCircuits;
   final int restBetweenCircuitsMinutes;
   final Set<String> blacklistedIds;
+  final OutdoorCondition condition;
 
   const WorkoutSettings({
     this.couponMode = CouponMode.mixed,
@@ -75,6 +95,7 @@ class WorkoutSettings {
     this.numberOfCircuits = 1,
     this.restBetweenCircuitsMinutes = 1,
     this.blacklistedIds = const {},
+    this.condition = OutdoorCondition.normal,
   });
 
   WorkoutSettings copyWith({
@@ -88,6 +109,7 @@ class WorkoutSettings {
     int? numberOfCircuits,
     int? restBetweenCircuitsMinutes,
     Set<String>? blacklistedIds,
+    OutdoorCondition? condition,
   }) {
     return WorkoutSettings(
       couponMode: couponMode ?? this.couponMode,
@@ -102,6 +124,7 @@ class WorkoutSettings {
       restBetweenCircuitsMinutes:
           restBetweenCircuitsMinutes ?? this.restBetweenCircuitsMinutes,
       blacklistedIds: blacklistedIds ?? this.blacklistedIds,
+      condition: condition ?? this.condition,
     );
   }
 

@@ -149,6 +149,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Sign in with your F3 Nation account to continue.';
 
   @override
+  String get loginGateSessionExpired =>
+      'Your F3 Nation session expired — sign in again to continue.';
+
+  @override
   String get loginGateSigningIn => 'Signing in…';
 
   @override
@@ -873,6 +877,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String settingsImportFailed(String error) {
     return 'Import failed: $error';
   }
+
+  @override
+  String get settingsAutoBackupRestore => 'Restore Automatic Backup';
+
+  @override
+  String get settingsAutoBackupRestoreSub =>
+      'A silent weekly snapshot, kept on this device';
+
+  @override
+  String get settingsAutoBackupNone =>
+      'No automatic backups yet — check back after a week of use.';
+
+  @override
+  String get settingsAutoBackupConfirmTitle => 'Restore this backup?';
+
+  @override
+  String settingsAutoBackupConfirmBody(String date) {
+    return 'This replaces your current profile and history with this snapshot from $date.';
+  }
+
+  @override
+  String get settingsAutoBackupRestored => 'Restored from automatic backup.';
 
   @override
   String get settingsMyF3Name => 'My F3 Name';

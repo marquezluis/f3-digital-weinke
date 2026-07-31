@@ -50,4 +50,38 @@ void main() {
     expect(service.hardCommits.single.paxNames, ['Alpha', 'Charlie']);
     expect(service.totalHcCount, 2);
   });
+
+  group('EH prospect tracking', () {
+    test('add, follow up, and promote to a real PAX', () async {
+      final service = RegionService();
+      await service.load();
+
+      await service.addEhProspect(
+          name: 'Newman', contactInfo: '555-1234', notes: 'Met at the gym');
+      expect(service.ehProspects.single.name, 'Newman');
+      expect(service.ehProspects.single.lastFollowUp, isNull);
+
+      final id = service.ehProspects.single.id;
+      await service.markProspectFollowedUp(id);
+      expect(service.ehProspects.single.lastFollowUp, isNotNull);
+
+      await service.promoteProspectToPax(id);
+      expect(service.ehProspects, isEmpty);
+      expect(service.pax.single.name, 'Newman');
+      expect(service.pax.single.phoneOrSlack, '555-1234');
+      expect(service.pax.single.firstPost, isNotNull);
+    });
+
+    test('remove drops a prospect without touching PAX', () async {
+      final service = RegionService();
+      await service.load();
+      await service.addEhProspect(name: 'Kramer');
+      final id = service.ehProspects.single.id;
+
+      await service.removeEhProspect(id);
+
+      expect(service.ehProspects, isEmpty);
+      expect(service.pax, isEmpty);
+    });
+  });
 }

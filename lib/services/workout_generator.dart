@@ -28,8 +28,17 @@ import 'exercise_service.dart';
 class WorkoutGenerator {
   final ExerciseService _service;
   final Random _rng;
+  // Exercise names to deprioritize (not exclude) so a Q doesn't see the same
+  // handful of common moves every time they hit generate. See
+  // HistoryService.recentlyUsedExerciseNames.
+  final Set<String> _recentlyUsedNames;
 
-  WorkoutGenerator(this._service, {Random? random}) : _rng = random ?? Random();
+  WorkoutGenerator(
+    this._service, {
+    Random? random,
+    Set<String> recentlyUsedNames = const {},
+  })  : _rng = random ?? Random(),
+        _recentlyUsedNames = recentlyUsedNames;
 
   // ── Public API ─────────────────────────────────────────────────────────────
 
@@ -347,8 +356,7 @@ class WorkoutGenerator {
       );
     }
 
-    final shuffled = List<Exercise>.from(pool)..shuffle(_rng);
-    final selected = shuffled.take(count).toList();
+    final selected = _prioritized(pool).take(count).toList();
 
     return WorkoutBlock(
       label: label,
@@ -362,8 +370,22 @@ class WorkoutGenerator {
   List<Exercise> _pullExercises(ExerciseCategory category, WorkoutSettings settings, int count) {
     List<Exercise> pool = _filteredPool(category, settings);
     if (pool.isEmpty) return [];
-    final shuffled = List<Exercise>.from(pool)..shuffle(_rng);
-    return shuffled.take(count).toList();
+    return _prioritized(pool).take(count).toList();
+  }
+
+  /// Shuffles [pool] with exercises NOT in [_recentlyUsedNames] sorted ahead
+  /// of ones that are — a bias, not a filter, so a small pool (a strict
+  /// theme + blacklist combo) never comes up short just because everything
+  /// left in it happens to have been used recently.
+  List<Exercise> _prioritized(List<Exercise> pool) {
+    if (_recentlyUsedNames.isEmpty) {
+      return List<Exercise>.from(pool)..shuffle(_rng);
+    }
+    final fresh = pool.where((e) => !_recentlyUsedNames.contains(e.name)).toList()
+      ..shuffle(_rng);
+    final stale = pool.where((e) => _recentlyUsedNames.contains(e.name)).toList()
+      ..shuffle(_rng);
+    return [...fresh, ...stale];
   }
 
   List<Exercise> _filteredPool(

@@ -1,6 +1,8 @@
 // lib/screens/history_screen.dart
 // Local workout history — lists saved beatdowns, tap to view backblast.
 
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -49,6 +51,42 @@ class HistoryScreen extends StatefulWidget {
 class _HistoryScreenState extends State<HistoryScreen> {
   bool _favoritesOnly = false;
 
+  /// Imports a plan shared via BackblastScreen's "Share plan with Co-Q"
+  /// (JSON on the clipboard, distinct from a full LocalBackupService backup)
+  /// and adds it as a template — a starting point to build on, not a record
+  /// that this PAX personally ran it.
+  Future<void> _importSharedPlan(BuildContext context) async {
+    final history = context.read<HistoryService>();
+    final messenger = ScaffoldMessenger.of(context);
+    final data = await Clipboard.getData(Clipboard.kTextPlain);
+    final raw = data?.text ?? '';
+    if (raw.isEmpty) {
+      messenger.showSnackBar(
+          const SnackBar(content: Text('Clipboard is empty.')));
+      return;
+    }
+    try {
+      final decoded = jsonDecode(raw) as Map<String, dynamic>;
+      if (decoded['app'] != 'digital_weinke_plan') {
+        throw const FormatException('This is not a shared Digital Weinke plan.');
+      }
+      final entryJson = decoded['entry'] as Map<String, dynamic>;
+      final shared = WorkoutHistory.fromJson(entryJson);
+      final imported = shared.copyWith(
+        id: 'shared_${DateTime.now().millisecondsSinceEpoch}',
+        isTemplate: true,
+        rating: 0,
+        photoPaths: const [], // sender's local file paths don't exist on this device
+      );
+      await history.add(imported);
+      if (!context.mounted) return;
+      messenger.showSnackBar(const SnackBar(
+          content: Text('Plan imported — check your History list.')));
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('Import failed: $e')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -57,6 +95,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
         title: const Text('History'),
         backgroundColor: context.f3bg,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.group_add_rounded),
+            tooltip: 'Import a plan shared by a Co-Q',
+            onPressed: () => _importSharedPlan(context),
+          ),
           IconButton(
             icon: Icon(
               _favoritesOnly ? Icons.star_rounded : Icons.star_border_rounded,
@@ -561,11 +604,25 @@ class _BackblastScreenState extends State<BackblastScreen> {
         }
       }
 
+      // Best-effort confirmation of where this landed in Slack (F3-Nation/
+      // f3-nation#693) — only resolvable for an existing scheduled event; a
+      // brand-new unscheduled one has no id to look the destination up with.
+      String slackNote = '';
+      if (eiId != null) {
+        final withChannel = await api.getEventInstanceById(eiId,
+            includeSlackChannelId: true);
+        final channelId = withChannel?.backblastSlackChannelId;
+        if (channelId != null && channelId.isNotEmpty) {
+          slackNote = ' · Posting to Slack channel $channelId';
+        }
+      }
+
       if (!mounted) return;
       _publishResult(
         'Published to F3 Nation',
         'Backblast written'
-        '${eiId != null ? ' · $attWritten of ${entry.pax.length} PAX recorded · Q credit logged' : ''}.'
+        '${eiId != null ? ' · $attWritten of ${entry.pax.length} PAX recorded · Q credit logged' : ''}'
+        '$slackNote.'
         '${failed.isEmpty ? '' : '\n\nCould not match: ${failed.join(', ')} '
             '(check spelling or that they\'re registered).'}',
       );
@@ -681,6 +738,21 @@ class _BackblastScreenState extends State<BackblastScreen> {
     );
   }
 
+  /// Exports this plan/session as importable Digital Weinke JSON — for a
+  /// Co-Q to pull in and build on before post time, distinct from the
+  /// human-readable text/image shares above (those render fine in Slack but
+  /// can't be loaded back into the app as a structured, editable plan).
+  Future<void> _sharePlanForCoQ() async {
+    HapticFeedback.lightImpact();
+    final payload = {
+      'app': 'digital_weinke_plan',
+      'version': 1,
+      'entry': widget.entry.toJson(),
+    };
+    final json = const JsonEncoder.withIndent('  ').convert(payload);
+    await Share.share(json, subject: 'Digital Weinke Plan — ${widget.entry.title}');
+  }
+
   void _shareAsImage() {
     HapticFeedback.lightImpact();
     Navigator.push(
@@ -776,6 +848,11 @@ class _BackblastScreenState extends State<BackblastScreen> {
                 icon: const Icon(Icons.share_rounded),
                 tooltip: 'Share backblast',
                 onPressed: _share,
+              ),
+              IconButton(
+                icon: const Icon(Icons.group_add_rounded),
+                tooltip: 'Share plan with Co-Q',
+                onPressed: _sharePlanForCoQ,
               ),
               IconButton(
                 icon: const Icon(Icons.delete_rounded),

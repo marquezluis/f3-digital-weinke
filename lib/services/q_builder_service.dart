@@ -11,9 +11,13 @@ import 'workout_generator.dart';
 class QBuilderService {
   final WorkoutGenerator _generator;
 
-  QBuilderService(ExerciseService exerciseService,
-      {WorkoutGenerator? generator})
-      : _generator = generator ?? WorkoutGenerator(exerciseService);
+  QBuilderService(
+    ExerciseService exerciseService, {
+    WorkoutGenerator? generator,
+    Set<String> recentlyUsedNames = const {},
+  }) : _generator = generator ??
+            WorkoutGenerator(exerciseService,
+                recentlyUsedNames: recentlyUsedNames);
 
   QBuilderResult buildBeatdown(QBuilderRequest request) {
     final settings = request.toSettings();
@@ -95,6 +99,14 @@ class QBuilderService {
       ));
     }
 
+    final conditionMessage = _conditionWarning(plan.settings.condition);
+    if (conditionMessage != null) {
+      warnings.add(QBuilderCoachingSignal(
+        type: QBuilderSignalType.safety,
+        message: conditionMessage,
+      ));
+    }
+
     if (plan.totalMinutes != plan.settings.durationMinutes) {
       warnings.add(QBuilderCoachingSignal(
         type: QBuilderSignalType.pacing,
@@ -129,6 +141,19 @@ class QBuilderService {
       warnings: warnings,
       highlights: highlights,
     );
+  }
+
+  static String? _conditionWarning(OutdoorCondition condition) {
+    switch (condition) {
+      case OutdoorCondition.normal:
+        return null;
+      case OutdoorCondition.rain:
+        return 'Rain: keep movement continuous and steer clear of slick pull-up bars or elevated surfaces — ground-based bodyweight work travels better than balance-heavy moves.';
+      case OutdoorCondition.ice:
+        return 'Ice: skip sprints and fast direction changes — prioritize traction-safe, controlled movements.';
+      case OutdoorCondition.heat:
+        return 'Heat: build in water breaks and watch for signs of heat exhaustion — ease off back-to-back high-intensity intervals.';
+    }
   }
 
   static String _pacingMessage(WorkoutFormat format) {
@@ -248,6 +273,7 @@ class QBuilderRequest {
   final String focus;
   final String format;
   final bool simpleQMode;
+  final OutdoorCondition condition;
 
   const QBuilderRequest({
     required this.durationMinutes,
@@ -256,6 +282,7 @@ class QBuilderRequest {
     required this.focus,
     this.format = 'Circuit',
     this.simpleQMode = false,
+    this.condition = OutdoorCondition.normal,
   });
 
   WorkoutSettings toSettings() {
@@ -266,6 +293,7 @@ class QBuilderRequest {
       theme: _themeFrom(focus),
       format: _formatFrom(format),
       simpleQMode: simpleQMode,
+      condition: condition,
     );
   }
 

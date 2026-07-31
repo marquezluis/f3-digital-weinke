@@ -167,17 +167,63 @@ class AttendanceRecord {
       };
 }
 
+/// Someone a PAX has EH'd (Exhort/Harass/invite) but who hasn't posted yet —
+/// distinct from [PaxProfile], which represents someone already in the
+/// roster. Promoting a prospect to a real PAX (once they post) removes it
+/// from here rather than converting in place, since a PaxProfile's `sponsor`
+/// field already covers "who brought them" once they exist.
+class EhProspect {
+  final String id;
+  final String name;
+  final String contactInfo;
+  final DateTime dateAdded;
+  final DateTime? lastFollowUp;
+  final String notes;
+
+  const EhProspect({
+    required this.id,
+    required this.name,
+    this.contactInfo = '',
+    required this.dateAdded,
+    this.lastFollowUp,
+    this.notes = '',
+  });
+
+  factory EhProspect.fromJson(Map<String, dynamic> json) => EhProspect(
+        id: json['id'] as String? ?? '',
+        name: json['name'] as String? ?? '',
+        contactInfo: json['contactInfo'] as String? ?? '',
+        dateAdded:
+            DateTime.tryParse(json['dateAdded'] as String? ?? '') ??
+                DateTime.now(),
+        lastFollowUp: DateTime.tryParse(json['lastFollowUp'] as String? ?? ''),
+        notes: json['notes'] as String? ?? '',
+      );
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'contactInfo': contactInfo,
+        'dateAdded': dateAdded.toIso8601String(),
+        if (lastFollowUp != null)
+          'lastFollowUp': lastFollowUp!.toIso8601String(),
+        'notes': notes,
+      };
+}
+
 class RegionSnapshot {
   final List<AreaOfOperations> aos;
   final List<PaxProfile> pax;
   final List<HardCommit> hardCommits;
   final List<AttendanceRecord> attendance;
+  final List<EhProspect> ehProspects;
 
   const RegionSnapshot({
     this.aos = const [],
     this.pax = const [],
     this.hardCommits = const [],
     this.attendance = const [],
+    this.ehProspects = const [],
   });
 
   factory RegionSnapshot.fromJsonString(String raw) {
@@ -199,6 +245,10 @@ class RegionSnapshot {
               ?.map((e) => AttendanceRecord.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
+      ehProspects: (json['ehProspects'] as List<dynamic>?)
+              ?.map((e) => EhProspect.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
     );
   }
 
@@ -207,5 +257,6 @@ class RegionSnapshot {
         'pax': pax.map((e) => e.toJson()).toList(),
         'hardCommits': hardCommits.map((e) => e.toJson()).toList(),
         'attendance': attendance.map((e) => e.toJson()).toList(),
+        'ehProspects': ehProspects.map((e) => e.toJson()).toList(),
       });
 }

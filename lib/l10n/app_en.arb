@@ -154,6 +154,7 @@
 
   "loginGateForF3Nation": "FOR F3 NATION",
   "loginGateSubtitle": "Sign in with your F3 Nation account to continue.",
+  "loginGateSessionExpired": "Your F3 Nation session expired — sign in again to continue.",
   "loginGateSigningIn": "Signing in…",
   "loginGateSignIn": "Sign in with F3 Nation",
   "loginGateEmergencyInfo": "Emergency Info",
@@ -417,6 +418,15 @@
   "@settingsImportFailed": {
     "placeholders": { "error": { "type": "String" } }
   },
+  "settingsAutoBackupRestore": "Restore Automatic Backup",
+  "settingsAutoBackupRestoreSub": "A silent weekly snapshot, kept on this device",
+  "settingsAutoBackupNone": "No automatic backups yet — check back after a week of use.",
+  "settingsAutoBackupConfirmTitle": "Restore this backup?",
+  "settingsAutoBackupConfirmBody": "This replaces your current profile and history with this snapshot from {date}.",
+  "@settingsAutoBackupConfirmBody": {
+    "placeholders": { "date": { "type": "String" } }
+  },
+  "settingsAutoBackupRestored": "Restored from automatic backup.",
   "settingsMyF3Name": "My F3 Name",
   "settingsMyF3NameHint": "Your F3 handle (auto-fills the Q field)",
   "settingsBeatdownsPlanned": "{count, plural, =1{1 beatdown} other{{count} beatdowns}} planned",

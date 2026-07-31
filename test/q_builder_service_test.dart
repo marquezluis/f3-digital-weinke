@@ -67,6 +67,37 @@ void main() {
         contains(QBuilderSignalType.safety),
       );
     });
+
+    test('reviewPlan flags a rain condition, silent for normal conditions',
+        () {
+      final rainy = qBuilder.buildBeatdown(const QBuilderRequest(
+        durationMinutes: 50,
+        intensity: 'Intermediate',
+        equipment: 'Mixed (50/50)',
+        focus: 'Full Body Grinder',
+        format: 'Circuit',
+        condition: OutdoorCondition.rain,
+      ));
+      expect(
+        rainy.review.warnings.any((w) => w.message.contains('Rain')),
+        isTrue,
+      );
+
+      final normal = qBuilder.buildBeatdown(const QBuilderRequest(
+        durationMinutes: 50,
+        intensity: 'Intermediate',
+        equipment: 'Mixed (50/50)',
+        focus: 'Full Body Grinder',
+        format: 'Circuit',
+      ));
+      expect(
+        normal.review.warnings.any((w) =>
+            w.message.contains('Rain') ||
+            w.message.contains('Ice') ||
+            w.message.contains('Heat')),
+        isFalse,
+      );
+    });
   });
 }
 

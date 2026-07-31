@@ -30,6 +30,17 @@ class LoginGateScreen extends StatefulWidget {
 class _LoginGateScreenState extends State<LoginGateScreen> {
   bool _busy = false;
   String? _error;
+  bool _sessionExpired = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // One-shot: only true when this screen was reached because a live
+    // session just died (see F3ApiService.consumeSessionExpiredNotice), not
+    // on a normal manual sign-out or a first-ever launch.
+    _sessionExpired =
+        context.read<F3ApiService>().consumeSessionExpiredNotice();
+  }
 
   Future<void> _signIn() async {
     setState(() {
@@ -44,6 +55,7 @@ class _LoginGateScreenState extends State<LoginGateScreen> {
     try {
       final user = await auth.signInWithF3Nation();
       api.clearSessionInvalid(); // a fresh sign-in supersedes any prior dead-session flag
+      setState(() => _sessionExpired = false);
       F3UserProfile? f3;
       final token = await auth.getF3AccessToken();
       if (token != null) {
@@ -204,6 +216,30 @@ class _LoginGateScreenState extends State<LoginGateScreen> {
                 textAlign: TextAlign.center,
                 style: TextStyle(color: context.f3textSecondary, fontSize: 15),
               ),
+              if (_sessionExpired) ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.warning_rounded,
+                          color: Colors.amber, size: 18),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          AppLocalizations.of(context)!.loginGateSessionExpired,
+                          style: const TextStyle(
+                              color: Colors.amber, fontSize: 12.5),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 28),
               if (_error != null) ...[
                 Container(

@@ -11,6 +11,7 @@ import 'package:flutter/services.dart' show HapticFeedback;
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:provider/provider.dart';
 import '../models/exercise.dart';
+import '../models/mumblechatter_lines.dart';
 import '../models/timer_state.dart';
 import '../models/workout_plan.dart';
 import '../services/current_workout_service.dart';
@@ -129,6 +130,18 @@ class _TimerScreenState extends State<TimerScreen> {
     if (!voiceOn || _ttsMuted) return;
     await _tts.stop();
     await _tts.speak(text);
+  }
+
+  /// A random Q call-out — speaks it (respecting the same voice/mute
+  /// settings as exercise cues) and shows it as a banner so it still lands
+  /// for anyone with sound off.
+  void _fireMumblechatter() {
+    HapticFeedback.selectionClick();
+    final line = MumblechatterLines.random();
+    _speak(line);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(line), duration: const Duration(seconds: 3)),
+    );
   }
 
   /// Resolves via [WorkoutBlock.callStyleFor]: the Q's explicit per-exercise
@@ -457,6 +470,11 @@ class _TimerScreenState extends State<TimerScreen> {
                     if (!_showRepCounter) _repCount = 0;
                   });
                 },
+              ),
+              IconButton(
+                icon: const Icon(Icons.campaign_rounded),
+                tooltip: 'Mumblechatter',
+                onPressed: _fireMumblechatter,
               ),
               IconButton(
                 icon: const Icon(Icons.save_rounded),

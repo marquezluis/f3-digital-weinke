@@ -19,6 +19,22 @@ class HistoryService extends ChangeNotifier {
   List<Map<String, dynamic>> toJsonList() =>
       _items.map((entry) => entry.toJson()).toList();
 
+  /// Exercise names used across the last [sessions] real (non-template)
+  /// beatdowns — feeds WorkoutGenerator's recency bias so a Q doesn't get
+  /// Merkins and Burpees in every random plan just because they're common in
+  /// the pool. Templates are excluded: a saved reusable plan isn't a signal
+  /// that "this was just run," so it shouldn't suppress itself from future
+  /// random generation.
+  Set<String> recentlyUsedExerciseNames({int sessions = 5}) {
+    final names = <String>{};
+    for (final entry in _items.where((e) => !e.isTemplate).take(sessions)) {
+      for (final block in entry.blocks) {
+        names.addAll(block.exerciseNames);
+      }
+    }
+    return names;
+  }
+
   // ── Lifecycle ──────────────────────────────────────────────────────────────
 
   /// Load persisted history.  Call once at app startup.

@@ -2,6 +2,7 @@
 // Derives achievement badges purely from local history data.
 // No persistence needed — badges are recomputed from HistoryService on demand.
 
+import '../models/custom_achievement.dart';
 import '../models/workout_history.dart';
 
 enum AchievementTier { bronze, silver, gold }
@@ -13,6 +14,9 @@ class Achievement {
   final String emoji;
   final AchievementTier tier;
   final bool unlocked;
+  // True for a Site-Q-authored achievement (custom_achievement_service.dart)
+  // — lets the UI offer a delete action only built-in badges don't get.
+  final bool isCustom;
 
   const Achievement({
     required this.id,
@@ -21,6 +25,7 @@ class Achievement {
     required this.emoji,
     required this.tier,
     required this.unlocked,
+    this.isCustom = false,
   });
 }
 
@@ -204,6 +209,43 @@ class AchievementService {
       }
     }
     return dates;
+  }
+
+  /// Evaluates Site-Q-authored achievements (custom_achievement_service.dart)
+  /// against the same history the built-in badges use — separate from
+  /// [compute] since these aren't in [_defs] (their unlock conditions are
+  /// data, not compiled predicates).
+  static List<Achievement> computeCustom(
+    List<WorkoutHistory> history,
+    List<CustomAchievement> defs,
+  ) {
+    final sessions = history.where((h) => !h.isTemplate).toList();
+    final allPax = <String>{};
+    for (final s in sessions) {
+      allPax.addAll(s.pax);
+    }
+    final totalFngs = sessions.fold(0, (sum, s) => sum + s.fngCount);
+
+    return defs.map((d) {
+      final progress = switch (d.thresholdType) {
+        CustomAchievementThreshold.totalSessions => sessions.length,
+        CustomAchievementThreshold.sessionsAtAo => sessions
+            .where((s) =>
+                s.ao.toLowerCase() == (d.aoFilter ?? '').toLowerCase())
+            .length,
+        CustomAchievementThreshold.uniquePax => allPax.length,
+        CustomAchievementThreshold.fngsWelcomed => totalFngs,
+      };
+      return Achievement(
+        id: d.id,
+        title: d.title,
+        description: d.description,
+        emoji: d.emoji,
+        tier: AchievementTier.bronze,
+        unlocked: progress >= d.thresholdValue,
+        isCustom: true,
+      );
+    }).toList();
   }
 
   static _Stats _finalStats(List<WorkoutHistory> history) {

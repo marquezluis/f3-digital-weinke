@@ -11,11 +11,13 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 import 'services/app_profile_service.dart';
 import 'services/auth_service.dart';
 import 'services/current_workout_service.dart';
+import 'services/custom_achievement_service.dart';
 import 'services/emergency_service.dart';
 import 'services/exercise_service.dart';
 import 'services/history_service.dart';
 import 'services/notification_service.dart';
 import 'services/f3_api_service.dart';
+import 'services/local_backup_service.dart';
 import 'services/region_service.dart';
 import 'services/settings_service.dart';
 import 'services/timer_service.dart';
@@ -87,6 +89,14 @@ Future<void> _runApp() async {
   final f3ApiService = F3ApiService();
   await f3ApiService.load();
 
+  // Fire-and-forget: a silent weekly safety-net snapshot, never blocks
+  // startup and never surfaces an error to the user (best-effort inside).
+  unawaited(LocalBackupService.maybeAutoBackup(
+    profile: appProfileService,
+    history: historyService,
+    region: regionService,
+  ));
+
   runApp(DigitalWeinke(
     exerciseService: exerciseService,
     appProfileService: appProfileService,
@@ -137,6 +147,9 @@ class DigitalWeinke extends StatelessWidget {
         ),
         ChangeNotifierProvider<EmergencyService>(
           create: (_) => EmergencyService()..load(),
+        ),
+        ChangeNotifierProvider<CustomAchievementService>(
+          create: (_) => CustomAchievementService()..load(),
         ),
         ChangeNotifierProvider<ValueNotifier<int>>(
           create: (_) => ValueNotifier<int>(0),
@@ -273,6 +286,15 @@ class _AppEntryState extends State<_AppEntry> with WidgetsBindingObserver {
             await auth.unlinkF3Nation();
             f3Api.clearSessionInvalid();
             _handlingSessionInvalid = false;
+            // A dead session can be detected while a route is pushed on top
+            // of this one (e.g. ProfileScreen) — swapping what _AppEntry
+            // itself renders doesn't pop that route, so without this the
+            // user stays stranded on the pushed screen instead of landing
+            // on LoginGateScreen. Mirrors the same popUntil ProfileScreen's
+            // own manual sign-out already does for the same reason.
+            if (context.mounted) {
+              Navigator.of(context).popUntil((route) => route.isFirst);
+            }
           });
         }
 

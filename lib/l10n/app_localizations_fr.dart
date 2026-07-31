@@ -149,6 +149,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Connecte-toi avec ton compte F3 Nation pour continuer.';
 
   @override
+  String get loginGateSessionExpired =>
+      'Ta session F3 Nation a expiré — reconnecte-toi pour continuer.';
+
+  @override
   String get loginGateSigningIn => 'Connexion en cours…';
 
   @override
@@ -892,6 +896,30 @@ class AppLocalizationsFr extends AppLocalizations {
   String settingsImportFailed(String error) {
     return 'Échec de l\'importation : $error';
   }
+
+  @override
+  String get settingsAutoBackupRestore =>
+      'Restaurer une sauvegarde automatique';
+
+  @override
+  String get settingsAutoBackupRestoreSub =>
+      'Un instantané hebdomadaire silencieux, conservé sur cet appareil';
+
+  @override
+  String get settingsAutoBackupNone =>
+      'Pas encore de sauvegarde automatique — reviens après une semaine d\'utilisation.';
+
+  @override
+  String get settingsAutoBackupConfirmTitle => 'Restaurer cette sauvegarde ?';
+
+  @override
+  String settingsAutoBackupConfirmBody(String date) {
+    return 'Cela remplace ton profil et ton historique actuels par cet instantané du $date.';
+  }
+
+  @override
+  String get settingsAutoBackupRestored =>
+      'Restauré depuis la sauvegarde automatique.';
 
   @override
   String get settingsMyF3Name => 'Mon nom F3';

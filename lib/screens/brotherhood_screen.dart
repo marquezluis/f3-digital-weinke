@@ -53,6 +53,11 @@ class _BrotherhoodScreenState extends State<BrotherhoodScreen> {
             icon: const Icon(Icons.person_add_alt_1_rounded),
             onPressed: () => _showPaxSheet(context),
           ),
+          IconButton(
+            tooltip: 'Add EH Prospect',
+            icon: const Icon(Icons.record_voice_over_rounded),
+            onPressed: () => _showEhProspectSheet(context),
+          ),
         ],
       ),
       body: Consumer<AppProfileService>(
@@ -65,6 +70,12 @@ class _BrotherhoodScreenState extends State<BrotherhoodScreen> {
                   // ── Hero card ─────────────────────────────────────────────
                   _HeroCard(profile: profile, region: region),
                   const SizedBox(height: 24),
+
+                  // ── EH Prospects ──────────────────────────────────────────
+                  _EhProspectsSection(
+                    region: region,
+                    onAdd: () => _showEhProspectSheet(context),
+                  ),
 
                   // ── FNG Pipeline ──────────────────────────────────────────
                   _FngPipelineSection(
@@ -480,6 +491,41 @@ class _BrotherhoodScreenState extends State<BrotherhoodScreen> {
     );
   }
 
+  static void _showEhProspectSheet(BuildContext context) {
+    final name = TextEditingController();
+    final contact = TextEditingController();
+    final notes = TextEditingController();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: context.f3card,
+      builder: (sheetContext) => _SimpleFormSheet(
+        title: 'Add EH Prospect',
+        children: [
+          _Field(controller: name, label: 'Name', icon: Icons.person_rounded),
+          _Field(
+              controller: contact,
+              label: 'Phone / Slack (optional)',
+              icon: Icons.chat_bubble_outline_rounded),
+          _Field(
+              controller: notes,
+              label: 'Where you met, what to follow up on',
+              icon: Icons.notes_rounded,
+              maxLines: 3),
+        ],
+        onSave: () async {
+          if (name.text.trim().isEmpty) return;
+          await sheetContext.read<RegionService>().addEhProspect(
+                name: name.text,
+                contactInfo: contact.text,
+                notes: notes.text,
+              );
+          if (sheetContext.mounted) Navigator.pop(sheetContext);
+        },
+      ),
+    );
+  }
+
   static void _showHcSheet(BuildContext context) {
     final region = context.read<RegionService>();
     final pax = TextEditingController();
@@ -873,6 +919,128 @@ class _FngCard extends StatelessWidget {
                 ],
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── EH Prospects ─────────────────────────────────────────────────────────────
+
+class _EhProspectsSection extends StatelessWidget {
+  final RegionService region;
+  final VoidCallback onAdd;
+  const _EhProspectsSection({required this.region, required this.onAdd});
+
+  @override
+  Widget build(BuildContext context) {
+    final prospects = region.ehProspects;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionHeader(
+          title: 'EH PROSPECTS',
+          action: 'ADD +',
+          onAction: onAdd,
+        ),
+        const SizedBox(height: 8),
+        if (prospects.isEmpty)
+          const _EmptyState(
+            icon: Icons.record_voice_over_rounded,
+            message:
+                'Nobody in the pipeline yet — add someone you\'ve EH\'d to remember to follow up.',
+          )
+        else
+          ...prospects.map((p) => _EhProspectCard(prospect: p, region: region)),
+        const SizedBox(height: 24),
+      ],
+    );
+  }
+}
+
+class _EhProspectCard extends StatelessWidget {
+  final EhProspect prospect;
+  final RegionService region;
+  const _EhProspectCard({required this.prospect, required this.region});
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final daysSince = now.difference(prospect.dateAdded).inDays;
+    final lastFollowUp = prospect.lastFollowUp;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: context.f3card,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: context.f3divider),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  prospect.name,
+                  style: TextStyle(
+                    color: context.f3textPrimary,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              Text(
+                daysSince == 0 ? 'Added today' : '$daysSince days ago',
+                style: TextStyle(color: context.f3textMuted, fontSize: 11),
+              ),
+            ],
+          ),
+          if (prospect.notes.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              prospect.notes,
+              style: TextStyle(color: context.f3textSecondary, fontSize: 12.5),
+            ),
+          ],
+          if (lastFollowUp != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              'Last followed up ${now.difference(lastFollowUp).inDays}d ago',
+              style: TextStyle(color: context.f3textMuted, fontSize: 11),
+            ),
+          ],
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              TextButton.icon(
+                onPressed: () {
+                  HapticFeedback.selectionClick();
+                  region.markProspectFollowedUp(prospect.id);
+                },
+                icon: const Icon(Icons.chat_rounded, size: 16),
+                label: const Text('Followed Up'),
+              ),
+              const Spacer(),
+              TextButton.icon(
+                onPressed: () {
+                  HapticFeedback.selectionClick();
+                  region.promoteProspectToPax(prospect.id);
+                },
+                icon: const Icon(Icons.check_circle_rounded, size: 16),
+                label: const Text('Posted!'),
+                style: TextButton.styleFrom(foregroundColor: F3Colors.accent),
+              ),
+              IconButton(
+                tooltip: 'Remove',
+                icon: Icon(Icons.close_rounded,
+                    size: 18, color: context.f3textMuted),
+                onPressed: () => region.removeEhProspect(prospect.id),
+              ),
+            ],
           ),
         ],
       ),

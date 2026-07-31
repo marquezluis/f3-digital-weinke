@@ -3,7 +3,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../models/custom_achievement.dart';
 import '../services/achievement_service.dart';
+import '../services/custom_achievement_service.dart';
 import '../services/history_service.dart';
 import '../theme/app_theme.dart';
 
@@ -17,10 +19,20 @@ class AchievementsScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Achievements'),
         backgroundColor: context.f3bg,
+        actions: [
+          IconButton(
+            tooltip: 'Add custom achievement',
+            icon: const Icon(Icons.add_circle_outline_rounded),
+            onPressed: () => _showAddCustomSheet(context),
+          ),
+        ],
       ),
-      body: Consumer<HistoryService>(
-        builder: (context, svc, _) {
-          final badges = AchievementService.compute(svc.all);
+      body: Consumer2<HistoryService, CustomAchievementService>(
+        builder: (context, svc, customSvc, _) {
+          final badges = [
+            ...AchievementService.compute(svc.all),
+            ...AchievementService.computeCustom(svc.all, customSvc.all),
+          ];
           final unlocked = badges.where((b) => b.unlocked).length;
           return ListView(
             padding: const EdgeInsets.all(16),
@@ -53,7 +65,12 @@ class AchievementsScreen extends StatelessWidget {
                   ]),
                 ]),
               ),
-              ...badges.map((badge) => _BadgeTile(badge: badge)),
+              ...badges.map((badge) => _BadgeTile(
+                    badge: badge,
+                    onDelete: badge.isCustom
+                        ? () => customSvc.remove(badge.id)
+                        : null,
+                  )),
             ],
           );
         },
@@ -62,9 +79,99 @@ class AchievementsScreen extends StatelessWidget {
   }
 }
 
+void _showAddCustomSheet(BuildContext context) {
+  final customSvc = context.read<CustomAchievementService>();
+  final titleCtrl = TextEditingController();
+  final aoCtrl = TextEditingController();
+  final valueCtrl = TextEditingController(text: '5');
+  var thresholdType = CustomAchievementThreshold.totalSessions;
+
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: context.f3card,
+    builder: (sheetContext) => StatefulBuilder(
+      builder: (ctx, setSheetState) => Padding(
+        padding: EdgeInsets.only(
+          left: 20,
+          right: 20,
+          top: 20,
+          bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Add Custom Achievement',
+                style: TextStyle(
+                    color: ctx.f3textPrimary,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800)),
+            const SizedBox(height: 16),
+            TextField(
+              controller: titleCtrl,
+              decoration: const InputDecoration(labelText: 'Title'),
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<CustomAchievementThreshold>(
+              initialValue: thresholdType,
+              decoration: const InputDecoration(labelText: 'Based on'),
+              items: CustomAchievementThreshold.values
+                  .map((t) => DropdownMenuItem(
+                        value: t,
+                        child: Text(t.displayName),
+                      ))
+                  .toList(),
+              onChanged: (v) {
+                if (v != null) setSheetState(() => thresholdType = v);
+              },
+            ),
+            if (thresholdType == CustomAchievementThreshold.sessionsAtAo) ...[
+              const SizedBox(height: 12),
+              TextField(
+                controller: aoCtrl,
+                decoration: const InputDecoration(labelText: 'AO name'),
+              ),
+            ],
+            const SizedBox(height: 12),
+            TextField(
+              controller: valueCtrl,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'Target count'),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () async {
+                  final title = titleCtrl.text.trim();
+                  final value = int.tryParse(valueCtrl.text.trim()) ?? 0;
+                  if (title.isEmpty || value <= 0) return;
+                  await customSvc.add(
+                    title: title,
+                    thresholdType: thresholdType,
+                    thresholdValue: value,
+                    aoFilter:
+                        thresholdType == CustomAchievementThreshold.sessionsAtAo
+                            ? aoCtrl.text
+                            : null,
+                  );
+                  if (sheetContext.mounted) Navigator.pop(sheetContext);
+                },
+                child: const Text('Save'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
 class _BadgeTile extends StatelessWidget {
   final Achievement badge;
-  const _BadgeTile({required this.badge});
+  final VoidCallback? onDelete;
+  const _BadgeTile({required this.badge, this.onDelete});
 
   @override
   Widget build(BuildContext context) {
@@ -139,6 +246,13 @@ class _BadgeTile extends StatelessWidget {
               ),
             ),
           ),
+          if (onDelete != null)
+            IconButton(
+              tooltip: 'Remove custom achievement',
+              icon: Icon(Icons.close_rounded,
+                  size: 18, color: context.f3textMuted),
+              onPressed: onDelete,
+            ),
         ]),
       ),
     );

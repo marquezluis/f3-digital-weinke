@@ -7,7 +7,9 @@ import 'package:url_launcher/url_launcher.dart';
 import '../theme/app_theme.dart';
 import '../services/exercise_service.dart';
 import '../services/current_workout_service.dart';
+import '../services/history_service.dart';
 import '../services/q_builder_service.dart';
+import '../models/workout_settings.dart' show OutdoorCondition;
 
 class QBuilderScreen extends StatefulWidget {
   const QBuilderScreen({super.key});
@@ -23,6 +25,7 @@ class _QBuilderScreenState extends State<QBuilderScreen> {
   String _focus = 'Full Body Grinder';
   String _format = 'Circuit';
   bool _simpleQMode = false;
+  String _condition = 'Normal';
 
   @override
   Widget build(BuildContext context) {
@@ -152,6 +155,15 @@ class _QBuilderScreenState extends State<QBuilderScreen> {
               onChanged: (val) => setState(() => _format = val!),
             ),
 
+            const SizedBox(height: 24),
+
+            _buildSectionLabel('OUTDOOR CONDITIONS'),
+            _buildDropdown(
+              value: _condition,
+              items: const ['Normal', 'Rain', 'Ice', 'Heat'],
+              onChanged: (val) => setState(() => _condition = val!),
+            ),
+
             const SizedBox(height: 16),
 
             SwitchListTile(
@@ -186,8 +198,11 @@ class _QBuilderScreenState extends State<QBuilderScreen> {
 
                   final exerciseSvc = context.read<ExerciseService>();
                   final workoutSvc = context.read<CurrentWorkoutService>();
+                  final recentNames =
+                      context.read<HistoryService>().recentlyUsedExerciseNames();
 
-                  final qBuilder = QBuilderService(exerciseSvc);
+                  final qBuilder = QBuilderService(exerciseSvc,
+                      recentlyUsedNames: recentNames);
                   final result = qBuilder.buildBeatdown(QBuilderRequest(
                     durationMinutes: _duration,
                     intensity: _intensity,
@@ -195,6 +210,12 @@ class _QBuilderScreenState extends State<QBuilderScreen> {
                     focus: _focus,
                     format: _format,
                     simpleQMode: _simpleQMode,
+                    condition: switch (_condition) {
+                      'Rain' => OutdoorCondition.rain,
+                      'Ice' => OutdoorCondition.ice,
+                      'Heat' => OutdoorCondition.heat,
+                      _ => OutdoorCondition.normal,
+                    },
                   ));
 
                   workoutSvc.setDraftPlan(result.plan);

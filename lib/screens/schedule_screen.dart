@@ -1389,6 +1389,27 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
     // reminder automatically instead of requiring a separate self-HC, same
     // as HC/take-Q already do.
     if (err == null) _scheduleReminders(isQ: true);
+    if (err == null) _confirmSlackDestination(id, isPreblast: true);
+  }
+
+  /// Best-effort follow-up after a successful preblast/backblast post: shows
+  /// which Slack channel it resolved to (F3-Nation/f3-nation#693), so the Q
+  /// isn't left guessing whether it landed anywhere. Silently no-ops if the
+  /// lookup fails or nothing was configured — this is a confirmation, not a
+  /// requirement, and the post itself already succeeded regardless.
+  Future<void> _confirmSlackDestination(int eventInstanceId,
+      {required bool isPreblast}) async {
+    final api = context.read<F3ApiService>();
+    final withChannel = await api.getEventInstanceById(eventInstanceId,
+        includeSlackChannelId: true);
+    if (!mounted || withChannel == null) return;
+    final channelId = isPreblast
+        ? withChannel.preblastSlackChannelId
+        : withChannel.backblastSlackChannelId;
+    if (channelId == null || channelId.isEmpty) return;
+    setState(() {
+      _flash = '${_flash ?? ''} · Posting to Slack channel $channelId'.trim();
+    });
   }
 
   /// Assembles the real F3 Nation preblast format (matches what slackbot

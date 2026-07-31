@@ -1,10 +1,13 @@
 // lib/screens/spartan_chat_screen.dart
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/workout_plan.dart';
 import '../services/current_workout_service.dart';
 import '../services/exercise_service.dart';
 import '../services/spartan_plan_builder.dart';
+import '../services/spartan_plan_cache_service.dart';
 import '../services/spartan_service.dart';
 import '../theme/app_theme.dart';
 import 'workout_screen.dart';
@@ -18,6 +21,7 @@ class SpartanChatScreen extends StatefulWidget {
 
 class _SpartanChatScreenState extends State<SpartanChatScreen> {
   final SpartanService _spartan = SpartanService.instance;
+  final SpartanPlanCacheService _planCache = SpartanPlanCacheService();
   final TextEditingController _textCtrl = TextEditingController();
   final ScrollController _scrollCtrl = ScrollController();
   final List<_ChatMsg> _messages = [];
@@ -88,12 +92,34 @@ class _SpartanChatScreenState extends State<SpartanChatScreen> {
     final blocksJson = await blocksFuture;
 
     if (!mounted) return;
-    final plan = blocksJson == null
+    var plan = blocksJson == null
         ? null
         : buildPlanFromSpartanBlocks(blocksJson, context.read<ExerciseService>());
+    var reply = response;
 
+    if (blocksJson != null && plan != null) {
+      // Real generation succeeded — bank it for the next time this fails.
+      unawaited(_planCache.cache(text, blocksJson));
+    } else if (_looksLikeWorkoutRequest(text)) {
+      // Looked like a workout request but generation came back empty —
+      // almost always a dead connection (generateWorkoutBlocks swallows its
+      // own errors and returns null), exactly when a cached fallback earns
+      // its keep. A genuinely non-workout message never reaches here.
+      final cached = await _planCache.randomCached();
+      if (cached != null && mounted) {
+        plan = buildPlanFromSpartanBlocks(
+            cached.blocksJson, context.read<ExerciseService>());
+        if (plan != null) {
+          reply =
+              "$response\n\n(Couldn't reach Spartan for a fresh one — here's "
+              'one from the stash: "${cached.label}".)';
+        }
+      }
+    }
+
+    if (!mounted) return;
     setState(() {
-      _messages.add(_ChatMsg.spartan(response, plan: plan));
+      _messages.add(_ChatMsg.spartan(reply, plan: plan));
       _isLoading = false;
     });
     _scrollToBottom();
@@ -773,6 +799,21 @@ class _BuildWeinkeSheetState extends State<_BuildWeinkeSheet> {
     if (!mounted) return;
 
     if (blocksJson == null) {
+      // Almost always a dead connection — generateWorkoutBlocks swallows its
+      // own network errors and returns null either way. Fall back to a plan
+      // cached from an earlier successful generation rather than just
+      // failing outright.
+      final cached = await SpartanPlanCacheService().randomCached();
+      if (!mounted) return;
+      final fallbackPlan = cached == null
+          ? null
+          : buildPlanFromSpartanBlocks(
+              cached.blocksJson, context.read<ExerciseService>());
+      if (fallbackPlan != null) {
+        Navigator.pop(context);
+        widget.onBuilt(fallbackPlan);
+        return;
+      }
       setState(() {
         _loading = false;
         _error = 'Couldn\'t find a workout in that. Try listing sections, '
@@ -792,6 +833,7 @@ class _BuildWeinkeSheetState extends State<_BuildWeinkeSheet> {
       });
       return;
     }
+    unawaited(SpartanPlanCacheService().cache(text, blocksJson));
 
     if (!mounted) return;
     Navigator.pop(context);

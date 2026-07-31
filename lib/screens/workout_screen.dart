@@ -81,9 +81,12 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
   void _generate() {
     final service = context.read<ExerciseService>();
     final settings = context.read<SettingsService>().settings;
+    final recentNames =
+        context.read<HistoryService>().recentlyUsedExerciseNames();
     setState(() => _generating = true);
     Future.microtask(() {
-      final plan = WorkoutGenerator(service).generate(settings);
+      final plan = WorkoutGenerator(service, recentlyUsedNames: recentNames)
+          .generate(settings);
       if (mounted) {
         context.read<CurrentWorkoutService>().setDraftPlan(plan);
         setState(() => _generating = false);

@@ -364,6 +364,12 @@ abstract class AppLocalizations {
   /// **'Sign in with your F3 Nation account to continue.'**
   String get loginGateSubtitle;
 
+  /// No description provided for @loginGateSessionExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Your F3 Nation session expired — sign in again to continue.'**
+  String get loginGateSessionExpired;
+
   /// No description provided for @loginGateSigningIn.
   ///
   /// In en, this message translates to:
@@ -1647,6 +1653,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Import failed: {error}'**
   String settingsImportFailed(String error);
+
+  /// No description provided for @settingsAutoBackupRestore.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore Automatic Backup'**
+  String get settingsAutoBackupRestore;
+
+  /// No description provided for @settingsAutoBackupRestoreSub.
+  ///
+  /// In en, this message translates to:
+  /// **'A silent weekly snapshot, kept on this device'**
+  String get settingsAutoBackupRestoreSub;
+
+  /// No description provided for @settingsAutoBackupNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No automatic backups yet — check back after a week of use.'**
+  String get settingsAutoBackupNone;
+
+  /// No description provided for @settingsAutoBackupConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore this backup?'**
+  String get settingsAutoBackupConfirmTitle;
+
+  /// No description provided for @settingsAutoBackupConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This replaces your current profile and history with this snapshot from {date}.'**
+  String settingsAutoBackupConfirmBody(String date);
+
+  /// No description provided for @settingsAutoBackupRestored.
+  ///
+  /// In en, this message translates to:
+  /// **'Restored from automatic backup.'**
+  String get settingsAutoBackupRestored;
 
   /// No description provided for @settingsMyF3Name.
   ///
