@@ -1,11 +1,28 @@
 // lib/theme/app_theme.dart
-// F3 Digital Weinke — high-contrast dark theme for 5:30 AM field use.
+// F3 Digital Weinke — high-contrast theme for 5:30 AM field use.
 //
-// Official palette (F3 Twin Cities brand guide):
-//   #242A2B  "Badass Black" — primary background
-//   #1E2123  — card/surface background (slightly darker)
-//   #FFFFFF  — primary text (stark white)
-//   #EE6059  — accent / Emergency red-orange (use sparingly)
+// Palette sourced directly from F3 Nation's own sites (codex.f3nation.com /
+// f3nation.com — shadcn/ui tokens, extracted from their shipped CSS on
+// 2026-07-31): background #1A1A1A / #FFFFFF, card matches background
+// (separated by border only, same as their site), primary red #AA1008,
+// neutral (not blue-tinted) grays for text.
+//
+// One deliberate deviation: `accent` here is #EA160B, not the literal
+// #AA1008. Codex only ever uses their red as a button *fill* (white text on
+// top), where #AA1008 has plenty of contrast. Weinke also uses `accent` as
+// bare text/icon color directly on the background (nav bar, timer digits,
+// phase labels) — #AA1008 on #1A1A1A measures ~2.3:1, well under WCAG's 3:1
+// floor for UI text. #EA160B keeps the same hue/saturation (same brand red)
+// at a lightness that clears ~3.8:1 on dark, ~4.6:1 on light, and ~4.6:1 for
+// white-on-fill — legible in every context this token is actually used in.
+//
+// Previous palette (revert via `git checkout <prior-commit> -- lib/theme/app_theme.dart`
+// if this doesn't land well):
+//   dark:  background #242A2B, card #1E2123, elevated #2C3234, divider #383E40,
+//          textPrimary #FFFFFF, textSecondary #B0B8BA, textMuted #6A7375,
+//          accent #EE6059, accentDim #B84740
+//   light: background #F2EFEC, card #FFFFFF, elevated #E8E5E2, divider #D0CDC9,
+//          textPrimary #1A1A1A, textSecondary #555252, textMuted #8A8785
 //
 // Typography: maximum legibility at arm's length.  Boldest weights for
 // exercise names.  Big tap targets (minimum 56 dp) for sweaty/gloved hands.
@@ -16,24 +33,29 @@ class F3Colors {
   F3Colors._();
 
   // ── Surfaces ──────────────────────────────────────────────────────────────
-  static const Color background    = Color(0xFF242A2B); // "Badass Black"
-  static const Color card          = Color(0xFF1E2123); // card surface
-  static const Color elevated      = Color(0xFF2C3234); // slightly lifted
-  static const Color divider       = Color(0xFF383E40);
+  static const Color background    = Color(0xFF1A1A1A);
+  // Codex uses card == background (border-only separation) — fine on a
+  // desktop browser, but a 1px border on near-identical dark tones is easy
+  // to lose in direct sunlight, which is exactly when this app gets used.
+  // Nudged one step lighter so cards read even without the border catching
+  // the light right.
+  static const Color card          = Color(0xFF1E1E1E);
+  static const Color elevated      = Color(0xFF2A2A2A);
+  static const Color divider       = Color(0xFF333333);
 
   // ── Text ─────────────────────────────────────────────────────────────────
-  static const Color textPrimary   = Color(0xFFFFFFFF);
-  static const Color textSecondary = Color(0xFFB0B8BA);
-  static const Color textMuted     = Color(0xFF6A7375);
+  static const Color textPrimary   = Color(0xFFF2F2F2);
+  static const Color textSecondary = Color(0xFFB8B8B8);
+  static const Color textMuted     = Color(0xFF808080);
 
   // ── Accent ────────────────────────────────────────────────────────────────
-  static const Color accent        = Color(0xFFEE6059); // F3 red-orange
-  static const Color accentDim     = Color(0xFFB84740);
+  static const Color accent        = Color(0xFFEA160B); // F3 Nation red, brightened for legibility — see file header
+  static const Color accentDim     = Color(0xFFB01008);
 
   // ── Phase colours (segment bar + phase header) ────────────────────────────
   static const Color phaseDisclaimer = Color(0xFF7B8EAA); // steel blue
   static const Color phaseWarmup     = Color(0xFF4CAF50); // green
-  static const Color phaseThang      = Color(0xFFEE6059); // accent red
+  static const Color phaseThang      = accent;
   static const Color phaseMary       = Color(0xFF9C6FE0); // purple
   static const Color phaseCOT        = Color(0xFFFFD54F); // gold
 
@@ -46,7 +68,7 @@ class F3Colors {
   // ── Intensity ─────────────────────────────────────────────────────────────
   static const Color intBeginner     = Color(0xFF4CAF50);
   static const Color intIntermediate = Color(0xFFFFB300);
-  static const Color intAdvanced     = Color(0xFFEE6059);
+  static const Color intAdvanced     = accent;
 
   static Color forCategory(String cat) {
     switch (cat.toLowerCase()) {
@@ -68,13 +90,15 @@ class F3Colors {
 
 class F3LightColors {
   F3LightColors._();
-  static const Color background    = Color(0xFFF2EFEC);
+  static const Color background    = Color(0xFFFFFFFF);
+  // Unlike dark mode, a light border on white doesn't get lost in direct
+  // sun, so card == background (matching codex.f3nation.com) is kept as-is.
   static const Color card          = Color(0xFFFFFFFF);
-  static const Color elevated      = Color(0xFFE8E5E2);
-  static const Color divider       = Color(0xFFD0CDC9);
-  static const Color textPrimary   = Color(0xFF1A1A1A);
-  static const Color textSecondary = Color(0xFF555252);
-  static const Color textMuted     = Color(0xFF8A8785);
+  static const Color elevated      = Color(0xFFEFEFEF);
+  static const Color divider       = Color(0xFFE5E5E5);
+  static const Color textPrimary   = Color(0xFF333333);
+  static const Color textSecondary = Color(0xFF595959);
+  static const Color textMuted     = Color(0xFF737373);
 }
 
 // BuildContext extension — use these instead of raw F3Colors in build methods

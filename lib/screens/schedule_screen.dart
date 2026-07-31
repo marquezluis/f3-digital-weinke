@@ -310,39 +310,117 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               icon: Icons.cloud_off_rounded,
               title: l10n.scheduleApiNotConfiguredTitle,
               subtitle: l10n.scheduleApiNotConfiguredSub)
-          : RefreshIndicator(
-              onRefresh: () => Future.wait([_load(), _loadCalendarMonth()]),
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(14, 10, 14, 28),
-                children: [
-                  MonthCalendar(
-                    month: _calendarMonth,
-                    selectedDate: _selectedDay,
-                    eventCounts: _calendarEventCounts,
-                    onDaySelected: _selectDay,
-                    onPreviousMonth: () => _changeMonth(-1),
-                    onNextMonth: () => _changeMonth(1),
-                  ),
-                  if (_loadingCalendar)
-                    const Padding(
-                      padding: EdgeInsets.all(16),
-                      child: Center(
-                          child: SizedBox(
-                              width: 20,
-                              height: 20,
-                              child:
-                                  CircularProgressIndicator(strokeWidth: 2))),
-                    ),
-                  const Divider(height: 32, thickness: 1),
-                  if (_selectedDay != null)
-                    _buildSelectedDaySection(context)
-                  else if (_hasActiveFilters)
-                    _buildFilteredAgenda(context)
-                  else
-                    _buildWeekAgenda(context),
-                ],
-              ),
+          : OrientationBuilder(
+              builder: (context, orientation) => orientation ==
+                      Orientation.landscape
+                  ? _buildLandscapeBody(context)
+                  : _buildPortraitBody(context),
             ),
+    );
+  }
+
+  Widget _buildPortraitBody(BuildContext context) {
+    return RefreshIndicator(
+      onRefresh: () => Future.wait([_load(), _loadCalendarMonth()]),
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(14, 10, 14, 28),
+        children: [
+          MonthCalendar(
+            month: _calendarMonth,
+            selectedDate: _selectedDay,
+            eventCounts: _calendarEventCounts,
+            onDaySelected: _selectDay,
+            onPreviousMonth: () => _changeMonth(-1),
+            onNextMonth: () => _changeMonth(1),
+          ),
+          if (_loadingCalendar)
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Center(
+                  child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2))),
+            ),
+          const Divider(height: 32, thickness: 1),
+          if (_selectedDay != null)
+            _buildSelectedDaySection(context)
+          else if (_hasActiveFilters)
+            _buildFilteredAgenda(context)
+          else
+            _buildWeekAgenda(context),
+        ],
+      ),
+    );
+  }
+
+  /// Landscape: the calendar's day cells are forced 1:1 (see
+  /// MonthCalendar), so letting it span full landscape width balloons every
+  /// cell to ~1/7 of that width/height and pushes the itinerary off-screen.
+  /// Side-by-side instead: calendar capped to a sane width on the left,
+  /// itinerary independently scrollable on the right.
+  Widget _buildLandscapeBody(BuildContext context) {
+    // Two independent scrollables, not one shared one — the calendar is
+    // always a fixed 6 rows and should stay put while a long itinerary
+    // scrolls past it, not get dragged off-screen with it.
+    //
+    // Calendar pane is a proportion of the available width (clamped), not a
+    // flat px cap — a flat cap looked cramped on a wide phone landscape and
+    // wouldn't scale sensibly to a tablet either.
+    return RefreshIndicator(
+      onRefresh: () => Future.wait([_load(), _loadCalendarMonth()]),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final calendarWidth =
+              (constraints.maxWidth * 0.44).clamp(360.0, 560.0);
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: calendarWidth),
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(14, 10, 8, 28),
+                  child: Column(
+                    children: [
+                      MonthCalendar(
+                        month: _calendarMonth,
+                        selectedDate: _selectedDay,
+                        eventCounts: _calendarEventCounts,
+                        onDaySelected: _selectDay,
+                        onPreviousMonth: () => _changeMonth(-1),
+                        onNextMonth: () => _changeMonth(1),
+                      ),
+                      if (_loadingCalendar)
+                        const Padding(
+                          padding: EdgeInsets.all(16),
+                          child: Center(
+                              child: SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2))),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              const VerticalDivider(width: 1, thickness: 1),
+              Expanded(
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(14, 10, 14, 28),
+                  child: _selectedDay != null
+                      ? _buildSelectedDaySection(context)
+                      : _hasActiveFilters
+                          ? _buildFilteredAgenda(context)
+                          : _buildWeekAgenda(context),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 
