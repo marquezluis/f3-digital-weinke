@@ -54,6 +54,13 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   String? _typeFilter;
   MineFilter? _mineFilter;
 
+  // Captured in initState and reused in dispose — reading via context.read
+  // directly inside dispose() is unsafe (throws "Looking up a deactivated
+  // widget's ancestor is unsafe") when the whole tree is torn down at once,
+  // e.g. main.dart swapping ShellScreen for LoginGateScreen on sign-out,
+  // which unmounts Schedule along with everything else in the IndexedStack.
+  late final ValueNotifier<MineFilter?> _mineFilterNotifier;
+
   @override
   void initState() {
     _aoFilter = widget.initialAoFilter;
@@ -66,25 +73,21 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     // switches, initState never refires) — Home's "see all" link sets this
     // notifier instead of a constructor param so it still reaches an
     // already-live Schedule instance.
-    context
-        .read<ValueNotifier<MineFilter?>>()
-        .addListener(_onMineFilterRequested);
+    _mineFilterNotifier = context.read<ValueNotifier<MineFilter?>>();
+    _mineFilterNotifier.addListener(_onMineFilterRequested);
   }
 
   @override
   void dispose() {
-    context
-        .read<ValueNotifier<MineFilter?>>()
-        .removeListener(_onMineFilterRequested);
+    _mineFilterNotifier.removeListener(_onMineFilterRequested);
     super.dispose();
   }
 
   void _onMineFilterRequested() {
-    final notifier = context.read<ValueNotifier<MineFilter?>>();
-    final requested = notifier.value;
+    final requested = _mineFilterNotifier.value;
     if (requested == null) return;
     setState(() => _mineFilter = requested);
-    notifier.value =
+    _mineFilterNotifier.value =
         null; // consume once — don't re-apply on a later tab switch
   }
 

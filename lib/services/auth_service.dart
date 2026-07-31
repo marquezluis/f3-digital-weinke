@@ -276,6 +276,7 @@ class LocalAuthService extends AuthService {
 
   @override
   Future<void> unlinkF3Nation() async {
+    await _endServerSession();
     await _clearF3Tokens();
     if (_currentUser == null) return;
     final remaining = _currentUser!.identities
@@ -292,11 +293,71 @@ class LocalAuthService extends AuthService {
 
   @override
   Future<void> signOut() async {
+    await _endServerSession();
     _currentUser = null;
     notifyListeners();
     _prefs ??= await SharedPreferences.getInstance();
     await _prefs!.remove(_keyCurrentUser);
     await _clearF3Tokens();
+  }
+
+  /// Ends the F3 Nation auth server's own browser session — without this,
+  /// only this app's local tokens get cleared on sign-out, but the auth
+  /// server's session cookie (set during the original browser-based
+  /// sign-in) lives on. A later "Sign in with F3 Nation" then silently
+  /// re-authenticates against that still-alive session without ever
+  /// prompting for credentials again, even though signInWithF3Nation()
+  /// already sends promptValues: ['login'] — the server has nothing to
+  /// prompt past if the session was never actually ended.
+  ///
+  /// Mirrors what apps/me's own logout route does server-side
+  /// (apps/auth/src/app/api/oauth/logout, confirmed by reading the
+  /// monorepo source directly with Tackle 2026-07-30) — calls it via
+  /// flutter_appauth's endSession rather than a raw HTTP GET so the same
+  /// (non-ephemeral) browser session used at sign-in is reused here too;
+  /// the auth server reads that session cookie server-side to know what
+  /// to revoke, an ephemeral session would see no cookie and no-op.
+  ///
+  /// Best-effort and silently skipped on any failure — this local sign-out
+  /// always proceeds regardless, so a failure here just means the
+  /// server-side session lingers until its own expiry, same as before this
+  /// method existed. It also no-ops entirely (by design, not a bug) until
+  /// the auth server returns a real `id_token` on sign-in: confirmed live
+  /// 2026-07-30 that `result.idToken` comes back null on a fresh
+  /// authorization-code exchange even though `openid` scope is requested,
+  /// which should guarantee one under OIDC. flutter_appauth's
+  /// EndSessionRequest correctly refuses to send postLogoutRedirectUrl
+  /// without a paired idTokenHint — allowing that would let any caller
+  /// trigger /api/oauth/logout?post_logout_redirect_uri=<anywhere> with no
+  /// proof of identity, an open-redirect off the auth server's own logout
+  /// endpoint. Flagged to Tackle as a server-side gap rather than worked
+  /// around client-side; this method will start actually running the
+  /// moment the server starts returning an id_token, no app change needed.
+  Future<void> _endServerSession() async {
+    if (_f3ClientId.isEmpty) return;
+    final idToken = await _secureStorage.read(key: _keyF3IdToken);
+    // EndSessionRequest requires idTokenHint and postLogoutRedirectUrl to
+    // both be null or both be set — without an id token there's no way to
+    // pass a redirect target either, so there'd be no way back into the
+    // app; skip rather than strand the browser on the auth server's page.
+    if (idToken == null) return;
+    try {
+      await _appAuth
+          .endSession(
+            EndSessionRequest(
+              idTokenHint: idToken,
+              postLogoutRedirectUrl: _f3RedirectUri,
+              serviceConfiguration: const AuthorizationServiceConfiguration(
+                authorizationEndpoint: '$_f3Issuer/api/oauth/authorize',
+                tokenEndpoint: '$_f3Issuer/api/oauth/token',
+                endSessionEndpoint: '$_f3Issuer/api/oauth/logout',
+              ),
+            ),
+          )
+          .timeout(const Duration(seconds: 15));
+    } catch (_) {
+      // Best-effort — see doc comment above.
+    }
   }
 
   Future<void> _clearF3Tokens() {
