@@ -17,6 +17,7 @@ bump-version:
 
 build-apk: bump-version
 	flutter build apk --release $(DEFINES)
+	cp build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/digital-weinke.apk
 
 # Play Console requires an Android App Bundle (not a raw APK) for new
 # listings — Play then serves each device a split APK (right ABI/density/
