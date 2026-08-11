@@ -14,6 +14,7 @@ import '../theme/app_theme.dart';
 import 'heatmap_screen.dart';
 import 'achievements_screen.dart';
 import 'activity_feed_screen.dart';
+import 'chat_screen.dart';
 
 class BrotherhoodScreen extends StatefulWidget {
   const BrotherhoodScreen({super.key});
@@ -69,6 +70,10 @@ class _BrotherhoodScreenState extends State<BrotherhoodScreen> {
                 children: [
                   // ── Hero card ─────────────────────────────────────────────
                   _HeroCard(profile: profile, region: region),
+                  const SizedBox(height: 16),
+
+                  // ── Region Chat ───────────────────────────────────────────
+                  _ChatEntryCard(region: profile.region),
                   const SizedBox(height: 24),
 
                   // ── EH Prospects ──────────────────────────────────────────
@@ -689,6 +694,64 @@ class _HeroCard extends StatelessWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ── Chat entry point ────────────────────────────────────────────────────────
+
+class _ChatEntryCard extends StatelessWidget {
+  final String region;
+
+  const _ChatEntryCard({required this.region});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: context.f3card,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => Navigator.push(
+            context, MaterialPageRoute(builder: (_) => const ChatScreen())),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: F3Colors.accent.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.forum_rounded, color: F3Colors.accent, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      region.isNotEmpty ? '$region Chat' : 'Region Chat',
+                      style: TextStyle(
+                        color: context.f3textPrimary,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    Text(
+                      'Message the crew — preview, not connected to Slack yet',
+                      style: TextStyle(color: context.f3textSecondary, fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right_rounded, color: context.f3textMuted),
+            ],
+          ),
+        ),
       ),
     );
   }

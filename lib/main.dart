@@ -10,6 +10,7 @@ import 'package:provider/provider.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'services/app_profile_service.dart';
 import 'services/auth_service.dart';
+import 'services/chat_service.dart';
 import 'services/current_workout_service.dart';
 import 'services/custom_achievement_service.dart';
 import 'services/emergency_service.dart';
@@ -89,6 +90,9 @@ Future<void> _runApp() async {
   final f3ApiService = F3ApiService();
   await f3ApiService.load();
 
+  final chatService = ChatService();
+  await chatService.load();
+
   // Fire-and-forget: a silent weekly safety-net snapshot, never blocks
   // startup and never surfaces an error to the user (best-effort inside).
   unawaited(LocalBackupService.maybeAutoBackup(
@@ -105,6 +109,7 @@ Future<void> _runApp() async {
     historyService: historyService,
     regionService: regionService,
     f3ApiService: f3ApiService,
+    chatService: chatService,
   ));
 }
 
@@ -116,6 +121,7 @@ class DigitalWeinke extends StatelessWidget {
   final HistoryService historyService;
   final RegionService regionService;
   final F3ApiService f3ApiService;
+  final ChatService chatService;
 
   const DigitalWeinke({
     super.key,
@@ -126,6 +132,7 @@ class DigitalWeinke extends StatelessWidget {
     required this.historyService,
     required this.regionService,
     required this.f3ApiService,
+    required this.chatService,
   });
 
   @override
@@ -141,6 +148,7 @@ class DigitalWeinke extends StatelessWidget {
         ChangeNotifierProvider<HistoryService>.value(value: historyService),
         ChangeNotifierProvider<RegionService>.value(value: regionService),
         ChangeNotifierProvider<F3ApiService>.value(value: f3ApiService),
+        ChangeNotifierProvider<ChatService>.value(value: chatService),
         ChangeNotifierProvider<TimerService>(create: (_) => TimerService()),
         ChangeNotifierProvider<CurrentWorkoutService>(
           create: (_) => CurrentWorkoutService(),

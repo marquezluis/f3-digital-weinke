@@ -25,13 +25,48 @@ class AppVersion {
   // automatically, since release notes are hand-written prose. Update these
   // four constants and add a new AppRelease entry below whenever you want a
   // build's changes to actually show up in the in-app Release Log.
-  static const String current = '2.4.10';
-  static const String versionName = '2.4.10';
-  static const String buildNumber = '22';
-  static const String displayName = 'Digital Weinke v2.4.10';
-  static const String fullDisplayName = 'Digital Weinke v2.4.10+22';
+  static const String current = '2.4.15';
+  static const String versionName = '2.4.15';
+  static const String buildNumber = '27';
+  static const String displayName = 'Digital Weinke v2.4.15';
+  static const String fullDisplayName = 'Digital Weinke v2.4.15+27';
 
   static const List<AppRelease> releases = [
+    AppRelease(
+      version: '2.4.15',
+      title: 'The Region Chat Preview',
+      summary:
+          'A first look at Region Chat on the Brotherhood Board — a Digital Weinke-native message screen for your region, ahead of the Slack bridge that will actually connect it.',
+      newItems: [
+        'Region Chat — a new card on the Brotherhood Board opens a message list and compose box for your region. It\'s a local-only preview right now: messages stay on this device and don\'t reach anyone yet, clearly marked as such, until the Slack-bridge relay service lands.',
+      ],
+    ),
+    AppRelease(
+      version: '2.4.12',
+      title: 'Renamed to Digital Weinke',
+      summary:
+          'The app is now called Digital Weinke instead of F3 Nation App — it isn\'t an officially approved F3 Nation app yet, and the name shouldn\'t imply otherwise.',
+      bugFixes: [
+        'App display name, icon label, and bundle metadata updated across Android and iOS to Digital Weinke.',
+      ],
+    ),
+    AppRelease(
+      version: '2.4.11',
+      title: 'The Offline Resilience & Q Toolkit Update',
+      summary:
+          'Automatic backups, a smarter plan generator that avoids repeating recent exercises, an EH prospect tracker, Co-Q plan sharing, and a handful of other Q-toolkit additions.',
+      newItems: [
+        'Automatic rotating local backups — a silent weekly safety-net snapshot, restorable from Settings → Data.',
+        '"Haven\'t used lately" recency bias in plan generation — the Weinke builder and Q Builder wizard now favor exercises you haven\'t run recently instead of repeating the same handful.',
+        'Co-Q collaborative draft sharing — export a beatdown plan as an importable code for a Co-Q, and import one shared with you.',
+        'Slack channel confirmation — after publishing a preblast or backblast, the app confirms which Slack channel it posted to.',
+        'EH Prospect tracker on the Brotherhood Board — separate from FNG Pipeline, for tracking people you\'ve talked to but who haven\'t posted yet.',
+        'Weather-aware Q Builder — flag rain/ice/heat conditions and get a plan warning tailored to it (e.g. rain → avoid slick pull-up bars).',
+        'Offline-cached Spartan AI plan fallback — if Spartan can\'t reach the network, it falls back to a recent cached plan instead of just failing.',
+        'Site-Q custom local achievements — define your own achievement badges (sessions at an AO, unique PAX, FNGs welcomed) alongside the built-in ones.',
+        'A small bank of mumblechatter lines Q Mode can call out mid-session.',
+      ],
+    ),
     AppRelease(
       version: '2.4.10',
       title: 'The AO Logos & Full Profile Update',
