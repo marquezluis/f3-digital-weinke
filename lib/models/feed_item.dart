@@ -26,4 +26,10 @@ class FeedItem {
     this.photoPath,
     this.rating = 0,
   });
+
+  /// Feed items are recomputed fresh from HistoryService/RegionService on
+  /// every build rather than persisted, so there's no stored id to key a
+  /// reaction against — this derives a stable one from content that doesn't
+  /// change once an item exists (same session → same id every rebuild).
+  String get id => '${type.name}_${date.toIso8601String()}_$title';
 }

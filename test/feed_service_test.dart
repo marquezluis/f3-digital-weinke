@@ -117,4 +117,62 @@ void main() {
       expect(items, isEmpty);
     });
   });
+
+  group('FeedItem.id', () {
+    test('is stable across separately-built instances of the same item', () {
+      final a = FeedItem(
+        type: FeedItemType.backblast,
+        date: DateTime(2026, 1, 1),
+        title: 'PermVac posted a backblast',
+        subtitle: '5 PAX',
+      );
+      final b = FeedItem(
+        type: FeedItemType.backblast,
+        date: DateTime(2026, 1, 1),
+        title: 'PermVac posted a backblast',
+        subtitle: '5 PAX',
+      );
+      // Reactions are keyed by this id, and feed items are recomputed fresh
+      // on every rebuild rather than persisted — a salute has to survive
+      // that, so two builds of "the same" item must agree on an id even
+      // though they're different object instances.
+      expect(a.id, b.id);
+    });
+
+    test('differs when type, date, or title differ', () {
+      final base = FeedItem(
+        type: FeedItemType.backblast,
+        date: DateTime(2026, 1, 1),
+        title: 'Backblast posted',
+        subtitle: '',
+      );
+      expect(
+        base.id,
+        isNot(FeedItem(
+          type: FeedItemType.achievement,
+          date: DateTime(2026, 1, 1),
+          title: 'Backblast posted',
+          subtitle: '',
+        ).id),
+      );
+      expect(
+        base.id,
+        isNot(FeedItem(
+          type: FeedItemType.backblast,
+          date: DateTime(2026, 1, 2),
+          title: 'Backblast posted',
+          subtitle: '',
+        ).id),
+      );
+      expect(
+        base.id,
+        isNot(FeedItem(
+          type: FeedItemType.backblast,
+          date: DateTime(2026, 1, 1),
+          title: 'A different title',
+          subtitle: '',
+        ).id),
+      );
+    });
+  });
 }

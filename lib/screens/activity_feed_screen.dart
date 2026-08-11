@@ -7,6 +7,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/feed_item.dart';
+import '../services/feed_reaction_service.dart';
 import '../services/history_service.dart';
 import '../services/region_service.dart';
 import '../services/feed_service.dart';
@@ -157,11 +158,57 @@ class _FeedTile extends StatelessWidget {
                     ),
                   ),
                 ],
+                const SizedBox(height: 6),
+                _SaluteButton(feedItemId: item.id),
               ],
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+/// A personal acknowledgment toggle, not a shared reaction count — this is a
+/// single-user local app, so there's no honest way to show "N people
+/// saluted this". Scoped to its own Consumer so tapping it only rebuilds
+/// this row, not the whole feed list.
+class _SaluteButton extends StatelessWidget {
+  final String feedItemId;
+  const _SaluteButton({required this.feedItemId});
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<FeedReactionService>(
+      builder: (context, reactions, _) {
+        final saluted = reactions.isSaluted(feedItemId);
+        return InkWell(
+          borderRadius: BorderRadius.circular(6),
+          onTap: () => reactions.toggle(feedItemId),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 2),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  saluted ? Icons.local_fire_department_rounded : Icons.local_fire_department_outlined,
+                  size: 16,
+                  color: saluted ? F3Colors.accent : context.f3textMuted,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  saluted ? 'Saluted' : 'Salute',
+                  style: TextStyle(
+                    color: saluted ? F3Colors.accent : context.f3textMuted,
+                    fontSize: 12,
+                    fontWeight: saluted ? FontWeight.w700 : FontWeight.normal,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

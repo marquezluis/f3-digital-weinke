@@ -8,6 +8,7 @@ import '../services/achievement_service.dart';
 import '../services/custom_achievement_service.dart';
 import '../services/history_service.dart';
 import '../theme/app_theme.dart';
+import 'achievement_card_preview_screen.dart';
 
 class AchievementsScreen extends StatelessWidget {
   const AchievementsScreen({super.key});
@@ -33,6 +34,10 @@ class AchievementsScreen extends StatelessWidget {
             ...AchievementService.compute(svc.all),
             ...AchievementService.computeCustom(svc.all, customSvc.all),
           ];
+          // Only covers built-in badges (custom ones have no reconstructable
+          // history-based unlock date) — the share card handles a missing
+          // date fine, it just omits the "EARNED ..." line.
+          final unlockDates = AchievementService.unlockDates(svc.all);
           final unlocked = badges.where((b) => b.unlocked).length;
           return ListView(
             padding: const EdgeInsets.all(16),
@@ -67,6 +72,7 @@ class AchievementsScreen extends StatelessWidget {
               ),
               ...badges.map((badge) => _BadgeTile(
                     badge: badge,
+                    earnedDate: unlockDates[badge.id],
                     onDelete: badge.isCustom
                         ? () => customSvc.remove(badge.id)
                         : null,
@@ -170,8 +176,9 @@ void _showAddCustomSheet(BuildContext context) {
 
 class _BadgeTile extends StatelessWidget {
   final Achievement badge;
+  final DateTime? earnedDate;
   final VoidCallback? onDelete;
-  const _BadgeTile({required this.badge, this.onDelete});
+  const _BadgeTile({required this.badge, this.earnedDate, this.onDelete});
 
   @override
   Widget build(BuildContext context) {
@@ -273,6 +280,20 @@ class _BadgeTile extends StatelessWidget {
               ),
             ),
           ),
+          if (badge.unlocked)
+            IconButton(
+              tooltip: 'Share as image',
+              icon: Icon(Icons.ios_share_rounded, size: 18, color: color),
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => AchievementCardPreviewScreen(
+                    badge: badge,
+                    earnedDate: earnedDate,
+                  ),
+                ),
+              ),
+            ),
           if (onDelete != null)
             IconButton(
               tooltip: 'Remove custom achievement',

@@ -635,9 +635,11 @@ class _HeroCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Title row: name + role badge
+          // Title row: home AO logo (when the region has uploaded one) +
+          // name + role badge
           Row(
             children: [
+              if (profile.homeAo.isNotEmpty) _HomeAoLogo(homeAo: profile.homeAo),
               Expanded(
                 child: Text(
                   name,
@@ -751,6 +753,63 @@ class _ChatEntryCard extends StatelessWidget {
               Icon(Icons.chevron_right_rounded, color: context.f3textMuted),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The PAX's real home AO logo, when their region has uploaded one to F3
+/// Nation — resolved by matching profile.homeAo's name against the org
+/// directory (F3ApiService.getOrgs() is cached, so this doesn't cost a
+/// fresh network round-trip if Browse AOs already fetched it). Silently
+/// renders nothing when there's no match or no logo — most AOs haven't
+/// uploaded one, and this card already reads fine without it.
+class _HomeAoLogo extends StatefulWidget {
+  final String homeAo;
+  const _HomeAoLogo({required this.homeAo});
+
+  @override
+  State<_HomeAoLogo> createState() => _HomeAoLogoState();
+}
+
+class _HomeAoLogoState extends State<_HomeAoLogo> {
+  String? _logoUrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _resolve();
+  }
+
+  Future<void> _resolve() async {
+    final api = context.read<F3ApiService>();
+    final orgs = await api.getOrgs();
+    final match = orgs
+        .where((o) =>
+            o.name.toLowerCase() == widget.homeAo.toLowerCase() &&
+            (o.logoUrl ?? '').isNotEmpty)
+        .firstOrNull;
+    if (!mounted || match == null) return;
+    setState(() => _logoUrl = match.logoUrl);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_logoUrl == null) return const SizedBox.shrink();
+    return Container(
+      width: 40,
+      height: 40,
+      margin: const EdgeInsets.only(right: 12),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: F3Colors.accent.withValues(alpha: 0.4)),
+      ),
+      child: ClipOval(
+        child: Image.network(
+          _logoUrl!,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => const SizedBox.shrink(),
         ),
       ),
     );
