@@ -24,6 +24,7 @@ import '../services/current_workout_service.dart';
 import '../services/exercise_service.dart';
 import '../services/history_service.dart';
 import 'timer_screen.dart';
+import 'weinke_card_preview_screen.dart';
 import '../services/music_launcher.dart';
 import '../services/timer_service.dart';
 import '../services/weinke_exporter.dart';
@@ -305,7 +306,9 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     final aoCtrl = TextEditingController();
     final timeCtrl = TextEditingController(text: '0530');
 
-    final confirmed = await showDialog<bool>(
+    // 'text' | 'image' | null (cancelled) — was a plain bool before adding
+    // the image-card option, which needs a third outcome, not just yes/no.
+    final choice = await showDialog<String>(
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: context.f3card,
@@ -338,19 +341,38 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => Navigator.pop(context),
             child: const Text('CANCEL'),
           ),
           TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child:
-                const Text('SHARE', style: TextStyle(color: F3Colors.accent)),
+            onPressed: () => Navigator.pop(context, 'text'),
+            child: const Text('SHARE TEXT'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, 'image'),
+            child: const Text('SHARE IMAGE',
+                style: TextStyle(color: F3Colors.accent)),
           ),
         ],
       ),
     );
 
-    if (confirmed != true || !mounted) return;
+    if (choice == null || !mounted) return;
+
+    if (choice == 'image') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => WeinkeCardPreviewScreen(
+            plan: plan,
+            ao: aoCtrl.text.trim(),
+            time: timeCtrl.text.trim(),
+            qName: settings.myF3Name,
+          ),
+        ),
+      );
+      return;
+    }
 
     final text = WeinkeExporter.formatPreblast(
       plan,

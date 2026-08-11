@@ -17,6 +17,7 @@ import '../services/current_workout_service.dart';
 import '../services/exercise_service.dart';
 import '../services/history_service.dart';
 import '../services/notification_service.dart';
+import '../services/region_service.dart';
 import '../utils/greeting.dart';
 import '../utils/streak_calculator.dart';
 import '../services/settings_service.dart';
@@ -30,6 +31,8 @@ import 'profile_screen.dart';
 import 'workout_screen.dart';
 import 'qsource_screen.dart';
 import 'browse_aos_screen.dart';
+import 'brotherhood_screen.dart';
+import 'heatmap_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -166,8 +169,8 @@ class HomeScreen extends StatelessWidget {
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
               sliver: SliverToBoxAdapter(
-                child: Consumer2<HistoryService, ExerciseService>(
-                  builder: (context, historySvc, exerciseSvc, _) {
+                child: Consumer3<HistoryService, ExerciseService, RegionService>(
+                  builder: (context, historySvc, exerciseSvc, regionSvc, _) {
                     final sessions = historySvc.all
                         .where((e) => e.completed && !e.isTemplate)
                         .toList();
@@ -177,6 +180,14 @@ class HomeScreen extends StatelessWidget {
                         ? null
                         : exercises[_dayOfYear(DateTime.now()) % exercises.length];
                     return Column(children: [
+                      // The app's most mission-critical, easiest-to-ignore
+                      // feature (turning EH'd prospects into real PAX) goes
+                      // first in this section, not buried on Brotherhood's
+                      // long scroll where it's easy to never see.
+                      if (regionSvc.ehProspects.isNotEmpty) ...[
+                        _EhProspectsCard(region: regionSvc),
+                        const SizedBox(height: 8),
+                      ],
                       if (sessions.isNotEmpty)
                         _LastBeatdownCard(session: sessions.first),
                       if (featured != null) ...[
@@ -190,6 +201,8 @@ class HomeScreen extends StatelessWidget {
                       if (sessions.isNotEmpty) ...[
                         const SizedBox(height: 8),
                         _StatsCard(sessions: sessions),
+                        const SizedBox(height: 8),
+                        _ActivityStripCard(sessions: sessions),
                       ],
                     ]);
                   },
@@ -650,6 +663,68 @@ class _FeaturedExerciseCard extends StatelessWidget {
   }
 }
 
+// ─── EH prospects card ────────────────────────────────────────────────────────
+
+class _EhProspectsCard extends StatelessWidget {
+  final RegionService region;
+  const _EhProspectsCard({required this.region});
+
+  @override
+  Widget build(BuildContext context) {
+    final prospects = region.ehProspects;
+    final needingFollowUp = region.prospectsNeedingFollowUp;
+    final urgent = needingFollowUp.isNotEmpty;
+    // Gold matches the same urgency signal the streak card uses; blue (an
+    // existing token, not a new color) for the calm "nothing due" state so
+    // it doesn't read as a second brand accent competing with the red hero.
+    final color = urgent ? F3Colors.phaseCOT : F3Colors.catBodyweight;
+    final title = urgent
+        ? '${needingFollowUp.length} ${needingFollowUp.length == 1 ? 'prospect needs' : 'prospects need'} a follow-up'
+        : '${prospects.length} EH ${prospects.length == 1 ? 'prospect' : 'prospects'} in your pipeline';
+    final subtitle = urgent
+        ? needingFollowUp.map((p) => p.name).take(3).join(', ')
+        : "You're all caught up";
+
+    return GestureDetector(
+      onTap: () => Navigator.push(
+          context, MaterialPageRoute(builder: (_) => const BrotherhoodScreen())),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: urgent ? color.withValues(alpha: 0.08) : context.f3card,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+              color: urgent ? color.withValues(alpha: 0.4) : context.f3divider),
+        ),
+        child: Row(children: [
+          Icon(Icons.record_voice_over_rounded, color: color, size: 26),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(
+                title,
+                style: TextStyle(
+                  color: urgent ? color : context.f3textPrimary,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              Text(
+                subtitle,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    color: urgent ? color : context.f3textSecondary, fontSize: 12),
+              ),
+            ]),
+          ),
+          Icon(Icons.chevron_right_rounded, color: context.f3textMuted, size: 20),
+        ]),
+      ),
+    );
+  }
+}
+
 // ─── Streak card ──────────────────────────────────────────────────────────────
 
 class _StreakCard extends StatelessWidget {
@@ -769,6 +844,105 @@ class _StatsCard extends StatelessWidget {
           ),
         ),
       ]),
+    );
+  }
+}
+
+// ─── Recent activity strip ────────────────────────────────────────────────────
+
+/// A compact, tappable preview of the full Heatmap screen's 52-week grid —
+/// deliberately just the last 10 weeks, small squares, no legend or month
+/// labels. The full grid is a strong visualization sitting one tap deep in
+/// Your Stats; this surfaces a glance of it without trying to cram the
+/// entire screen onto Home. Self-contained rather than reusing
+/// HeatmapScreen's internal grid logic, since that widget is built for a
+/// full 52-week layout with month labels, not a small preview.
+class _ActivityStripCard extends StatelessWidget {
+  final List<WorkoutHistory> sessions;
+  const _ActivityStripCard({required this.sessions});
+
+  static const _weeks = 10;
+
+  String _dayKey(DateTime d) => '${d.year}-${d.month}-${d.day}';
+
+  DateTime _mostRecentMonday(DateTime d) =>
+      DateTime(d.year, d.month, d.day).subtract(Duration(days: d.weekday - 1));
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final gridStart =
+        _mostRecentMonday(now).subtract(const Duration(days: 7 * (_weeks - 1)));
+    final counts = <String, int>{};
+    for (final s in sessions) {
+      final key = _dayKey(s.date);
+      counts[key] = (counts[key] ?? 0) + 1;
+    }
+    final maxCount =
+        counts.values.isEmpty ? 0 : counts.values.reduce((a, b) => a > b ? a : b);
+
+    return GestureDetector(
+      onTap: () => Navigator.push(
+          context, MaterialPageRoute(builder: (_) => const HeatmapScreen())),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: context.f3card,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: context.f3divider),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(children: [
+              Text('RECENT ACTIVITY',
+                  style: TextStyle(
+                      color: context.f3textMuted,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.5)),
+              const Spacer(),
+              Icon(Icons.chevron_right_rounded, size: 16, color: context.f3textMuted),
+            ]),
+            const SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: List.generate(_weeks, (col) {
+                final weekStart = gridStart.add(Duration(days: col * 7));
+                return Column(
+                  children: List.generate(7, (row) {
+                    final day = weekStart.add(Duration(days: row));
+                    if (day.isAfter(now)) {
+                      return const Padding(
+                        padding: EdgeInsets.all(1.5),
+                        child: SizedBox(width: 9, height: 9),
+                      );
+                    }
+                    final count = counts[_dayKey(day)] ?? 0;
+                    return Padding(
+                      padding: const EdgeInsets.all(1.5),
+                      child: Container(
+                        width: 9,
+                        height: 9,
+                        decoration: BoxDecoration(
+                          color: count == 0
+                              ? context.f3elevated
+                              : Color.lerp(
+                                  F3Colors.accent.withValues(alpha: 0.25),
+                                  F3Colors.accent,
+                                  maxCount == 0 ? 1 : count / maxCount,
+                                ),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    );
+                  }),
+                );
+              }),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -25,6 +25,20 @@ class RegionService extends ChangeNotifier {
   List<EhProspect> get ehProspects => List.unmodifiable(
       [..._ehProspects]..sort((a, b) => b.dateAdded.compareTo(a.dateAdded)));
 
+  static const followUpDueAfter = Duration(days: 7);
+
+  /// Prospects whose last contact (a logged follow-up, or the date they
+  /// were added if none has been logged yet) is old enough to need another
+  /// nudge — the signal the Home widget uses to flag "these need you today"
+  /// instead of just showing a flat count.
+  List<EhProspect> get prospectsNeedingFollowUp {
+    final now = DateTime.now();
+    return ehProspects.where((p) {
+      final lastContact = p.lastFollowUp ?? p.dateAdded;
+      return now.difference(lastContact) >= followUpDueAfter;
+    }).toList();
+  }
+
   int get totalHcCount =>
       _hardCommits.fold(0, (sum, hc) => sum + hc.paxNames.length);
 

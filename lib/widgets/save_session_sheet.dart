@@ -16,6 +16,7 @@ import '../services/app_profile_service.dart' hide AppRole;
 import '../services/history_service.dart';
 import '../services/settings_service.dart';
 import '../theme/app_theme.dart';
+import '../utils/ao_milestones.dart';
 
 class SaveSessionSheet extends StatefulWidget {
   /// Pre-populated blocks from the current WorkoutPlan.
@@ -336,11 +337,46 @@ class _SaveSessionSheetState extends State<SaveSessionSheet> {
         .map((a) => a.id)
         .toSet();
 
+    // Same before/after diff for AO-specific loyalty — real per-AO session
+    // counts already exist in HistoryService (region.hardCommits is a
+    // pre-event promise, not an actual post, so it's the wrong source for
+    // this). No milestone if the AO field was left blank.
+    final aoName = entry.ao.trim();
+    final aoCountBefore = aoName.isEmpty
+        ? 0
+        : history.all
+            .where((h) =>
+                h.completed &&
+                !h.isTemplate &&
+                h.ao.toLowerCase() == aoName.toLowerCase())
+            .length;
+
     await history.add(entry);
 
     final newlyUnlocked = AchievementService.compute(history.all)
         .where((a) => a.unlocked && !before.contains(a.id))
         .toList();
+
+    final aoCountAfter = aoCountBefore + 1;
+    final crossedMilestone =
+        aoName.isEmpty ? null : aoMilestoneCrossed(aoCountBefore, aoCountAfter);
+    final celebrations = [
+      ...newlyUnlocked,
+      if (crossedMilestone != null)
+        Achievement(
+          id: 'ao_milestone_${aoName}_$crossedMilestone',
+          title: '$crossedMilestone Posts at $aoName',
+          description:
+              'Region pride — your $crossedMilestone${ordinalSuffix(crossedMilestone)} beatdown here.',
+          emoji: '📍',
+          tier: crossedMilestone >= 100
+              ? AchievementTier.gold
+              : crossedMilestone >= 50
+                  ? AchievementTier.silver
+                  : AchievementTier.bronze,
+          unlocked: true,
+        ),
+    ];
 
     if (mounted) {
       Navigator.of(context).pop();
@@ -352,11 +388,11 @@ class _SaveSessionSheetState extends State<SaveSessionSheet> {
       );
     }
 
-    if (mounted && newlyUnlocked.isNotEmpty) {
+    if (mounted && celebrations.isNotEmpty) {
       showDialog<void>(
         context: context,
         builder: (_) =>
-            _AchievementUnlockedDialog(achievement: newlyUnlocked.first),
+            _AchievementUnlockedDialog(achievement: celebrations.first),
       );
     }
   }

@@ -3,6 +3,7 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:f3_nation_app/models/region_models.dart';
 import 'package:f3_nation_app/models/workout_history.dart';
 import 'package:f3_nation_app/services/region_service.dart';
 
@@ -82,6 +83,62 @@ void main() {
 
       expect(service.ehProspects, isEmpty);
       expect(service.pax, isEmpty);
+    });
+
+    group('prospectsNeedingFollowUp', () {
+      test('a freshly-added prospect does not need follow-up yet', () async {
+        final service = RegionService();
+        await service.load();
+        await service.addEhProspect(name: 'Newman');
+
+        expect(service.prospectsNeedingFollowUp, isEmpty);
+      });
+
+      test('a prospect added more than 7 days ago with no follow-up logged needs one',
+          () async {
+        final service = RegionService();
+        await service.load();
+        await service.replaceSnapshot(RegionSnapshot(ehProspects: [
+          EhProspect(
+            id: '1',
+            name: 'Newman',
+            dateAdded: DateTime.now().subtract(const Duration(days: 10)),
+          ),
+        ]));
+
+        expect(service.prospectsNeedingFollowUp, hasLength(1));
+        expect(service.prospectsNeedingFollowUp.single.name, 'Newman');
+      });
+
+      test('a recent follow-up clears the need even if the prospect is old', () async {
+        final service = RegionService();
+        await service.load();
+        await service.replaceSnapshot(RegionSnapshot(ehProspects: [
+          EhProspect(
+            id: '1',
+            name: 'Newman',
+            dateAdded: DateTime.now().subtract(const Duration(days: 30)),
+            lastFollowUp: DateTime.now().subtract(const Duration(days: 1)),
+          ),
+        ]));
+
+        expect(service.prospectsNeedingFollowUp, isEmpty);
+      });
+
+      test('a stale follow-up (more than 7 days ago) needs another one', () async {
+        final service = RegionService();
+        await service.load();
+        await service.replaceSnapshot(RegionSnapshot(ehProspects: [
+          EhProspect(
+            id: '1',
+            name: 'Newman',
+            dateAdded: DateTime.now().subtract(const Duration(days: 30)),
+            lastFollowUp: DateTime.now().subtract(const Duration(days: 8)),
+          ),
+        ]));
+
+        expect(service.prospectsNeedingFollowUp, hasLength(1));
+      });
     });
   });
 }
