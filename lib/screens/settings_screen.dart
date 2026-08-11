@@ -14,6 +14,7 @@ import '../models/auth_models.dart';
 import '../services/app_profile_service.dart' hide AppRole;
 import '../services/auth_service.dart';
 import '../services/history_service.dart';
+import '../services/local_app_lock_service.dart';
 import '../services/local_backup_service.dart';
 import '../services/music_launcher.dart';
 import '../services/region_service.dart';
@@ -174,6 +175,12 @@ class SettingsScreen extends StatelessWidget {
 
               // ── Safety ────────────────────────────────────────────────────
               _SectionHeader(l10n.settingsSafety),
+              const SizedBox(height: 8),
+              // App Lock was previously only ever settable once, during
+              // first-run onboarding — anyone who skipped it there had no
+              // way back in short of reinstalling. This is the only place
+              // it can be turned on (or off) after the fact.
+              const _AppLockToggle(),
               const SizedBox(height: 8),
               _NavTile(
                 icon: Icons.emergency_rounded,
@@ -655,6 +662,42 @@ class _ProfileBannerState extends State<_ProfileBanner> {
   }
 }
 
+class _AppLockToggle extends StatefulWidget {
+  const _AppLockToggle();
+
+  @override
+  State<_AppLockToggle> createState() => _AppLockToggleState();
+}
+
+class _AppLockToggleState extends State<_AppLockToggle> {
+  // null while checking, then true/false. Hidden entirely (matching the
+  // onboarding setup page's own behavior) rather than shown-but-disabled
+  // when the device has no biometric/PIN capability at all.
+  bool? _supported;
+
+  @override
+  void initState() {
+    super.initState();
+    LocalAppLockService().isSupported.then((v) {
+      if (mounted) setState(() => _supported = v);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_supported != true) return const SizedBox.shrink();
+    final l10n = AppLocalizations.of(context)!;
+    return Consumer<AppProfileService>(
+      builder: (context, profile, _) => _SwitchRow(
+        label: l10n.onboardingAppLockTitle,
+        subtitle: l10n.onboardingAppLockSubtitle,
+        value: profile.appLockEnabled,
+        onChanged: (val) => profile.setAppLockEnabled(val),
+      ),
+    );
+  }
+}
+
 class _SwitchRow extends StatelessWidget {
   final String label;
   final String subtitle;
@@ -718,6 +761,34 @@ class _VoiceSelectorState extends State<_VoiceSelector> {
   // (displayName, rawName) pairs
   List<(String, String)> _voices = [];
   bool _loading = true;
+  String? _previewing;
+
+  @override
+  void dispose() {
+    _tts.stop();
+    super.dispose();
+  }
+
+  /// A voice picker with no way to hear a voice before committing to it was
+  /// exactly backwards — you found out what you picked only once you
+  /// already needed it mid-workout. Speaks a fixed sample line in the
+  /// tapped voice's own locale (derived from its raw name), not whatever
+  /// language the app happens to be set to right now.
+  Future<void> _previewVoice(String rawName, void Function(void Function()) setDialogState) async {
+    setDialogState(() => _previewing = rawName);
+    final parts = rawName.split(RegExp(r'[-_]'));
+    final locale =
+        parts.length >= 2 ? '${parts[0]}-${parts[1].toUpperCase()}' : 'en-US';
+    try {
+      await _tts.setVoice({'name': rawName, 'locale': locale});
+      await _tts.speak('Starting Warm-O-Rama. Mosey up!');
+    } catch (_) {
+      // Best-effort — a preview failing silently is fine, the selection
+      // flow below doesn't depend on it.
+    } finally {
+      if (mounted) setDialogState(() => _previewing = null);
+    }
+  }
 
   @override
   void initState() {
@@ -814,28 +885,47 @@ class _VoiceSelectorState extends State<_VoiceSelector> {
         backgroundColor: context.f3card,
         title: Text(l10n.settingsSelectTtsVoice,
             style: TextStyle(color: context.f3textPrimary, fontSize: 16)),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: ListView.builder(
-            shrinkWrap: true,
-            itemCount: _voices.length,
-            itemBuilder: (ctx, i) {
-              final (displayName, rawName) = _voices[i];
-              final selected = rawName == widget.currentVoice;
-              return ListTile(
-                dense: true,
-                title: Text(displayName,
-                    style: TextStyle(
-                      color: selected ? F3Colors.accent : context.f3textPrimary,
-                      fontWeight: selected ? FontWeight.w700 : FontWeight.normal,
-                      fontSize: 13,
-                    )),
-                trailing: selected
-                    ? const Icon(Icons.check_rounded, color: F3Colors.accent, size: 18)
-                    : null,
-                onTap: () => Navigator.pop(ctx, rawName),
-              );
-            },
+        content: StatefulBuilder(
+          builder: (dialogCtx, setDialogState) => SizedBox(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: _voices.length,
+              itemBuilder: (ctx, i) {
+                final (displayName, rawName) = _voices[i];
+                final selected = rawName == widget.currentVoice;
+                final previewing = _previewing == rawName;
+                return ListTile(
+                  dense: true,
+                  title: Text(displayName,
+                      style: TextStyle(
+                        color: selected ? F3Colors.accent : context.f3textPrimary,
+                        fontWeight: selected ? FontWeight.w700 : FontWeight.normal,
+                        fontSize: 13,
+                      )),
+                  leading: IconButton(
+                    tooltip: 'Preview this voice',
+                    visualDensity: VisualDensity.compact,
+                    icon: previewing
+                        ? SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: context.f3textMuted),
+                          )
+                        : Icon(Icons.play_circle_outline_rounded,
+                            size: 20, color: context.f3textMuted),
+                    onPressed: previewing
+                        ? null
+                        : () => _previewVoice(rawName, setDialogState),
+                  ),
+                  trailing: selected
+                      ? const Icon(Icons.check_rounded, color: F3Colors.accent, size: 18)
+                      : null,
+                  onTap: () => Navigator.pop(ctx, rawName),
+                );
+              },
+            ),
           ),
         ),
         actions: [

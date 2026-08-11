@@ -27,6 +27,11 @@ class SaveSessionSheet extends StatefulWidget {
   final int? actualDurationMinutes;
   /// Rep count logged via the timer's rep counter overlay, if used.
   final int? initialRepCount;
+  /// Circle of Trust notes captured live during the actual COT phase,
+  /// instead of asking the Q to reconstruct prayer requests and callouts
+  /// from memory here. Still fully editable — this is a pre-fill, not a
+  /// lock.
+  final String initialCot;
 
   const SaveSessionSheet({
     super.key,
@@ -34,6 +39,7 @@ class SaveSessionSheet extends StatefulWidget {
     this.initialPax = '',
     this.actualDurationMinutes,
     this.initialRepCount,
+    this.initialCot = '',
   });
 
   /// Convenience: push as a modal bottom sheet.
@@ -43,6 +49,7 @@ class SaveSessionSheet extends StatefulWidget {
     String initialPax = '',
     int? actualDurationMinutes,
     int? initialRepCount,
+    String initialCot = '',
   }) {
     return showModalBottomSheet(
       context: context,
@@ -56,6 +63,7 @@ class SaveSessionSheet extends StatefulWidget {
         initialPax: initialPax,
         actualDurationMinutes: actualDurationMinutes,
         initialRepCount: initialRepCount,
+        initialCot: initialCot,
       ),
     );
   }
@@ -97,7 +105,7 @@ class _SaveSessionSheetState extends State<SaveSessionSheet> {
         text: widget.initialRepCount != null
             ? 'Reps: ${widget.initialRepCount}'
             : '');
-    _cotCtrl   = TextEditingController();
+    _cotCtrl   = TextEditingController(text: widget.initialCot);
     _wotdCtrl  = TextEditingController();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {

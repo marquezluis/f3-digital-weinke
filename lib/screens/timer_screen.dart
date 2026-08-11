@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show HapticFeedback;
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:provider/provider.dart';
+import '../models/cot_quotes.dart';
 import '../models/exercise.dart';
 import '../models/mumblechatter_lines.dart';
 import '../models/timer_state.dart';
@@ -80,6 +81,12 @@ class _TimerScreenState extends State<TimerScreen> {
   // Rep counter
   bool _showRepCounter = false;
   int _repCount = 0;
+
+  // Circle of Trust — captured live during the actual COT phase instead of
+  // asking the Q to reconstruct prayer requests/callouts/announcements from
+  // memory minutes later in the save form. Pre-fills SaveSessionSheet's cot
+  // field; the Q can still edit it there.
+  final _liveCotCtrl = TextEditingController();
 
   // EMOM/Tabata overlay
   bool _showInterval = false;
@@ -190,6 +197,7 @@ class _TimerScreenState extends State<TimerScreen> {
     _tts.stop();
     _stopInterval();
     _restTimer?.cancel();
+    _liveCotCtrl.dispose();
     super.dispose();
   }
 
@@ -220,6 +228,7 @@ class _TimerScreenState extends State<TimerScreen> {
         initialPax: rolledPax,
         actualDurationMinutes: actualMins > 0 ? actualMins : null,
         initialRepCount: repCount,
+        initialCot: _liveCotCtrl.text.trim(),
       );
     });
   }
@@ -604,6 +613,7 @@ class _TimerScreenState extends State<TimerScreen> {
                           onSwap: currentExercise != null
                               ? () => _swapExercise(currentExercise, plan)
                               : null,
+                          cotNotesController: _liveCotCtrl,
                           nextExercise: exIdx + 1 < exercises.length
                               ? exercises[exIdx + 1]
                               : null,
@@ -1222,12 +1232,14 @@ class _ExerciseDisplay extends StatefulWidget {
   final Exercise? nextExercise;
   final String Function(String exerciseId)? getExerciseNote;
   final int? Function(String exerciseId)? getExerciseReps;
+  final TextEditingController cotNotesController;
 
   const _ExerciseDisplay({
     required this.phase,
     required this.exercises,
     required this.currentIndex,
     required this.onSwap,
+    required this.cotNotesController,
     this.nextExercise,
     this.getExerciseNote,
     this.getExerciseReps,
@@ -1275,7 +1287,9 @@ class _ExerciseDisplayState extends State<_ExerciseDisplay> {
     final onSwap = widget.onSwap;
 
     if (phase == BootcampPhase.disclaimer) return const _DisclaimerCard();
-    if (phase == BootcampPhase.cot) return const _COTCard();
+    if (phase == BootcampPhase.cot) {
+      return _COTCard(notesController: widget.cotNotesController);
+    }
 
     if (exercises.isEmpty) {
       return Center(
@@ -1779,7 +1793,8 @@ class _DisclaimerCard extends StatelessWidget {
 // ─── COT card ─────────────────────────────────────────────────────────────────
 
 class _COTCard extends StatelessWidget {
-  const _COTCard();
+  final TextEditingController notesController;
+  const _COTCard({required this.notesController});
 
   @override
   Widget build(BuildContext context) {
@@ -1834,6 +1849,51 @@ class _COTCard extends StatelessWidget {
                       ),
                     ),
                   ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: context.f3card,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: F3Colors.phaseCOT.withValues(alpha: 0.25)),
+              ),
+              child: Text(
+                '“${cotQuoteFor(DateTime.now())}”',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: context.f3textSecondary,
+                  fontSize: 13,
+                  fontStyle: FontStyle.italic,
+                  height: 1.4,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Captured live, right now, instead of asking the Q to
+            // reconstruct prayer requests and callouts from memory minutes
+            // later in the save form — this pre-fills that form's COT
+            // field, editable there, not locked in.
+            TextField(
+              controller: notesController,
+              maxLines: 3,
+              minLines: 2,
+              style: TextStyle(color: context.f3textPrimary, fontSize: 14),
+              decoration: InputDecoration(
+                hintText: 'Prayer requests, callouts, announcements…',
+                hintStyle: TextStyle(color: context.f3textMuted, fontSize: 13),
+                filled: true,
+                fillColor: context.f3card,
+                contentPadding: const EdgeInsets.all(12),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: F3Colors.phaseCOT.withValues(alpha: 0.3)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: F3Colors.phaseCOT.withValues(alpha: 0.3)),
                 ),
               ),
             ),
