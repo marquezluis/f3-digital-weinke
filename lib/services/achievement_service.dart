@@ -4,6 +4,7 @@
 
 import '../models/custom_achievement.dart';
 import '../models/workout_history.dart';
+import '../utils/streak_calculator.dart' show streakInfo;
 
 enum AchievementTier { bronze, silver, gold }
 
@@ -17,6 +18,11 @@ class Achievement {
   // True for a Site-Q-authored achievement (custom_achievement_service.dart)
   // — lets the UI offer a delete action only built-in badges don't get.
   final bool isCustom;
+  // How close a locked achievement is to unlocking (e.g. 3 of 4 weeks,
+  // 7 of 10 sessions) — null for nothing meaningful to show (shouldn't
+  // happen in practice, every def has a real threshold).
+  final int? currentProgress;
+  final int? targetProgress;
 
   const Achievement({
     required this.id,
@@ -26,6 +32,8 @@ class Achievement {
     required this.tier,
     required this.unlocked,
     this.isCustom = false,
+    this.currentProgress,
+    this.targetProgress,
   });
 }
 
@@ -48,7 +56,11 @@ class _AchievementDef {
   final String description;
   final String emoji;
   final AchievementTier tier;
-  final bool Function(_Stats) isUnlocked;
+  // The raw progress number and its target, not just a yes/no predicate —
+  // exposing both is what lets the UI show "3/4 weeks" for a locked
+  // achievement instead of only revealing it the moment it unlocks.
+  final int Function(_Stats) currentValue;
+  final int target;
   /// True for achievements whose unlock state depends on "now" (a current
   /// streak) rather than purely on accumulated session history — these
   /// can't be attributed to the exact session that "caused" them.
@@ -60,9 +72,12 @@ class _AchievementDef {
     required this.description,
     required this.emoji,
     required this.tier,
-    required this.isUnlocked,
+    required this.currentValue,
+    required this.target,
     this.relativeToNow = false,
   });
+
+  bool isUnlocked(_Stats s) => currentValue(s) >= target;
 }
 
 class AchievementService {
@@ -73,7 +88,8 @@ class AchievementService {
       description: 'Complete your first session.',
       emoji: '🏁',
       tier: AchievementTier.bronze,
-      isUnlocked: (s) => s.count >= 1,
+      currentValue: (s) => s.count,
+      target: 1,
     ),
     _AchievementDef(
       id: 'iron_pax',
@@ -81,7 +97,8 @@ class AchievementService {
       description: 'Complete 10 sessions.',
       emoji: '💪',
       tier: AchievementTier.bronze,
-      isUnlocked: (s) => s.count >= 10,
+      currentValue: (s) => s.count,
+      target: 10,
     ),
     _AchievementDef(
       id: 'centurion',
@@ -89,7 +106,8 @@ class AchievementService {
       description: 'Complete 100 sessions.',
       emoji: '🏆',
       tier: AchievementTier.gold,
-      isUnlocked: (s) => s.count >= 100,
+      currentValue: (s) => s.count,
+      target: 100,
     ),
     _AchievementDef(
       id: 'streak_4',
@@ -97,7 +115,8 @@ class AchievementService {
       description: '4-week consecutive streak.',
       emoji: '🔥',
       tier: AchievementTier.silver,
-      isUnlocked: (s) => s.streak >= 4,
+      currentValue: (s) => s.streak,
+      target: 4,
       relativeToNow: true,
     ),
     _AchievementDef(
@@ -106,7 +125,8 @@ class AchievementService {
       description: '12-week consecutive streak.',
       emoji: '⚡',
       tier: AchievementTier.gold,
-      isUnlocked: (s) => s.streak >= 12,
+      currentValue: (s) => s.streak,
+      target: 12,
       relativeToNow: true,
     ),
     _AchievementDef(
@@ -115,7 +135,8 @@ class AchievementService {
       description: 'Complete a Murph Prep beatdown.',
       emoji: '🪖',
       tier: AchievementTier.silver,
-      isUnlocked: (s) => s.murphCount >= 1,
+      currentValue: (s) => s.murphCount,
+      target: 1,
     ),
     _AchievementDef(
       id: 'coupon_grinder',
@@ -123,7 +144,8 @@ class AchievementService {
       description: 'Complete 5 coupon sessions.',
       emoji: '🏋️',
       tier: AchievementTier.bronze,
-      isUnlocked: (s) => s.couponCount >= 5,
+      currentValue: (s) => s.couponCount,
+      target: 5,
     ),
     _AchievementDef(
       id: 'fng_welcome',
@@ -131,7 +153,8 @@ class AchievementService {
       description: 'Welcome 5 FNGs total.',
       emoji: '🤝',
       tier: AchievementTier.bronze,
-      isUnlocked: (s) => s.totalFngs >= 5,
+      currentValue: (s) => s.totalFngs,
+      target: 5,
     ),
     _AchievementDef(
       id: 'community',
@@ -139,7 +162,8 @@ class AchievementService {
       description: 'Work out with 20 different PAX.',
       emoji: '🫂',
       tier: AchievementTier.silver,
-      isUnlocked: (s) => s.uniquePax >= 20,
+      currentValue: (s) => s.uniquePax,
+      target: 20,
     ),
     _AchievementDef(
       id: 'half_century',
@@ -147,7 +171,8 @@ class AchievementService {
       description: 'Complete 50 sessions.',
       emoji: '🎖️',
       tier: AchievementTier.silver,
-      isUnlocked: (s) => s.count >= 50,
+      currentValue: (s) => s.count,
+      target: 50,
     ),
   ];
 
@@ -162,6 +187,11 @@ class AchievementService {
               emoji: d.emoji,
               tier: d.tier,
               unlocked: d.isUnlocked(stats),
+              // Clamp so a stat that's already blown past the target (e.g.
+              // 12 sessions against a 10-session badge) doesn't show as
+              // "12/10" once unlocked.
+              currentProgress: d.currentValue(stats).clamp(0, d.target),
+              targetProgress: d.target,
             ))
         .toList();
   }
@@ -244,6 +274,8 @@ class AchievementService {
         tier: AchievementTier.bronze,
         unlocked: progress >= d.thresholdValue,
         isCustom: true,
+        currentProgress: progress.clamp(0, d.thresholdValue),
+        targetProgress: d.thresholdValue,
       );
     }).toList();
   }
@@ -256,7 +288,12 @@ class AchievementService {
     }
     return _Stats()
       ..count = sessions.length
-      ..streak = _weekStreak(sessions)
+      // .weeks regardless of status — an in-progress week that hasn't been
+      // posted yet doesn't retroactively un-earn the weeks already
+      // completed. Shares streak_calculator.dart with Home's streak card
+      // instead of an independent (and previously buggy — see there)
+      // implementation.
+      ..streak = streakInfo(sessions).weeks
       ..murphCount = sessions
           .where((s) => s.blocks.any((b) => b.label.toLowerCase().contains('murph')))
           .length
@@ -266,26 +303,4 @@ class AchievementService {
       ..totalFngs = sessions.fold(0, (sum, s) => sum + s.fngCount);
   }
 
-  static int _weekStreak(List<WorkoutHistory> sessions) {
-    if (sessions.isEmpty) return 0;
-    final now = DateTime.now();
-    final sorted = sessions.map((s) => s.date).toList()
-      ..sort((a, b) => b.compareTo(a));
-    int streak = 0;
-    DateTime check = now;
-    for (int w = 0; w < 52; w++) {
-      final weekStart = check.subtract(Duration(days: check.weekday - 1));
-      final weekEnd = weekStart.add(const Duration(days: 6));
-      final has = sorted.any((d) =>
-          !d.isBefore(weekStart.subtract(const Duration(seconds: 1))) &&
-          !d.isAfter(weekEnd.add(const Duration(seconds: 1))));
-      if (has) {
-        streak++;
-        check = weekStart.subtract(const Duration(days: 1));
-      } else {
-        break;
-      }
-    }
-    return streak;
-  }
 }

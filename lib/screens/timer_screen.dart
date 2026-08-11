@@ -1003,11 +1003,17 @@ class _SpinBox extends StatelessWidget {
                 letterSpacing: 1)),
         const SizedBox(height: 4),
         Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-          InkWell(
-            onTap: value > min ? () => onChanged(value - step) : null,
-            borderRadius: BorderRadius.circular(4),
-            child: Icon(Icons.remove_rounded,
-                size: 18, color: context.f3textSecondary),
+          // Bare icon-only InkWells have no accessible name on their own —
+          // Tooltip (like every other icon control on this screen already
+          // uses) is what actually exposes one to VoiceOver/TalkBack.
+          Tooltip(
+            message: 'Decrease $label',
+            child: InkWell(
+              onTap: value > min ? () => onChanged(value - step) : null,
+              borderRadius: BorderRadius.circular(4),
+              child: Icon(Icons.remove_rounded,
+                  size: 18, color: context.f3textSecondary),
+            ),
           ),
           const SizedBox(width: 4),
           Text('$value',
@@ -1016,11 +1022,14 @@ class _SpinBox extends StatelessWidget {
                   fontSize: 15,
                   fontWeight: FontWeight.w700)),
           const SizedBox(width: 4),
-          InkWell(
-            onTap: value < max ? () => onChanged(value + step) : null,
-            borderRadius: BorderRadius.circular(4),
-            child: Icon(Icons.add_rounded,
-                size: 18, color: context.f3textSecondary),
+          Tooltip(
+            message: 'Increase $label',
+            child: InkWell(
+              onTap: value < max ? () => onChanged(value + step) : null,
+              borderRadius: BorderRadius.circular(4),
+              child: Icon(Icons.add_rounded,
+                  size: 18, color: context.f3textSecondary),
+            ),
           ),
         ]),
       ]),

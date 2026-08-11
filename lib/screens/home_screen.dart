@@ -18,6 +18,7 @@ import '../services/exercise_service.dart';
 import '../services/history_service.dart';
 import '../services/notification_service.dart';
 import '../utils/greeting.dart';
+import '../utils/streak_calculator.dart';
 import '../services/settings_service.dart';
 import '../services/f3_api_service.dart';
 import '../models/f3_api_models.dart';
@@ -46,10 +47,15 @@ class HomeScreen extends StatelessWidget {
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
-            // ── Hero header ───────────────────────────────────────────────
+            // ── Wordmark + compact identity ─────────────────────────────
+            // The old design gave the personal welcome card the same visual
+            // weight as everything below it — nothing on the page told a
+            // returning user which thing actually mattered today. Identity
+            // now rides as a slim, tappable strip; the Today hero below it
+            // (not this) is the one deliberately dominant element on Home.
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 28, 20, 0),
+                padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -76,99 +82,78 @@ class HomeScreen extends StatelessWidget {
                         ),
                       ]),
                     ),
-                    const SizedBox(height: 16),
-                    // Welcome card — the personal hello, front and center.
+                    const SizedBox(height: 14),
                     Builder(builder: (context) {
                       final profileName =
                           context.watch<AppProfileService>().displayName;
-                      final region =
-                          context.watch<AppProfileService>().region;
                       final name =
                           myF3Name.isNotEmpty ? myF3Name : profileName;
                       final greeting =
                           greetingFor(AppLocalizations.of(context)!, now);
                       return Material(
-                        color: context.f3card,
-                        borderRadius: BorderRadius.circular(18),
+                        color: Colors.transparent,
                         child: InkWell(
-                          borderRadius: BorderRadius.circular(18),
+                          borderRadius: BorderRadius.circular(12),
                           onTap: () => Navigator.push(
                             context,
                             MaterialPageRoute(
                                 builder: (_) => const ProfileScreen()),
                           ),
-                          child: Container(
-                            padding: const EdgeInsets.all(18),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(18),
-                              border: Border.all(color: context.f3divider),
-                            ),
-                            child: Row(children: [
-                              const _HomeAvatar(size: 68),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text('$greeting,',
-                                        style: TextStyle(
-                                            color: context.f3textSecondary,
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.w600)),
-                                    const SizedBox(height: 2),
-                                    Text(name.isEmpty ? l10n.homeWelcomeFallback : name,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                            color: context.f3textPrimary,
-                                            fontSize: 26,
-                                            fontWeight: FontWeight.w900,
-                                            height: 1.1)),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                        region.isNotEmpty
-                                            ? '$region · ${_formatDate(now)}'
-                                            : _formatDate(now),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                            color: context.f3textMuted,
-                                            fontSize: 12)),
-                                  ],
-                                ),
+                          child: Row(children: [
+                            const _HomeAvatar(size: 40),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    // 2 lines, not 1 — a name should never
+                                    // silently truncate away at larger
+                                    // accessibility text sizes just because
+                                    // this row is meant to read compact.
+                                    '$greeting, ${name.isEmpty ? l10n.homeWelcomeFallback : name}',
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                        color: context.f3textPrimary,
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w700),
+                                  ),
+                                  Text(
+                                    // The rotating daily mottos (_dailyMotto)
+                                    // are deliberately left English-only for
+                                    // now — 25 short motivational lines is a
+                                    // large translation surface on its own,
+                                    // scoped out of this pass.
+                                    isGloom ? l10n.homeSyitg : _dailyMotto(now),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                        color: context.f3textSecondary,
+                                        fontSize: 12,
+                                        fontStyle: FontStyle.italic),
+                                  ),
+                                ],
                               ),
-                            ]),
-                          ),
+                            ),
+                            Icon(Icons.chevron_right_rounded,
+                                color: context.f3textMuted, size: 18),
+                          ]),
                         ),
                       );
                     }),
-                    const SizedBox(height: 10),
-                    Text(
-                      // The rotating daily mottos (_dailyMotto) are
-                      // deliberately left English-only for now — 25 short
-                      // motivational lines is a large translation surface on
-                      // its own, scoped out of this pass.
-                      isGloom
-                          ? l10n.homeSyitg
-                          : _dailyMotto(now),
-                      style: TextStyle(
-                        color: context.f3textSecondary,
-                        fontSize: 13,
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
                   ],
                 ),
               ),
             ),
 
-            // ── Upcoming beatdowns (F3 Nation API) ───────────────────────
+            // ── Today hero (F3 Nation API) ───────────────────────────────
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(0, 16, 0, 0),
+              padding: const EdgeInsets.fromLTRB(16, 18, 16, 0),
               sliver: SliverToBoxAdapter(
                 child: Consumer<F3ApiService>(
                   builder: (context, api, _) =>
-                      api.isConfigured ? const _UpcomingBeatdownsSection() : const SizedBox.shrink(),
+                      api.isConfigured ? const _TodayHero() : const SizedBox.shrink(),
                 ),
               ),
             ),
@@ -187,7 +172,7 @@ class HomeScreen extends StatelessWidget {
                         .where((e) => e.completed && !e.isTemplate)
                         .toList();
                     final exercises = exerciseSvc.all;
-                    final streak = _streakWeeks(sessions);
+                    final streak = streakInfo(sessions);
                     final featured = exercises.isEmpty
                         ? null
                         : exercises[_dayOfYear(DateTime.now()) % exercises.length];
@@ -198,9 +183,9 @@ class HomeScreen extends StatelessWidget {
                         const SizedBox(height: 8),
                         _FeaturedExerciseCard(exercise: featured),
                       ],
-                      if (streak > 0) ...[
+                      if (streak.status != StreakStatus.none) ...[
                         const SizedBox(height: 8),
-                        _StreakCard(weeks: streak),
+                        _StreakCard(streak: streak),
                       ],
                       if (sessions.isNotEmpty) ...[
                         const SizedBox(height: 8),
@@ -396,17 +381,6 @@ class HomeScreen extends StatelessWidget {
       MaterialPageRoute(builder: (_) => const WorkoutScreen()),
     );
   }
-
-  String _formatDate(DateTime dt) {
-    const days = [
-      'Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'
-    ];
-    const months = [
-      'Jan','Feb','Mar','Apr','May','Jun',
-      'Jul','Aug','Sep','Oct','Nov','Dec'
-    ];
-    return '${days[dt.weekday - 1]}, ${months[dt.month - 1]} ${dt.day}';
-  }
 }
 
 // ─── Home insight helpers ─────────────────────────────────────────────────────
@@ -445,30 +419,9 @@ const _mottos = [
 String _dailyMotto(DateTime d) =>
     _mottos[_dayOfYear(d) % _mottos.length];
 
-int _streakWeeks(List<WorkoutHistory> sessions) {
-  if (sessions.isEmpty) return 0;
-  // Build set of "year-week" strings for every completed session.
-  Set<String> weeksWithSession = {};
-  for (final s in sessions) {
-    weeksWithSession.add(_isoWeekKey(s.date));
-  }
-  // Walk backwards from the current week counting consecutive hits.
-  var cursor = DateTime.now();
-  int streak = 0;
-  while (weeksWithSession.contains(_isoWeekKey(cursor))) {
-    streak++;
-    cursor = cursor.subtract(const Duration(days: 7));
-  }
-  return streak;
-}
-
-String _isoWeekKey(DateTime d) {
-  // ISO week: Monday is day 1. Use Thursday's year to handle year boundaries.
-  final thursday = d.add(Duration(days: 4 - (d.weekday)));
-  final firstJan = DateTime(thursday.year, 1, 1);
-  final week = ((thursday.difference(firstJan).inDays) ~/ 7) + 1;
-  return '${thursday.year}-$week';
-}
+// StreakStatus/StreakInfo/_streakInfo/_daysLeftInWeek now live in
+// ../utils/streak_calculator.dart, so the logic is actually unit-testable —
+// it used to be private to this file.
 
 // ─── Quick action card ────────────────────────────────────────────────────────
 
@@ -700,45 +653,65 @@ class _FeaturedExerciseCard extends StatelessWidget {
 // ─── Streak card ──────────────────────────────────────────────────────────────
 
 class _StreakCard extends StatelessWidget {
-  final int weeks;
-  const _StreakCard({required this.weeks});
+  final StreakInfo streak;
+  const _StreakCard({required this.streak});
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final atRisk = streak.status == StreakStatus.atRisk;
+    // Gold, not another shade of the brand red — an at-risk streak needs to
+    // read as its own kind of signal, not just "more accent," the same way
+    // a phase color does elsewhere in the app.
+    final color = atRisk ? F3Colors.phaseCOT : F3Colors.accent;
+    final daysLeft = daysLeftInWeek(DateTime.now());
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: context.f3card,
+        color: atRisk ? color.withValues(alpha: 0.08) : context.f3card,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: context.f3divider),
+        border: Border.all(color: atRisk ? color.withValues(alpha: 0.4) : context.f3divider),
       ),
       child: Row(children: [
-        const Icon(Icons.local_fire_department_rounded,
-            color: F3Colors.accent, size: 28),
+        Icon(
+            atRisk
+                ? Icons.local_fire_department_outlined
+                : Icons.local_fire_department_rounded,
+            color: color,
+            size: 28),
         const SizedBox(width: 12),
-        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          RichText(
-            text: TextSpan(children: [
-              TextSpan(
-                text: '$weeks ',
-                style: const TextStyle(
-                    color: F3Colors.accent,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w900),
-              ),
-              TextSpan(
-                text: l10n.homeWeekStreakLabel,
-                style: TextStyle(
-                    color: context.f3textPrimary,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800),
-              ),
-            ]),
-          ),
-          Text(l10n.homeStreakDesc,
-              style: TextStyle(color: context.f3textSecondary, fontSize: 12)),
-        ]),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            RichText(
+              text: TextSpan(children: [
+                TextSpan(
+                  text: '${streak.weeks} ',
+                  style: TextStyle(color: color, fontSize: 22, fontWeight: FontWeight.w900),
+                ),
+                TextSpan(
+                  text: l10n.homeWeekStreakLabel,
+                  style: TextStyle(
+                      color: context.f3textPrimary, fontSize: 16, fontWeight: FontWeight.w800),
+                ),
+              ]),
+            ),
+            Text(
+              // Scoped out of translation for now, same as the other new
+              // copy on this screen — the calm-state description below
+              // stays on the existing localized string.
+              atRisk
+                  ? (daysLeft == 1
+                      ? "Don't break it — post today to keep it alive"
+                      : "Don't break it — $daysLeft days left to post")
+                  : l10n.homeStreakDesc,
+              style: TextStyle(
+                  color: atRisk ? color : context.f3textSecondary,
+                  fontSize: 12,
+                  fontWeight: atRisk ? FontWeight.w700 : FontWeight.normal),
+            ),
+          ]),
+        ),
       ]),
     );
   }
@@ -1002,14 +975,18 @@ class _F extends StatelessWidget {
   }
 }
 
-class _UpcomingBeatdownsSection extends StatefulWidget {
-  const _UpcomingBeatdownsSection();
+/// The single most important thing today, in priority order: Q'ing the next
+/// HC'd/Q'd event, then HC'd for it, then nothing on the books yet. This is
+/// Home's one deliberately dominant element — a full-bleed accent card, not
+/// another bordered card the same size as everything below it.
+class _TodayHero extends StatefulWidget {
+  const _TodayHero();
 
   @override
-  State<_UpcomingBeatdownsSection> createState() => _UpcomingBeatdownsSectionState();
+  State<_TodayHero> createState() => _TodayHeroState();
 }
 
-class _UpcomingBeatdownsSectionState extends State<_UpcomingBeatdownsSection> {
+class _TodayHeroState extends State<_TodayHero> {
   List<F3EventInstance>? _events;
   bool _loading = true;
 
@@ -1048,166 +1025,6 @@ class _UpcomingBeatdownsSectionState extends State<_UpcomingBeatdownsSection> {
         .toList());
   }
 
-  @override
-  Widget build(BuildContext context) {
-    if (_loading) {
-      return const SizedBox(
-        height: 96,
-        child: Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))),
-      );
-    }
-    final events = _events ?? [];
-    final l10n = AppLocalizations.of(context)!;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
-          child: Row(
-            children: [
-              Icon(Icons.calendar_month_rounded, size: 13, color: F3Colors.accent),
-              const SizedBox(width: 6),
-              Text(
-                l10n.homeUpcomingBeatdowns,
-                style: TextStyle(
-                  color: context.f3textMuted,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.5,
-                ),
-              ),
-            ],
-          ),
-        ),
-        if (events.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Text(
-              l10n.homeNothingHcd,
-              style: TextStyle(color: context.f3textMuted, fontSize: 12),
-            ),
-          )
-        else
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: _UpcomingBeatdownsCard(events: events),
-          ),
-      ],
-    );
-  }
-}
-
-/// One summary card: how many beatdowns the PAX is HC'd/Q'd for, a preview
-/// of the next one (with its actual AO, not just a location string), and a
-/// tap-through to Schedule for the rest — replaces the old horizontal chip
-/// list, which showed `locationName` instead of the AO and gave no sense of
-/// how many were coming up without scrolling.
-class _UpcomingBeatdownsCard extends StatelessWidget {
-  final List<F3EventInstance> events;
-  const _UpcomingBeatdownsCard({required this.events});
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final next = events.first;
-    final count = events.length;
-    final isToday = _isToday(next.date);
-    final isTomorrow = _isTomorrow(next.date);
-    final dayLabel = isToday
-        ? l10n.homeToday
-        : isTomorrow
-            ? l10n.homeTomorrow
-            : _shortDate(next.date);
-    final aoName = next.orgName ?? next.locationName ?? next.name ?? 'AO';
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: () {
-          // Pre-set Schedule's "mine" filter to the combined HC'd-or-Q'd
-          // set — matches what this card's own count badge already shows.
-          context.read<ValueNotifier<MineFilter?>>().value = MineFilter.hcOrQ;
-          context.read<ValueNotifier<int>>().value = 2; // Schedule tab
-        },
-        child: Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: context.f3card,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: context.f3divider),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: F3Colors.accent.withValues(alpha: 0.12),
-                  shape: BoxShape.circle,
-                ),
-                child: Text(
-                  '$count',
-                  style: const TextStyle(
-                    color: F3Colors.accent,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      l10n.homeHcdCount(count),
-                      style: TextStyle(
-                        color: context.f3textPrimary,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w800,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      '$dayLabel · $aoName${next.userIsQ ? ' · ${l10n.homeYoureQ}' : ''}',
-                      style: TextStyle(color: context.f3textMuted, fontSize: 12),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    if (count > 1) ...[
-                      const SizedBox(height: 6),
-                      _WeekSpreadDots(events: events),
-                    ],
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    l10n.homeSeeAll,
-                    style: const TextStyle(
-                      color: F3Colors.accent,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const Icon(Icons.chevron_right_rounded, color: F3Colors.accent, size: 18),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   bool _isToday(DateTime d) {
     final now = DateTime.now();
     return d.year == now.year && d.month == now.month && d.day == now.day;
@@ -1223,6 +1040,205 @@ class _UpcomingBeatdownsCard extends StatelessWidget {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     return '${days[d.weekday - 1]} ${months[d.month - 1]} ${d.day}';
   }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
+    if (_loading) {
+      return Container(
+        height: 132,
+        decoration: BoxDecoration(
+          color: context.f3card,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        alignment: Alignment.center,
+        child: const SizedBox(
+          width: 22,
+          height: 22,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      );
+    }
+
+    final events = _events ?? [];
+
+    if (events.isEmpty) {
+      return _HeroShell(
+        gradient: false,
+        onTap: () => Navigator.push(
+            context, MaterialPageRoute(builder: (_) => const BrowseAosScreen())),
+        child: Row(
+          // homeNothingHcd is a full sentence, not a short label — it wraps
+          // to 2-3 lines, so the icon has to anchor to the top of the row
+          // instead of the row's default vertical-center.
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.16),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.explore_rounded, color: Colors.white, size: 20),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(l10n.homeNothingHcd,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        height: 1.35)),
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded, color: Colors.white, size: 22),
+          ],
+        ),
+      );
+    }
+
+    final next = events.first;
+    final isQ = next.userIsQ;
+    final isToday = _isToday(next.date);
+    final isTomorrow = _isTomorrow(next.date);
+    final dayLabel = isToday
+        ? l10n.homeToday
+        : isTomorrow
+            ? l10n.homeTomorrow
+            : _shortDate(next.date);
+    final aoName = next.orgName ?? next.locationName ?? next.name ?? 'AO';
+    final more = events.length - 1;
+
+    return _HeroShell(
+      gradient: isQ,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: isQ ? 0.24 : 0.14),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  (isQ ? l10n.homeYoureQ : dayLabel).toUpperCase(),
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1),
+                ),
+              ),
+              if (isQ) ...[
+                const SizedBox(width: 8),
+                Text(dayLabel,
+                    style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.82),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700)),
+              ],
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(aoName,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                  color: Colors.white, fontSize: 27, fontWeight: FontWeight.w900, height: 1.05)),
+          if (more > 0) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                _WeekSpreadDots(events: events, light: true),
+                const SizedBox(width: 6),
+                // The dots alone read as a stray mark blown up to hero
+                // scale — they worked as a supplementary detail on the old,
+                // smaller card, but need a label here to mean anything.
+                Text(
+                  more == 1 ? '+1 more this week' : '+$more more this week',
+                  style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.82),
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
+          ],
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.white,
+                side: BorderSide(color: Colors.white.withValues(alpha: 0.55)),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              onPressed: () {
+                if (isQ) {
+                  Navigator.push(
+                      context, MaterialPageRoute(builder: (_) => const WorkoutScreen()));
+                } else {
+                  context.read<ValueNotifier<MineFilter?>>().value = MineFilter.hcOrQ;
+                  context.read<ValueNotifier<int>>().value = 2; // Schedule tab
+                }
+              },
+              // Scoped out of translation for now, same as the empty-state
+              // copy above.
+              child: Text(isQ ? 'Build your Weinke' : l10n.homeSeeAll,
+                  style: const TextStyle(fontWeight: FontWeight.w800)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Shared full-bleed container for the Today hero: an intense gradient when
+/// the PAX is Q'ing (the highest-stakes state), a solid accent fill
+/// otherwise — both are still clearly one tier above the bordered cards
+/// below them on the page.
+class _HeroShell extends StatelessWidget {
+  final Widget child;
+  final bool gradient;
+  final VoidCallback? onTap;
+  const _HeroShell({required this.child, required this.gradient, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: onTap,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            gradient: gradient
+                ? const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [F3Colors.accent, F3Colors.accentDim],
+                  )
+                : null,
+            color: gradient ? null : F3Colors.accent.withValues(alpha: 0.88),
+          ),
+          child: child,
+        ),
+      ),
+    );
+  }
 }
 
 /// One dot per upcoming HC'd/Q'd beatdown (capped, with a "+N" overflow) —
@@ -1231,9 +1247,13 @@ class _UpcomingBeatdownsCard extends StatelessWidget {
 /// week without having to tap through to Schedule.
 class _WeekSpreadDots extends StatelessWidget {
   final List<F3EventInstance> events;
+  // Renders in white-on-translucent instead of accent/steel-blue when sitting
+  // on the Today hero's own colored fill, where the default palette would be
+  // invisible or clash.
+  final bool light;
   static const _maxDots = 6;
 
-  const _WeekSpreadDots({required this.events});
+  const _WeekSpreadDots({required this.events, this.light = false});
 
   @override
   Widget build(BuildContext context) {
@@ -1251,16 +1271,18 @@ class _WeekSpreadDots extends StatelessWidget {
             margin: const EdgeInsets.only(right: 4),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: e.date.isBefore(weekCutoff)
-                  ? F3Colors.accent
-                  : F3Colors.phaseDisclaimer,
+              color: light
+                  ? Colors.white.withValues(alpha: e.date.isBefore(weekCutoff) ? 0.95 : 0.5)
+                  : (e.date.isBefore(weekCutoff)
+                      ? F3Colors.accent
+                      : F3Colors.phaseDisclaimer),
             ),
           ),
         if (overflow > 0)
           Text(
             '+$overflow',
             style: TextStyle(
-              color: context.f3textMuted,
+              color: light ? Colors.white.withValues(alpha: 0.85) : context.f3textMuted,
               fontSize: 10,
               fontWeight: FontWeight.w700,
             ),

@@ -57,6 +57,48 @@ void main() {
       final first = result.firstWhere((a) => a.id == 'first_beatdown');
       expect(first.unlocked, isFalse);
     });
+
+    test('a locked achievement reports current progress toward its target', () {
+      final history = List.generate(
+        6,
+        (i) => _session(date: DateTime(2026, 1, i + 1)),
+      );
+      final result = AchievementService.compute(history);
+      final ironPax = result.firstWhere((a) => a.id == 'iron_pax');
+      expect(ironPax.unlocked, isFalse);
+      expect(ironPax.currentProgress, 6);
+      expect(ironPax.targetProgress, 10);
+    });
+
+    test('an unlocked achievement clamps progress at its target, not the raw overshoot', () {
+      final history = List.generate(
+        15,
+        (i) => _session(date: DateTime(2026, 1, i + 1)),
+      );
+      final result = AchievementService.compute(history);
+      final ironPax = result.firstWhere((a) => a.id == 'iron_pax');
+      expect(ironPax.unlocked, isTrue);
+      expect(ironPax.currentProgress, 10);
+      expect(ironPax.targetProgress, 10);
+    });
+
+    test(
+        'REGRESSION: a streak achievement stays unlocked when nothing has been '
+        'posted yet this week, instead of flickering back to locked', () {
+      // AchievementService.compute always evaluates against the real
+      // DateTime.now() (it has no injectable clock), so the fixture is
+      // anchored to it directly: 4 consecutive weeks ending last week, and
+      // deliberately nothing in the current, still-open week.
+      final now = DateTime.now();
+      final history = [
+        for (var i = 1; i <= 4; i++) _session(date: now.subtract(Duration(days: 7 * i))),
+      ];
+      final result = AchievementService.compute(history);
+      final streak4 = result.firstWhere((a) => a.id == 'streak_4');
+      expect(streak4.unlocked, isTrue,
+          reason: '4 consecutive prior weeks should stay earned even with '
+              'nothing posted yet in the current, still-open week');
+    });
   });
 
   group('AchievementService.unlockDates', () {

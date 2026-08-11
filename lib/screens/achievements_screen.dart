@@ -227,6 +227,33 @@ class _BadgeTile extends StatelessWidget {
                   fontSize: 12,
                 ),
               ),
+              // A locked badge only ever told you the finish line, never
+              // how close you actually were — that's the whole gap between
+              // "surprise reward" and "active pull".
+              if (!badge.unlocked &&
+                  badge.currentProgress != null &&
+                  badge.targetProgress != null &&
+                  badge.targetProgress! > 0) ...[
+                const SizedBox(height: 6),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(3),
+                  child: LinearProgressIndicator(
+                    value: badge.currentProgress! / badge.targetProgress!,
+                    minHeight: 4,
+                    backgroundColor: context.f3divider,
+                    valueColor: AlwaysStoppedAnimation(color),
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  '${badge.currentProgress}/${badge.targetProgress}',
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
             ]),
           ),
           Container(
