@@ -78,6 +78,20 @@ class _TimerScreenState extends State<TimerScreen> {
     if (mounted) setState(() => _restCountdown = 0);
   }
 
+  // Phase change and halfway alert used to fire the identical
+  // HapticFeedback.heavyImpact() — a Q not looking at the screen mid-set
+  // felt the same buzz for "we moved to a new phase" and "you're halfway
+  // done", two very different pieces of information. Rhythm (a single
+  // pulse vs. two quick ones), not just raw intensity, is what's actually
+  // distinguishable by feel while working out.
+  void _hapticPhaseChange() => HapticFeedback.heavyImpact();
+
+  Future<void> _hapticHalfway() async {
+    HapticFeedback.mediumImpact();
+    await Future.delayed(const Duration(milliseconds: 150));
+    if (mounted) HapticFeedback.mediumImpact();
+  }
+
   // Rep counter
   bool _showRepCounter = false;
   int _repCount = 0;
@@ -305,7 +319,7 @@ class _TimerScreenState extends State<TimerScreen> {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted) {
               workoutSvc.resetExerciseIndex();
-              HapticFeedback.heavyImpact();
+              _hapticPhaseChange();
               _repCount = 0;
               _cancelRest();
               _speak(_phaseAnnouncement(state.currentPhase));
@@ -322,7 +336,7 @@ class _TimerScreenState extends State<TimerScreen> {
             _halfwayAlerted = true;
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (mounted) {
-                HapticFeedback.heavyImpact();
+                _hapticHalfway();
                 _speak('Halfway there, PAX. Keep pushing!');
               }
             });

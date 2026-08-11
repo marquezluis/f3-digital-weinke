@@ -879,6 +879,13 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get settingsImportBackupConfirmTitle => 'Replace all local data?';
+
+  @override
+  String get settingsImportBackupConfirmBody =>
+      'This overwrites your current profile, history, and roster with the pasted backup. This can\'t be undone.';
+
+  @override
   String get settingsAutoBackupRestore => 'Restore Automatic Backup';
 
   @override

@@ -1654,6 +1654,18 @@ abstract class AppLocalizations {
   /// **'Import failed: {error}'**
   String settingsImportFailed(String error);
 
+  /// No description provided for @settingsImportBackupConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace all local data?'**
+  String get settingsImportBackupConfirmTitle;
+
+  /// No description provided for @settingsImportBackupConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This overwrites your current profile, history, and roster with the pasted backup. This can\'t be undone.'**
+  String get settingsImportBackupConfirmBody;
+
   /// No description provided for @settingsAutoBackupRestore.
   ///
   /// In en, this message translates to:

@@ -898,6 +898,14 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get settingsImportBackupConfirmTitle =>
+      'Remplacer toutes les données locales ?';
+
+  @override
+  String get settingsImportBackupConfirmBody =>
+      'Cela écrase ton profil, ton historique et ton effectif actuels avec la sauvegarde collée. Cette action est irréversible.';
+
+  @override
   String get settingsAutoBackupRestore =>
       'Restaurer une sauvegarde automatique';
 

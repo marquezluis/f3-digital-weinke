@@ -418,6 +418,8 @@
   "@settingsImportFailed": {
     "placeholders": { "error": { "type": "String" } }
   },
+  "settingsImportBackupConfirmTitle": "Replace all local data?",
+  "settingsImportBackupConfirmBody": "This overwrites your current profile, history, and roster with the pasted backup. This can't be undone.",
   "settingsAutoBackupRestore": "Restore Automatic Backup",
   "settingsAutoBackupRestoreSub": "A silent weekly snapshot, kept on this device",
   "settingsAutoBackupNone": "No automatic backups yet — check back after a week of use.",

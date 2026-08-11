@@ -33,6 +33,7 @@ import 'qsource_screen.dart';
 import 'browse_aos_screen.dart';
 import 'brotherhood_screen.dart';
 import 'heatmap_screen.dart';
+import '../utils/shared_plan_importer.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -367,6 +368,19 @@ class HomeScreen extends StatelessWidget {
                         MaterialPageRoute(
                             builder: (_) => const BrowseAosScreen()),
                       ),
+                    ),
+                    const SizedBox(height: 8),
+                    // Same import a Co-Q's shared plan already does from
+                    // History's app bar — that action was only ever
+                    // discoverable by someone who happened to already be in
+                    // History, not something a Q would think to look for.
+                    _QuickCard(
+                      icon: Icons.group_add_rounded,
+                      title: 'Import a Co-Q\'s Plan',
+                      subtitle: 'Paste a plan a Co-Q shared with you',
+                      color: F3Colors.phaseWarmup,
+                      onTap: () => importSharedPlanFromClipboard(
+                          context, context.read<HistoryService>()),
                     ),
                   ],
                 ),
@@ -1163,6 +1177,10 @@ class _TodayHero extends StatefulWidget {
 class _TodayHeroState extends State<_TodayHero> {
   List<F3EventInstance>? _events;
   bool _loading = true;
+  // Distinguishes a genuinely empty schedule from a failed fetch — without
+  // this, a network hiccup renders identically to "nothing HC'd", with no
+  // way to tell the difference or retry.
+  bool _failed = false;
 
   @override
   void initState() {
@@ -1171,18 +1189,25 @@ class _TodayHeroState extends State<_TodayHero> {
   }
 
   Future<void> _fetch() async {
+    setState(() {
+      _loading = true;
+      _failed = false;
+    });
     final api = context.read<F3ApiService>();
     final profile = context.read<AppProfileService>();
     final userId = int.tryParse(profile.authUserId);
-    final events = await api.getUpcomingBeatdowns(userId: userId);
+    final result = await api.getUpcomingBeatdownsWithStatus(userId: userId);
     // Only the ones the PAX is actually HC'd or Q'd for — not every
     // beatdown in the region (that's what Schedule is for).
-    final mine = events.where((e) => e.userAttending || e.userIsQ).toList();
+    final mine =
+        result.events.where((e) => e.userAttending || e.userIsQ).toList();
     if (!mounted) return;
     setState(() {
       _events = mine.take(7).toList();
       _loading = false;
+      _failed = result.failed;
     });
+    if (result.failed) return;
     // Keep day-before/hour-before (and post-event backblast, if Q'd)
     // reminders in sync with the real HC/Q state — reconciles against
     // whatever was scheduled before, so un-HC'ing elsewhere (Slack, the
@@ -1236,6 +1261,37 @@ class _TodayHeroState extends State<_TodayHero> {
     }
 
     final events = _events ?? [];
+
+    if (_failed) {
+      return _HeroShell(
+        gradient: false,
+        onTap: _fetch,
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.16),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.refresh_rounded, color: Colors.white, size: 20),
+            ),
+            const SizedBox(width: 14),
+            const Expanded(
+              // Distinct from the "nothing HC'd" empty state below — this
+              // is a network failure, not a genuinely empty schedule, and
+              // conflating the two left no way to tell "really nothing
+              // scheduled" apart from "couldn't reach F3 Nation".
+              child: Text("Couldn't load your schedule — tap to retry",
+                  style: TextStyle(
+                      color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700)),
+            ),
+          ],
+        ),
+      );
+    }
 
     if (events.isEmpty) {
       return _HeroShell(

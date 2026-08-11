@@ -232,6 +232,27 @@ class SettingsScreen extends StatelessWidget {
                     );
                     return;
                   }
+                  if (!context.mounted) return;
+                  final confirmed = await showDialog<bool>(
+                    context: context,
+                    builder: (dialogContext) => AlertDialog(
+                      title: Text(l10n.settingsImportBackupConfirmTitle),
+                      content: Text(l10n.settingsImportBackupConfirmBody),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(dialogContext, false),
+                          child: Text(MaterialLocalizations.of(dialogContext)
+                              .cancelButtonLabel),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.pop(dialogContext, true),
+                          child: Text(MaterialLocalizations.of(dialogContext)
+                              .okButtonLabel),
+                        ),
+                      ],
+                    ),
+                  );
+                  if (confirmed != true) return;
                   try {
                     await LocalBackupService.importJson(
                       raw: raw,

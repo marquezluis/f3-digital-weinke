@@ -1160,7 +1160,32 @@ class _EhProspectCard extends StatelessWidget {
                 tooltip: 'Remove',
                 icon: Icon(Icons.close_rounded,
                     size: 18, color: context.f3textMuted),
-                onPressed: () => region.removeEhProspect(prospect.id),
+                onPressed: () async {
+                  final confirmed = await showDialog<bool>(
+                    context: context,
+                    builder: (dialogContext) => AlertDialog(
+                      title: const Text('Remove this prospect?'),
+                      content: Text(
+                          '${prospect.name} and any notes will be deleted. This can\'t be undone.'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(dialogContext, false),
+                          child: Text(MaterialLocalizations.of(dialogContext)
+                              .cancelButtonLabel),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.pop(dialogContext, true),
+                          style: TextButton.styleFrom(
+                              foregroundColor: Colors.red.shade700),
+                          child: const Text('Remove'),
+                        ),
+                      ],
+                    ),
+                  );
+                  if (confirmed != true) return;
+                  HapticFeedback.mediumImpact();
+                  region.removeEhProspect(prospect.id);
+                },
               ),
             ],
           ),

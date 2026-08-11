@@ -396,17 +396,39 @@ class F3ApiService extends ChangeNotifier {
       int? userId,
       DateTime? from,
       int limit = 200}) async {
-    if (orgId == null || userId == null) return [];
+    final result = await getUpcomingBeatdownsWithStatus(
+        userAccessToken: userAccessToken, userId: userId, from: from, limit: limit);
+    return result.events;
+  }
+
+  /// Same fetch as [getUpcomingBeatdowns], but also reports whether the
+  /// call itself failed rather than genuinely returning zero events —
+  /// [getUpcomingBeatdowns] collapses both into an empty list, which is
+  /// correct for most callers but leaves no way for a UI to show a retry
+  /// affordance instead of quietly rendering "nothing scheduled" for what
+  /// was actually a network failure.
+  Future<({List<F3EventInstance> events, bool failed})>
+      getUpcomingBeatdownsWithStatus(
+          {String? userAccessToken,
+          int? userId,
+          DateTime? from,
+          int limit = 200}) async {
+    if (orgId == null || userId == null) {
+      return (events: <F3EventInstance>[], failed: false);
+    }
     final d = from ?? DateTime.now();
     final startDate =
         '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
     final path =
         '/v1/event-instance/calendar-home-schedule?regionOrgId=$orgId&userId=$userId&startDate=$startDate&limit=$limit';
     final data = await _getList(path, bearerOverride: userAccessToken);
-    if (data == null) return [];
-    return data
-        .map((e) => F3EventInstance.fromJson(e as Map<String, dynamic>))
-        .toList();
+    if (data == null) return (events: <F3EventInstance>[], failed: true);
+    return (
+      events: data
+          .map((e) => F3EventInstance.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      failed: false,
+    );
   }
 
   /// Who's HC'd (planned attendance) for one event instance — names + role

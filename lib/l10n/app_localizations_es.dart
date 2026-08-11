@@ -896,6 +896,14 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
+  String get settingsImportBackupConfirmTitle =>
+      '¿Reemplazar todos los datos locales?';
+
+  @override
+  String get settingsImportBackupConfirmBody =>
+      'Esto sobrescribe tu perfil, historial y roster actuales con el respaldo pegado. No se puede deshacer.';
+
+  @override
   String get settingsAutoBackupRestore => 'Restaurar respaldo automático';
 
   @override

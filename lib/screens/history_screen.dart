@@ -18,6 +18,7 @@ import '../services/history_service.dart';
 import '../services/backblast_formatter.dart';
 import '../services/f3_api_service.dart';
 import '../services/weinke_exporter.dart';
+import '../utils/shared_plan_importer.dart';
 import '../theme/app_theme.dart';
 import 'beatdown_card_preview_screen.dart';
 import 'workout_screen.dart';
@@ -54,38 +55,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
   /// Imports a plan shared via BackblastScreen's "Share plan with Co-Q"
   /// (JSON on the clipboard, distinct from a full LocalBackupService backup)
   /// and adds it as a template — a starting point to build on, not a record
-  /// that this PAX personally ran it.
-  Future<void> _importSharedPlan(BuildContext context) async {
-    final history = context.read<HistoryService>();
-    final messenger = ScaffoldMessenger.of(context);
-    final data = await Clipboard.getData(Clipboard.kTextPlain);
-    final raw = data?.text ?? '';
-    if (raw.isEmpty) {
-      messenger.showSnackBar(
-          const SnackBar(content: Text('Clipboard is empty.')));
-      return;
-    }
-    try {
-      final decoded = jsonDecode(raw) as Map<String, dynamic>;
-      if (decoded['app'] != 'digital_weinke_plan') {
-        throw const FormatException('This is not a shared Digital Weinke plan.');
-      }
-      final entryJson = decoded['entry'] as Map<String, dynamic>;
-      final shared = WorkoutHistory.fromJson(entryJson);
-      final imported = shared.copyWith(
-        id: 'shared_${DateTime.now().millisecondsSinceEpoch}',
-        isTemplate: true,
-        rating: 0,
-        photoPaths: const [], // sender's local file paths don't exist on this device
-      );
-      await history.add(imported);
-      if (!context.mounted) return;
-      messenger.showSnackBar(const SnackBar(
-          content: Text('Plan imported — check your History list.')));
-    } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text('Import failed: $e')));
-    }
-  }
+  /// that this PAX personally ran it. Shared with Home's Quick Actions entry
+  /// (see lib/utils/shared_plan_importer.dart) so this isn't only
+  /// discoverable by someone who already happened to open History.
+  Future<void> _importSharedPlan(BuildContext context) =>
+      importSharedPlanFromClipboard(context, context.read<HistoryService>());
 
   @override
   Widget build(BuildContext context) {

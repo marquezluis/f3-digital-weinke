@@ -268,6 +268,8 @@
   "settingsClipboardEmpty": "Le presse-papiers est vide.",
   "settingsBackupImported": "Sauvegarde importée avec succès !",
   "settingsImportFailed": "Échec de l'importation : {error}",
+  "settingsImportBackupConfirmTitle": "Remplacer toutes les données locales ?",
+  "settingsImportBackupConfirmBody": "Cela écrase ton profil, ton historique et ton effectif actuels avec la sauvegarde collée. Cette action est irréversible.",
   "settingsAutoBackupRestore": "Restaurer une sauvegarde automatique",
   "settingsAutoBackupRestoreSub": "Un instantané hebdomadaire silencieux, conservé sur cet appareil",
   "settingsAutoBackupNone": "Pas encore de sauvegarde automatique — reviens après une semaine d'utilisation.",
