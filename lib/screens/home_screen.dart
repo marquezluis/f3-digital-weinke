@@ -209,7 +209,12 @@ class HomeScreen extends StatelessWidget {
                         const SizedBox(height: 8),
                         _FeaturedExerciseCard(exercise: featured),
                       ],
-                      if (streak.status != StreakStatus.none) ...[
+                      // Someone with real history but a currently-broken
+                      // streak (status none, weeks 0) used to see no card at
+                      // all here — indistinguishable from someone who's
+                      // simply never posted. Show it whenever there's any
+                      // history, with a "start today" state for the 0 case.
+                      if (sessions.isNotEmpty) ...[
                         const SizedBox(height: 8),
                         _StreakCard(streak: streak),
                       ],
@@ -844,10 +849,16 @@ class _StreakCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final atRisk = streak.status == StreakStatus.atRisk;
+    final zero = streak.status == StreakStatus.none;
     // Gold, not another shade of the brand red — an at-risk streak needs to
     // read as its own kind of signal, not just "more accent," the same way
-    // a phase color does elsewhere in the app.
-    final color = atRisk ? F3Colors.phaseCOT : F3Colors.accent;
+    // a phase color does elsewhere in the app. Zero starts calm/neutral —
+    // it's an invitation, not a warning.
+    final color = atRisk
+        ? F3Colors.phaseCOT
+        : zero
+            ? context.f3textMuted
+            : F3Colors.accent;
     final daysLeft = daysLeftInWeek(DateTime.now());
 
     return Container(
@@ -859,7 +870,7 @@ class _StreakCard extends StatelessWidget {
       ),
       child: Row(children: [
         Icon(
-            atRisk
+            atRisk || zero
                 ? Icons.local_fire_department_outlined
                 : Icons.local_fire_department_rounded,
             color: color,
@@ -870,11 +881,11 @@ class _StreakCard extends StatelessWidget {
             RichText(
               text: TextSpan(children: [
                 TextSpan(
-                  text: '${streak.weeks} ',
+                  text: zero ? '' : '${streak.weeks} ',
                   style: TextStyle(color: color, fontSize: 22, fontWeight: FontWeight.w900),
                 ),
                 TextSpan(
-                  text: l10n.homeWeekStreakLabel,
+                  text: zero ? l10n.homeStreakZeroTitle : l10n.homeWeekStreakLabel,
                   style: TextStyle(
                       color: context.f3textPrimary, fontSize: 16, fontWeight: FontWeight.w800),
                 ),
@@ -884,11 +895,13 @@ class _StreakCard extends StatelessWidget {
               // Scoped out of translation for now, same as the other new
               // copy on this screen — the calm-state description below
               // stays on the existing localized string.
-              atRisk
-                  ? (daysLeft == 1
-                      ? "Don't break it — post today to keep it alive"
-                      : "Don't break it — $daysLeft days left to post")
-                  : l10n.homeStreakDesc,
+              zero
+                  ? l10n.homeStreakZeroDesc
+                  : atRisk
+                      ? (daysLeft == 1
+                          ? "Don't break it — post today to keep it alive"
+                          : "Don't break it — $daysLeft days left to post")
+                      : l10n.homeStreakDesc,
               style: TextStyle(
                   color: atRisk ? color : context.f3textSecondary,
                   fontSize: 12,

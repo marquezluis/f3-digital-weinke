@@ -180,7 +180,7 @@
   "onboardingIntro1Title": "Build a Beatdown",
   "onboardingIntro1Body": "Generate or hand-build a Weinke from the full F3 Exicon, with Spartan AI as your Co-Q for audibles and prep.",
   "onboardingIntro2Title": "Run the Q",
-  "onboardingIntro2Body": "A live, phase-aware timer walks you through the beatdown, then turns it into a backblast you can share.",
+  "onboardingIntro2Body": "A live, phase-aware timer walks you through the beatdown, then turns it into a backblast you can share. Works fully offline — no signal at the AO, no problem.",
   "onboardingIntro3Title": "Connect to F3 Nation",
   "onboardingIntro3Body": "HC to beatdowns, take the Q, post preblasts and backblasts, and find AOs near you — all tied to your F3 account.",
   "onboardingSetupTitle": "Optional setup",
@@ -188,9 +188,9 @@
   "onboardingPermissionsNotice": "We'll ask for location access (to find AOs near you) and notification permission (for HC/Q reminders) the first time you use those features.",
   "onboardingAppLockTitle": "App lock",
   "onboardingAppLockEnabled": "Enabled — biometric required to open",
-  "onboardingAppLockSubtitle": "Require biometric / PIN to open the app",
+  "onboardingAppLockSubtitle": "Keeps your history and emergency info private if your phone is lost or shared",
   "onboardingEmergencyTitle": "Emergency info",
-  "onboardingEmergencySubtitle": "Medical + AO-site info, on your device",
+  "onboardingEmergencySubtitle": "So a Q knows your allergies or conditions if something happens mid-workout",
   "onboardingEnterApp": "Enter the app",
 
   "homeWelcomeFallback": "Welcome",
@@ -227,6 +227,8 @@
   "homeExerciseOfDay": "EXERCISE OF THE DAY",
   "homeWeekStreakLabel": "WEEK STREAK",
   "homeStreakDesc": "Consecutive weeks with a completed beatdown",
+  "homeStreakZeroTitle": "Start a streak",
+  "homeStreakZeroDesc": "Post this week to start a new one",
   "homeStatsLed": "You've led {paxCount} PAX across {beatdownCount, plural, =1{1 beatdown} other{{beatdownCount} beatdowns}}",
   "@homeStatsLed": {
     "placeholders": {
@@ -333,6 +335,7 @@
   "schedulePreblastPosted": "Preblast posted.",
   "schedulePreblastAutoUpdated": "Preblast refreshed to match.",
   "scheduleBeatdownFallback": "Beatdown",
+  "scheduleNotificationsOffNotice": "Notifications are off, so you won't get a reminder push — you can still see this on Schedule.",
 
   "browseAosTitle": "Browse AOs",
   "browseAosSearchHint": "Search AOs",

@@ -1174,18 +1174,30 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
 
   /// Immediate reminder scheduling right after HC/take-Q, so it doesn't wait
   /// for Home's next reconcile pass to pick it up.
-  void _scheduleReminders({bool? isQ}) {
+  Future<void> _scheduleReminders({bool? isQ}) async {
     final id = widget.event.numericId;
     if (id == null) return;
-    NotificationService().scheduleEventReminders(
+    final l10n = AppLocalizations.of(context)!;
+    // requestPermissions() is safe to call every time — it doesn't re-prompt
+    // once the OS has an answer, it just returns it — so this is a status
+    // check, not a fresh ask.
+    final granted = await NotificationService().requestPermissions();
+    await NotificationService().scheduleEventReminders(
       eventId: id,
       eventDateTime: widget.event.dateTime,
       title: widget.event.orgName ??
           widget.event.locationName ??
-          AppLocalizations.of(context)!.scheduleBeatdownFallback,
+          l10n.scheduleBeatdownFallback,
       isQ: isQ ?? widget.event.userIsQ,
       hasPreblast: _event.hasPreblast,
     );
+    if (!granted && mounted) {
+      setState(() {
+        final base = _flash;
+        final suffix = l10n.scheduleNotificationsOffNotice;
+        _flash = (base == null || base.isEmpty) ? suffix : '$base — $suffix';
+      });
+    }
   }
 
   /// Best-effort recovery of the Q's plan/coupon text from an already-posted

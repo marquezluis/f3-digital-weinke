@@ -71,6 +71,14 @@ class AchievementsScreen extends StatelessWidget {
                   ]),
                 ]),
               ),
+              // Site-Q custom achievements are a real differentiator that
+              // otherwise only surfaces via a small AppBar icon — nothing
+              // ever actively prompts a Q to go create one.
+              if (customSvc.all.isEmpty) ...[
+                _CustomAchievementNudge(
+                    onTap: () => _showAddCustomSheet(context)),
+                const SizedBox(height: 16),
+              ],
               ...badges.map((badge) => _BadgeTile(
                     badge: badge,
                     earnedDate: unlockDates[badge.id],
@@ -201,6 +209,53 @@ void _showAddCustomSheet(BuildContext context) {
       ),
     ),
   );
+}
+
+class _CustomAchievementNudge extends StatelessWidget {
+  final VoidCallback onTap;
+  const _CustomAchievementNudge({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: context.f3card,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+                color: F3Colors.accent.withValues(alpha: 0.3),
+                style: BorderStyle.solid),
+          ),
+          child: Row(children: [
+            const Icon(Icons.add_circle_outline_rounded,
+                color: F3Colors.accent, size: 22),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Create a custom achievement',
+                      style: TextStyle(
+                          color: context.f3textPrimary,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14)),
+                  Text('Site-Q perk — set your own goal for your AO',
+                      style: TextStyle(
+                          color: context.f3textSecondary, fontSize: 12)),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded, color: context.f3textMuted),
+          ]),
+        ),
+      ),
+    );
+  }
 }
 
 class _BadgeTile extends StatelessWidget {

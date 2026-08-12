@@ -475,7 +475,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingIntro2Body.
   ///
   /// In en, this message translates to:
-  /// **'A live, phase-aware timer walks you through the beatdown, then turns it into a backblast you can share.'**
+  /// **'A live, phase-aware timer walks you through the beatdown, then turns it into a backblast you can share. Works fully offline — no signal at the AO, no problem.'**
   String get onboardingIntro2Body;
 
   /// No description provided for @onboardingIntro3Title.
@@ -523,7 +523,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingAppLockSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Require biometric / PIN to open the app'**
+  /// **'Keeps your history and emergency info private if your phone is lost or shared'**
   String get onboardingAppLockSubtitle;
 
   /// No description provided for @onboardingEmergencyTitle.
@@ -535,7 +535,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingEmergencySubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Medical + AO-site info, on your device'**
+  /// **'So a Q knows your allergies or conditions if something happens mid-workout'**
   String get onboardingEmergencySubtitle;
 
   /// No description provided for @onboardingEnterApp.
@@ -693,6 +693,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Consecutive weeks with a completed beatdown'**
   String get homeStreakDesc;
+
+  /// No description provided for @homeStreakZeroTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Start a streak'**
+  String get homeStreakZeroTitle;
+
+  /// No description provided for @homeStreakZeroDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Post this week to start a new one'**
+  String get homeStreakZeroDesc;
 
   /// No description provided for @homeStatsLed.
   ///
@@ -1197,6 +1209,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Beatdown'**
   String get scheduleBeatdownFallback;
+
+  /// No description provided for @scheduleNotificationsOffNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications are off, so you won\'t get a reminder push — you can still see this on Schedule.'**
+  String get scheduleNotificationsOffNotice;
 
   /// No description provided for @browseAosTitle.
   ///

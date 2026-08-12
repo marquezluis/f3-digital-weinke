@@ -212,7 +212,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get onboardingIntro2Body =>
-      'Un minuteur en direct, conscient des phases, te guide pendant le beatdown, puis le transforme en backblast que tu peux partager.';
+      'Un minuteur en direct, conscient des phases, te guide pendant le beatdown, puis le transforme en backblast que tu peux partager. Fonctionne entièrement hors ligne — pas de réseau à l\'AO, pas de problème.';
 
   @override
   String get onboardingIntro3Title => 'Connecte-toi à F3 Nation';
@@ -241,14 +241,14 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get onboardingAppLockSubtitle =>
-      'Exiger la biométrie ou le code PIN pour ouvrir l\'app';
+      'Protège ton historique et tes infos d\'urgence si ton téléphone est perdu ou prêté';
 
   @override
   String get onboardingEmergencyTitle => 'Informations d\'urgence';
 
   @override
   String get onboardingEmergencySubtitle =>
-      'Infos médicales et sur l\'AO, sur ton appareil';
+      'Pour qu\'un Q connaisse tes allergies ou conditions si quelque chose arrive pendant l\'entraînement';
 
   @override
   String get onboardingEnterApp => 'Entrer dans l\'app';
@@ -344,6 +344,13 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get homeStreakDesc =>
       'Semaines consécutives avec un beatdown complété';
+
+  @override
+  String get homeStreakZeroTitle => 'Démarre une série';
+
+  @override
+  String get homeStreakZeroDesc =>
+      'Publie cette semaine pour en démarrer une nouvelle';
 
   @override
   String homeStatsLed(int paxCount, int beatdownCount) {
@@ -646,6 +653,10 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get scheduleBeatdownFallback => 'Beatdown';
+
+  @override
+  String get scheduleNotificationsOffNotice =>
+      'Les notifications sont désactivées, tu ne recevras pas de rappel — tu peux quand même le voir dans Schedule.';
 
   @override
   String get browseAosTitle => 'Explorer les AO';

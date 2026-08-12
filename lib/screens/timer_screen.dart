@@ -628,9 +628,10 @@ class _TimerScreenState extends State<TimerScreen> {
                               ? () => _swapExercise(currentExercise, plan)
                               : null,
                           cotNotesController: _liveCotCtrl,
-                          nextExercise: exIdx + 1 < exercises.length
-                              ? exercises[exIdx + 1]
-                              : null,
+                          upcomingExercises: exercises.sublist(
+                            (exIdx + 1).clamp(0, exercises.length),
+                            (exIdx + 3).clamp(0, exercises.length),
+                          ),
                           getExerciseNote: (id) {
                             for (final b in plan.blocks) {
                               final n = b.noteFor(id);
@@ -1251,7 +1252,7 @@ class _ExerciseDisplay extends StatefulWidget {
   final List<Exercise> exercises;
   final int currentIndex;
   final VoidCallback? onSwap;
-  final Exercise? nextExercise;
+  final List<Exercise> upcomingExercises;
   final String Function(String exerciseId)? getExerciseNote;
   final int? Function(String exerciseId)? getExerciseReps;
   final TextEditingController cotNotesController;
@@ -1262,7 +1263,7 @@ class _ExerciseDisplay extends StatefulWidget {
     required this.currentIndex,
     required this.onSwap,
     required this.cotNotesController,
-    this.nextExercise,
+    this.upcomingExercises = const [],
     this.getExerciseNote,
     this.getExerciseReps,
   });
@@ -1514,7 +1515,7 @@ class _ExerciseDisplayState extends State<_ExerciseDisplay> {
             ),
           ),
         ],
-        if (widget.nextExercise != null) ...[
+        if (widget.upcomingExercises.isNotEmpty) ...[
           const SizedBox(height: 10),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
@@ -1523,28 +1524,43 @@ class _ExerciseDisplayState extends State<_ExerciseDisplay> {
               borderRadius: BorderRadius.circular(10),
               border: Border.all(color: context.f3divider),
             ),
-            child: Row(children: [
-              Icon(Icons.arrow_forward_rounded,
-                  size: 14, color: context.f3textMuted),
-              const SizedBox(width: 8),
-              Text('NEXT',
-                  style: TextStyle(
-                      color: context.f3textMuted,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1.2)),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  widget.nextExercise!.name,
-                  style: TextStyle(
-                      color: context.f3textSecondary,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ]),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (var i = 0; i < widget.upcomingExercises.length; i++) ...[
+                  if (i > 0) const SizedBox(height: 6),
+                  Row(children: [
+                    Icon(
+                        i == 0
+                            ? Icons.arrow_forward_rounded
+                            : Icons.more_horiz_rounded,
+                        size: 14,
+                        color: context.f3textMuted),
+                    const SizedBox(width: 8),
+                    Text(i == 0 ? 'NEXT' : 'THEN',
+                        style: TextStyle(
+                            color: context.f3textMuted,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.2)),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        widget.upcomingExercises[i].name,
+                        style: TextStyle(
+                            color: i == 0
+                                ? context.f3textSecondary
+                                : context.f3textMuted,
+                            fontSize: i == 0 ? 14 : 13,
+                            fontWeight:
+                                i == 0 ? FontWeight.w700 : FontWeight.w500),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ]),
+                ],
+              ],
+            ),
           ),
         ],
         const SizedBox(height: 8),

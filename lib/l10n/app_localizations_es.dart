@@ -212,7 +212,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get onboardingIntro2Body =>
-      'Un cronómetro en vivo y con fases te guía durante el beatdown, y luego lo convierte en un backblast que puedes compartir.';
+      'Un cronómetro en vivo y con fases te guía durante el beatdown, y luego lo convierte en un backblast que puedes compartir. Funciona completamente sin conexión — sin señal en el AO, no hay problema.';
 
   @override
   String get onboardingIntro3Title => 'Conéctate a F3 Nation';
@@ -241,14 +241,14 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get onboardingAppLockSubtitle =>
-      'Requerir biometría o PIN para abrir la app';
+      'Protege tu historial e información de emergencia si pierdes tu teléfono o lo prestas';
 
   @override
   String get onboardingEmergencyTitle => 'Información de emergencia';
 
   @override
   String get onboardingEmergencySubtitle =>
-      'Información médica y del AO, en tu dispositivo';
+      'Para que un Q conozca tus alergias o condiciones si algo pasa durante el entrenamiento';
 
   @override
   String get onboardingEnterApp => 'Entrar a la app';
@@ -343,6 +343,12 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get homeStreakDesc =>
       'Semanas consecutivas con un beatdown completado';
+
+  @override
+  String get homeStreakZeroTitle => 'Empieza una racha';
+
+  @override
+  String get homeStreakZeroDesc => 'Publica esta semana para empezar una nueva';
 
   @override
   String homeStatsLed(int paxCount, int beatdownCount) {
@@ -643,6 +649,10 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get scheduleBeatdownFallback => 'Beatdown';
+
+  @override
+  String get scheduleNotificationsOffNotice =>
+      'Las notificaciones están desactivadas, no recibirás un recordatorio — igual puedes verlo en Schedule.';
 
   @override
   String get browseAosTitle => 'Explorar AOs';

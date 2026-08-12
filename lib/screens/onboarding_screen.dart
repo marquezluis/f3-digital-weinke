@@ -3,10 +3,12 @@
 // what the app does, then offers optional setup (app-lock biometric + emergency
 // info) — both skippable. Finishing marks intro-seen and drops into the shell.
 
+import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../l10n/app_localizations.dart';
 import '../services/app_profile_service.dart';
+import '../services/settings_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/onboarding_scene.dart';
 import 'emergency_edit_screen.dart';
@@ -174,15 +176,51 @@ class _IntroPage extends StatelessWidget {
   }
 }
 
-class _SetupPage extends StatelessWidget {
+class _SetupPage extends StatefulWidget {
   final VoidCallback onDone;
   const _SetupPage({required this.onDone});
+
+  @override
+  State<_SetupPage> createState() => _SetupPageState();
+}
+
+class _SetupPageState extends State<_SetupPage> {
+  late final ConfettiController _confettiCtrl;
+  bool _celebrating = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _confettiCtrl = ConfettiController(duration: const Duration(seconds: 2));
+  }
+
+  @override
+  void dispose() {
+    _confettiCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _enterApp() async {
+    final reduced = context.read<SettingsService>().reducedMotion ||
+        MediaQuery.of(context).disableAnimations;
+    if (reduced) {
+      widget.onDone();
+      return;
+    }
+    // A brief celebratory beat before dropping into the shell — arriving
+    // should feel like something, not just another settings tap.
+    setState(() => _celebrating = true);
+    _confettiCtrl.play();
+    await Future.delayed(const Duration(milliseconds: 900));
+    if (mounted) widget.onDone();
+  }
 
   @override
   Widget build(BuildContext context) {
     final profile = context.watch<AppProfileService>();
     final l10n = AppLocalizations.of(context)!;
-    return Padding(
+    return Stack(alignment: Alignment.topCenter, children: [
+      Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -255,12 +293,21 @@ class _SetupPage extends StatelessWidget {
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 16),
             ),
-            onPressed: onDone,
+            onPressed: _celebrating ? null : _enterApp,
             child: Text(l10n.onboardingEnterApp),
           ),
         ],
       ),
-    );
+      ),
+      ConfettiWidget(
+        confettiController: _confettiCtrl,
+        blastDirection: 1.5708, // pi/2, straight down
+        numberOfParticles: 24,
+        gravity: 0.25,
+        emissionFrequency: 0.08,
+        colors: const [F3Colors.accent, Colors.white, Colors.yellow],
+      ),
+    ]);
   }
 }
 

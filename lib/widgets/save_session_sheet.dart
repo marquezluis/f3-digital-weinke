@@ -824,7 +824,12 @@ class _AchievementUnlockedDialogState
   void initState() {
     super.initState();
     _confettiCtrl = ConfettiController(duration: const Duration(seconds: 3));
-    _confettiCtrl.play();
+    // Reduced Motion is an app-wide setting (see timer_screen.dart's demo
+    // loop for the other place that already respects it) — confetti is
+    // exactly the kind of non-essential motion it exists to suppress.
+    if (!context.read<SettingsService>().reducedMotion) {
+      _confettiCtrl.play();
+    }
   }
 
   @override

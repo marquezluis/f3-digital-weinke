@@ -212,7 +212,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get onboardingIntro2Body =>
-      'A live, phase-aware timer walks you through the beatdown, then turns it into a backblast you can share.';
+      'A live, phase-aware timer walks you through the beatdown, then turns it into a backblast you can share. Works fully offline — no signal at the AO, no problem.';
 
   @override
   String get onboardingIntro3Title => 'Connect to F3 Nation';
@@ -240,14 +240,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get onboardingAppLockSubtitle =>
-      'Require biometric / PIN to open the app';
+      'Keeps your history and emergency info private if your phone is lost or shared';
 
   @override
   String get onboardingEmergencyTitle => 'Emergency info';
 
   @override
   String get onboardingEmergencySubtitle =>
-      'Medical + AO-site info, on your device';
+      'So a Q knows your allergies or conditions if something happens mid-workout';
 
   @override
   String get onboardingEnterApp => 'Enter the app';
@@ -340,6 +340,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get homeStreakDesc => 'Consecutive weeks with a completed beatdown';
+
+  @override
+  String get homeStreakZeroTitle => 'Start a streak';
+
+  @override
+  String get homeStreakZeroDesc => 'Post this week to start a new one';
 
   @override
   String homeStatsLed(int paxCount, int beatdownCount) {
@@ -635,6 +641,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get scheduleBeatdownFallback => 'Beatdown';
+
+  @override
+  String get scheduleNotificationsOffNotice =>
+      'Notifications are off, so you won\'t get a reminder push — you can still see this on Schedule.';
 
   @override
   String get browseAosTitle => 'Browse AOs';

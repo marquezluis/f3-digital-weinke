@@ -9,6 +9,8 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../services/settings_service.dart';
 import '../theme/app_theme.dart';
 
 class OnboardingScene extends StatefulWidget {
@@ -40,9 +42,11 @@ class _OnboardingSceneState extends State<OnboardingScene>
 
   @override
   Widget build(BuildContext context) {
-    // Respects the app's Reduced Motion setting the same way the rest of
-    // the app should (audit #65) — a single static frame instead of a loop.
-    final reduceMotion = MediaQuery.of(context).disableAnimations;
+    // Respects both the OS-level accessibility setting and the app's own
+    // Reduced Motion toggle (Settings) — a single static frame instead of a
+    // loop either way.
+    final reduceMotion = MediaQuery.of(context).disableAnimations ||
+        context.watch<SettingsService>().reducedMotion;
     return SizedBox(
       width: double.infinity,
       height: widget.height,
