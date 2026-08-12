@@ -241,13 +241,11 @@ class SettingsScreen extends StatelessWidget {
                       actions: [
                         TextButton(
                           onPressed: () => Navigator.pop(dialogContext, false),
-                          child: Text(MaterialLocalizations.of(dialogContext)
-                              .cancelButtonLabel),
+                          child: const Text('CANCEL'),
                         ),
                         TextButton(
                           onPressed: () => Navigator.pop(dialogContext, true),
-                          child: Text(MaterialLocalizations.of(dialogContext)
-                              .okButtonLabel),
+                          child: const Text('OK'),
                         ),
                       ],
                     ),
@@ -370,16 +368,12 @@ Future<void> _showAutoBackupSheet(BuildContext context) async {
                             TextButton(
                               onPressed: () =>
                                   Navigator.pop(dialogContext, false),
-                              child: Text(
-                                  MaterialLocalizations.of(dialogContext)
-                                      .cancelButtonLabel),
+                              child: const Text('CANCEL'),
                             ),
                             TextButton(
                               onPressed: () =>
                                   Navigator.pop(dialogContext, true),
-                              child: Text(
-                                  MaterialLocalizations.of(dialogContext)
-                                      .okButtonLabel),
+                              child: const Text('OK'),
                             ),
                           ],
                         ),

@@ -1170,14 +1170,13 @@ class _EhProspectCard extends StatelessWidget {
                       actions: [
                         TextButton(
                           onPressed: () => Navigator.pop(dialogContext, false),
-                          child: Text(MaterialLocalizations.of(dialogContext)
-                              .cancelButtonLabel),
+                          child: const Text('CANCEL'),
                         ),
                         TextButton(
                           onPressed: () => Navigator.pop(dialogContext, true),
                           style: TextButton.styleFrom(
                               foregroundColor: Colors.red.shade700),
-                          child: const Text('Remove'),
+                          child: const Text('REMOVE'),
                         ),
                       ],
                     ),

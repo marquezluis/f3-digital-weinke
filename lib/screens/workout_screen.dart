@@ -2058,6 +2058,7 @@ class _BlockSection extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   IconButton(
+                    tooltip: 'Decrease rounds',
                     icon: Icon(Icons.remove_circle_outline,
                         color: context.f3textSecondary, size: 32),
                     onPressed: tempRounds > 1
@@ -2072,6 +2073,7 @@ class _BlockSection extends StatelessWidget {
                           fontWeight: FontWeight.w900)),
                   const SizedBox(width: 12),
                   IconButton(
+                    tooltip: 'Increase rounds',
                     icon: const Icon(Icons.add_circle_outline,
                         color: F3Colors.accent, size: 32),
                     onPressed: tempRounds < 10

@@ -540,6 +540,7 @@ class _BackblastScreenState extends State<BackblastScreen> {
         eventTypeId: null,
       );
       if (err != null) {
+        HapticFeedback.heavyImpact();
         if (mounted) _publishResult('Publish failed', err);
         return;
       }
@@ -592,6 +593,7 @@ class _BackblastScreenState extends State<BackblastScreen> {
       }
 
       if (!mounted) return;
+      HapticFeedback.mediumImpact();
       _publishResult(
         'Published to F3 Nation',
         'Backblast written'
@@ -601,6 +603,7 @@ class _BackblastScreenState extends State<BackblastScreen> {
             '(check spelling or that they\'re registered).'}',
       );
     } catch (e) {
+      HapticFeedback.heavyImpact();
       if (mounted) _publishResult('Publish error', '$e');
     } finally {
       if (mounted) setState(() => _publishing = false);

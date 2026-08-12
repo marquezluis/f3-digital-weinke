@@ -47,6 +47,7 @@ class MonthCalendar extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               IconButton(
+                tooltip: 'Previous month',
                 icon: const Icon(Icons.chevron_left_rounded),
                 onPressed: onPreviousMonth,
                 color: context.f3textSecondary,
@@ -59,6 +60,7 @@ class MonthCalendar extends StatelessWidget {
                     fontWeight: FontWeight.w800),
               ),
               IconButton(
+                tooltip: 'Next month',
                 icon: const Icon(Icons.chevron_right_rounded),
                 onPressed: onNextMonth,
                 color: context.f3textSecondary,

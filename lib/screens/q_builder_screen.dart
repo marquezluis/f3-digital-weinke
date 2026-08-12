@@ -260,7 +260,12 @@ class _QBuilderScreenState extends State<QBuilderScreen> {
                   final url = Uri.parse('https://f3nation.com/exicon/');
                   try {
                     await launchUrl(url, mode: LaunchMode.externalApplication);
-                  } catch (_) {}
+                  } catch (_) {
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Could not open link.')),
+                    );
+                  }
                 },
                 icon: const Icon(Icons.open_in_new_rounded, size: 18),
                 label: const Text('SEARCH OFFICIAL EXICON ONLINE'),
