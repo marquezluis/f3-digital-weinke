@@ -10,6 +10,7 @@ import 'package:flutter/services.dart';
 import '../l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../models/app_version.dart';
 import 'package:share_plus/share_plus.dart';
 import '../models/auth_models.dart';
@@ -311,6 +312,9 @@ class SettingsScreen extends StatelessWidget {
               ),
               const SizedBox(height: 28),
 
+              // ── F3 Nation ─────────────────────────────────────────────────
+              const _F3NationLinksSection(),
+
               // ── About ─────────────────────────────────────────────────────
               _SectionHeader(l10n.settingsAbout),
               const SizedBox(height: 8),
@@ -551,6 +555,170 @@ class _SectionHeader extends StatelessWidget {
             color: context.f3textMuted,
             letterSpacing: 1.5,
           ),
+    );
+  }
+}
+
+// ── F3 Nation links ───────────────────────────────────────────────────────────
+// From the real apps.f3nation.com tool directory (confirmed URLs, 2026-08-12).
+// "Everyday Use" tools need no special access — anyone can open them. "Region
+// Admins" tools are gated behind an actual editor/admin role on the signed-in
+// user's F3 Nation profile, not just a manual toggle. Slack Bot/SyncBot are
+// deliberately left out — they're documentation links, not tools to open.
+
+class _F3NationLinksSection extends StatefulWidget {
+  const _F3NationLinksSection();
+
+  @override
+  State<_F3NationLinksSection> createState() => _F3NationLinksSectionState();
+}
+
+class _F3NationLinksSectionState extends State<_F3NationLinksSection> {
+  bool _checked = false;
+  bool _checking = false;
+  bool _isAdmin = false;
+
+  bool _isLinked(AuthService auth) =>
+      auth.currentUser?.identities
+          .any((i) => i.provider == AuthProvider.f3nation) ??
+      false;
+
+  void _maybeCheck(bool linked) {
+    if (!linked || _checked || _checking) return;
+    _checking = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkAdmin().whenComplete(() {
+          if (mounted) _checking = false;
+        }));
+  }
+
+  /// Role-name casing hasn't been confirmed against a live payload (only an
+  /// illustrative doc comment exists), so this checks case-insensitively
+  /// rather than trusting an exact string match.
+  Future<void> _checkAdmin() async {
+    final auth = context.read<AuthService>();
+    final api = context.read<F3ApiService>();
+    if (!_isLinked(auth)) return;
+    final token = await auth.getF3AccessToken();
+    if (token == null) return;
+    final f3 = await api.getMyProfile(userAccessToken: token);
+    if (f3 == null || !mounted) return;
+    final isAdmin = f3.roles.any((r) {
+      final name = r.roleName.toLowerCase();
+      return name == 'editor' || name == 'admin';
+    });
+    setState(() {
+      _isAdmin = isAdmin;
+      _checked = true;
+    });
+  }
+
+  Future<void> _open(String url) async {
+    try {
+      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not open link.')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<AuthService>(
+      builder: (context, auth, _) {
+        _maybeCheck(_isLinked(auth));
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const _SectionHeader('F3 NATION'),
+            const SizedBox(height: 8),
+            _NavTile(
+              icon: Icons.map_rounded,
+              title: 'F3 Map',
+              subtitle: 'Every workout group across the nation',
+              color: const Color(0xFF2196F3),
+              onTap: () => _open('https://map.f3nation.com'),
+            ),
+            const SizedBox(height: 8),
+            _NavTile(
+              icon: Icons.near_me_rounded,
+              title: 'F3 Near Me',
+              subtitle: 'Fast map to find a workout — no account needed',
+              color: F3Colors.catBodyweight,
+              onTap: () => _open('https://f3near.me'),
+            ),
+            const SizedBox(height: 8),
+            _NavTile(
+              icon: Icons.badge_rounded,
+              title: 'F3 Me',
+              subtitle: 'Your official F3 Nation profile',
+              color: F3Colors.phaseMary,
+              onTap: () => _open('https://me.f3nation.com'),
+            ),
+            const SizedBox(height: 8),
+            _NavTile(
+              icon: Icons.bar_chart_rounded,
+              title: 'PAX Vault',
+              subtitle: 'Region analytics — participation, attendance trends',
+              color: F3Colors.catCoupon,
+              onTap: () => _open('https://pax-vault.f3nation.com'),
+            ),
+            const SizedBox(height: 8),
+            _NavTile(
+              icon: Icons.menu_book_rounded,
+              title: 'The Codex',
+              subtitle: 'Live F3 Exicon & Lexicon on the web',
+              color: F3Colors.catWarmup,
+              onTap: () => _open('https://codex.f3nation.com'),
+            ),
+            const SizedBox(height: 8),
+            _NavTile(
+              icon: Icons.account_tree_rounded,
+              title: 'Org Chart',
+              subtitle: 'Sectors, Areas, and Regions on a map',
+              color: F3Colors.accent,
+              onTap: () => _open('https://org.f3nation.com'),
+            ),
+            if (_isAdmin) ...[
+              const SizedBox(height: 28),
+              const _SectionHeader('ADMIN TOOLS'),
+              const SizedBox(height: 4),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text(
+                  "Visible because your F3 Nation account has an editor/admin role.",
+                  style: TextStyle(color: context.f3textMuted, fontSize: 11.5),
+                ),
+              ),
+              _NavTile(
+                icon: Icons.admin_panel_settings_rounded,
+                title: 'Admin Portal',
+                subtitle: 'Manage locations, events, and org settings',
+                color: Colors.red.shade700,
+                onTap: () => _open('https://admin.f3nation.com'),
+              ),
+              const SizedBox(height: 8),
+              _NavTile(
+                icon: Icons.web_rounded,
+                title: 'Region Pages',
+                subtitle: 'Calendars, member directories, contact info',
+                color: F3Colors.phaseCOT,
+                onTap: () => _open('https://regions.f3nation.com'),
+              ),
+              const SizedBox(height: 8),
+              _NavTile(
+                icon: Icons.health_and_safety_rounded,
+                title: 'Status',
+                subtitle: "Check if F3 Nation's own services are down",
+                color: F3Colors.catMary,
+                onTap: () => _open('https://status.f3nation.com'),
+              ),
+            ],
+            const SizedBox(height: 28),
+          ],
+        );
+      },
     );
   }
 }
