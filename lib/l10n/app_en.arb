@@ -44,6 +44,10 @@
   "@welcomePrivacy": {
     "description": "Privacy notice on the welcome screen."
   },
+  "welcomeSignInFailed": "Sign-in failed. Please check your connection and try again.",
+  "@welcomeSignInFailed": {
+    "description": "Shown when F3 Nation SSO sign-in fails during onboarding, instead of the raw exception text."
+  },
   "welcomeProtectApp": "Protect This App",
   "@welcomeProtectApp": {
     "description": "Switch label for enabling app lock on the welcome screen."

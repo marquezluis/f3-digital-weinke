@@ -118,9 +118,13 @@ class _WelcomeScreenState extends State<WelcomeScreen>
       if (!mounted) return;
       widget.onComplete();
     } catch (e) {
+      debugPrint('F3 Nation sign-in failed: $e');
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$e'), duration: const Duration(seconds: 6)),
+        SnackBar(
+            content: Text(l10n.welcomeSignInFailed),
+            duration: const Duration(seconds: 6)),
       );
     } finally {
       if (mounted) setState(() => _saving = false);

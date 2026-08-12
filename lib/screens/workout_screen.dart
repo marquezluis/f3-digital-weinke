@@ -13,7 +13,8 @@
 //     Live tab, syncing the plan to the timer screen.
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show Clipboard, ClipboardData;
+import 'package:flutter/services.dart'
+    show Clipboard, ClipboardData, HapticFeedback;
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../models/exercise.dart';
@@ -906,6 +907,7 @@ class _SwipableExerciseCard extends StatelessWidget {
         child: const Icon(Icons.delete_rounded, color: Colors.red, size: 26),
       ),
       confirmDismiss: (_) async {
+        HapticFeedback.mediumImpact();
         return await showDialog<bool>(
               context: context,
               builder: (_) => AlertDialog(
@@ -1564,6 +1566,7 @@ class _PlanView extends StatelessWidget {
                         style: TextStyle(color: ctx.f3textSecondary)),
                     const Spacer(),
                     IconButton(
+                      tooltip: 'Decrease rounds',
                       icon: const Icon(Icons.remove_circle_outline_rounded),
                       onPressed: rounds > 1
                           ? () => setState(() => rounds--)
@@ -1574,6 +1577,7 @@ class _PlanView extends StatelessWidget {
                             color: ctx.f3textPrimary,
                             fontWeight: FontWeight.w800)),
                     IconButton(
+                      tooltip: 'Increase rounds',
                       icon: const Icon(Icons.add_circle_outline_rounded),
                       onPressed:
                           rounds < 10 ? () => setState(() => rounds++) : null,

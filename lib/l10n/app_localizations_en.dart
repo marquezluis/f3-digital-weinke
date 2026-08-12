@@ -44,6 +44,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Your profile stays on this device. Nothing is sent anywhere unless you choose to share it.';
 
   @override
+  String get welcomeSignInFailed =>
+      'Sign-in failed. Please check your connection and try again.';
+
+  @override
   String get welcomeProtectApp => 'Protect This App';
 
   @override

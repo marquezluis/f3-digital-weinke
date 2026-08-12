@@ -308,9 +308,34 @@ class _CustomExerciseTile extends StatelessWidget {
             ]),
           ),
           IconButton(
+            tooltip: 'Delete exercise',
             icon: Icon(Icons.delete_outline_rounded,
                 color: context.f3textMuted, size: 20),
             onPressed: () async {
+              HapticFeedback.mediumImpact();
+              final confirmed = await showDialog<bool>(
+                context: context,
+                builder: (dialogContext) => AlertDialog(
+                  backgroundColor: dialogContext.f3card,
+                  title: Text('Delete exercise?',
+                      style: TextStyle(color: dialogContext.f3textPrimary)),
+                  content: Text(ex.name,
+                      style: TextStyle(color: dialogContext.f3textSecondary)),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(dialogContext, false),
+                      child: const Text('CANCEL'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(dialogContext, true),
+                      child: const Text('DELETE',
+                          style: TextStyle(color: Colors.red)),
+                    ),
+                  ],
+                ),
+              );
+              if (confirmed != true) return;
+              if (!context.mounted) return;
               await context.read<ExerciseService>().deleteCustomExercise(ex.id);
             },
           ),

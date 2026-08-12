@@ -11,6 +11,7 @@
   "welcomeRegionHint": "ex. F3 Kansas City",
   "welcomeYourRole": "TON RÔLE",
   "welcomePrivacy": "Ton profil reste sur cet appareil. Rien n'est envoyé nulle part sauf si tu choisis de le partager.",
+  "welcomeSignInFailed": "Échec de la connexion. Vérifie ta connexion et réessaie.",
   "welcomeProtectApp": "Protéger cette app",
   "welcomeProtectAppDesc": "Utilise Face ID, l'empreinte digitale ou le code PIN à l'ouverture.",
   "welcomeProtectNotAvailable": "Le verrouillage de l'appareil n'est pas disponible sur cet appareil.",

@@ -175,6 +175,7 @@ class _DeckOfPainScreenState extends State<DeckOfPainScreen> {
             onChanged: _setExerciseCount,
             min: 2,
             max: 15,
+            label: 'exercise count',
           ),
         ]),
         const SizedBox(height: 16),
@@ -343,17 +344,20 @@ class _Stepper extends StatelessWidget {
   final int value;
   final int min;
   final int max;
+  final String label;
   final ValueChanged<int> onChanged;
   const _Stepper(
       {required this.value,
       required this.onChanged,
       required this.min,
-      required this.max});
+      required this.max,
+      required this.label});
 
   @override
   Widget build(BuildContext context) {
     return Row(children: [
       IconButton(
+        tooltip: 'Decrease $label',
         icon: const Icon(Icons.remove_circle_outline_rounded),
         color: context.f3textSecondary,
         onPressed: value > min ? () => onChanged(value - 1) : null,
@@ -368,6 +372,7 @@ class _Stepper extends StatelessWidget {
                 fontWeight: FontWeight.w800)),
       ),
       IconButton(
+        tooltip: 'Increase $label',
         icon: const Icon(Icons.add_circle_outline_rounded),
         color: context.f3textSecondary,
         onPressed: value < max ? () => onChanged(value + 1) : null,

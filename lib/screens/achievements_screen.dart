@@ -2,6 +2,7 @@
 // Displays achievement badges derived from local session history.
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show HapticFeedback;
 import 'package:provider/provider.dart';
 import '../models/custom_achievement.dart';
 import '../services/achievement_service.dart';
@@ -74,7 +75,8 @@ class AchievementsScreen extends StatelessWidget {
                     badge: badge,
                     earnedDate: unlockDates[badge.id],
                     onDelete: badge.isCustom
-                        ? () => customSvc.remove(badge.id)
+                        ? () => _confirmRemoveCustomAchievement(
+                            context, customSvc, badge)
                         : null,
                   )),
             ],
@@ -83,6 +85,33 @@ class AchievementsScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+Future<void> _confirmRemoveCustomAchievement(
+    BuildContext context, CustomAchievementService customSvc, Achievement badge) async {
+  HapticFeedback.mediumImpact();
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      backgroundColor: dialogContext.f3card,
+      title: Text('Remove achievement?',
+          style: TextStyle(color: dialogContext.f3textPrimary)),
+      content: Text(badge.title,
+          style: TextStyle(color: dialogContext.f3textSecondary)),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(dialogContext, false),
+          child: const Text('CANCEL'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(dialogContext, true),
+          child: const Text('REMOVE', style: TextStyle(color: Colors.red)),
+        ),
+      ],
+    ),
+  );
+  if (confirmed != true) return;
+  customSvc.remove(badge.id);
 }
 
 void _showAddCustomSheet(BuildContext context) {

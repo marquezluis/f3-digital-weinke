@@ -166,6 +166,12 @@ abstract class AppLocalizations {
   /// **'Your profile stays on this device. Nothing is sent anywhere unless you choose to share it.'**
   String get welcomePrivacy;
 
+  /// Shown when F3 Nation SSO sign-in fails during onboarding, instead of the raw exception text.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign-in failed. Please check your connection and try again.'**
+  String get welcomeSignInFailed;
+
   /// Switch label for enabling app lock on the welcome screen.
   ///
   /// In en, this message translates to:
