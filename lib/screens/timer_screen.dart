@@ -1144,26 +1144,34 @@ class _PhaseHeader extends StatelessWidget {
         ),
         const SizedBox(width: 10),
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                phase.displayName,
-                style: TextStyle(
-                  color: phase.color,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 1.5,
+          child: Semantics(
+            // A screen-reader user relying on VoiceOver/TalkBack instead of
+            // (or alongside) the TTS coaching voice still needs to know a
+            // phase changed without having to re-explore the screen —
+            // liveRegion announces it automatically.
+            liveRegion: true,
+            label: '${phase.displayName}, ${phase.subtitle}',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  phase.displayName,
+                  style: TextStyle(
+                    color: phase.color,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.5,
+                  ),
                 ),
-              ),
-              Text(
-                phase.subtitle,
-                style: TextStyle(
-                  color: context.f3textMuted,
-                  fontSize: 12,
+                Text(
+                  phase.subtitle,
+                  style: TextStyle(
+                    color: context.f3textMuted,
+                    fontSize: 12,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
         if (next != null)

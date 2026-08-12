@@ -395,6 +395,18 @@ class _BrowseAosScreenState extends State<BrowseAosScreen> {
                       ),
                     ),
                   ),
+                  // Explains the location request before/instead of relying
+                  // solely on the one-time OS permission prompt — gone once
+                  // a position or an error is known, so it doesn't linger.
+                  if (_locating && _position == null && _locationError == null)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Text(
+                        l10n.browseAosLocationWhy,
+                        style:
+                            TextStyle(color: context.f3textMuted, fontSize: 11.5),
+                      ),
+                    ),
                   if (_locations.isNotEmpty) _buildFilterBar(context),
                   if (!_loading && _mappable.isNotEmpty) _buildMap(context),
                   if (_locationError != null)

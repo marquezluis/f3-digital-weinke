@@ -216,6 +216,12 @@ class _LoginGateScreenState extends State<LoginGateScreen> {
                 textAlign: TextAlign.center,
                 style: TextStyle(color: context.f3textSecondary, fontSize: 15),
               ),
+              const SizedBox(height: 8),
+              Text(
+                AppLocalizations.of(context)!.loginGateWhy,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: context.f3textMuted, fontSize: 12.5),
+              ),
               if (_sessionExpired) ...[
                 const SizedBox(height: 16),
                 Container(

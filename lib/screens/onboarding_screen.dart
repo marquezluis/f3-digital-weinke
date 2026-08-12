@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import '../l10n/app_localizations.dart';
 import '../services/app_profile_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/onboarding_scene.dart';
 import 'emergency_edit_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -144,16 +145,18 @@ class _IntroPage extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
+          const OnboardingScene(height: 190),
+          const SizedBox(height: 18),
           Container(
-            width: 96,
-            height: 96,
+            width: 56,
+            height: 56,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: F3Colors.accent.withValues(alpha: 0.14),
             ),
-            child: Icon(icon, color: F3Colors.accent, size: 46),
+            child: Icon(icon, color: F3Colors.accent, size: 28),
           ),
-          const SizedBox(height: 28),
+          const SizedBox(height: 20),
           Text(title,
               textAlign: TextAlign.center,
               style: TextStyle(

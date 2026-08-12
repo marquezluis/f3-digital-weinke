@@ -153,6 +153,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Connecte-toi avec ton compte F3 Nation pour continuer.';
 
   @override
+  String get loginGateWhy =>
+      'Cela relie ton vrai nom F3 et ta région, pour que tes HC, backblasts et crédits de Q comptent pour de vrai — pas seulement comme des notes locales sur ce téléphone.';
+
+  @override
   String get loginGateSessionExpired =>
       'Ta session F3 Nation a expiré — reconnecte-toi pour continuer.';
 
@@ -312,6 +316,13 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get homeLastPlan => 'DERNIER PLAN';
+
+  @override
+  String get homeFirstBeatdownTitle => 'Crée ton premier Weinke';
+
+  @override
+  String get homeFirstBeatdownSubtitle =>
+      'Génère ou construis un beatdown à la main pour commencer';
 
   @override
   String get homeLastBeatdown => 'DERNIER BEATDOWN';
@@ -646,6 +657,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get browseAosRefreshLocation => 'Actualiser ma position';
 
   @override
+  String get browseAosLocationWhy =>
+      'Recherche des AO près de toi — ta position sert uniquement à trier cette liste et n\'est jamais envoyée ailleurs.';
+
+  @override
   String get browseAosLocationError =>
       'Impossible d\'obtenir ta position — affichage des AO par ordre alphabétique.';
 
@@ -908,6 +923,39 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get settingsImportBackupConfirmBody =>
       'Cela écrase ton profil, ton historique et ton effectif actuels avec la sauvegarde collée. Cette action est irréversible.';
+
+  @override
+  String get settingsDeleteAllData => 'Supprimer toutes les données locales';
+
+  @override
+  String get settingsDeleteAllDataSub =>
+      'Efface définitivement tout ce qui est stocké sur cet appareil';
+
+  @override
+  String get settingsDeleteAllDataConfirmTitle =>
+      'Tout supprimer sur cet appareil ?';
+
+  @override
+  String get settingsDeleteAllDataConfirmBody =>
+      'Cela supprime définitivement ton historique de beatdowns, tes succès, tes exercices personnalisés, tes prospects EH, tes informations d\'urgence et tous les autres réglages locaux — tout ce que Digital Weinke a stocké sur cet appareil. Cela n\'affecte pas ton compte F3 Nation. Cette action est irréversible.';
+
+  @override
+  String get settingsDeleteAllDataDone =>
+      'Toutes les données locales ont été supprimées. Ferme et rouvre l\'application pour terminer.';
+
+  @override
+  String get settingsDataFlow => 'Où vont tes données';
+
+  @override
+  String get settingsDataFlowSub =>
+      'Ce qui reste local et ce qui est envoyé à F3 Nation';
+
+  @override
+  String get settingsDataFlowConfirmTitle => 'Où vont tes données';
+
+  @override
+  String get settingsDataFlowConfirmBody =>
+      'Par défaut, tout ce que tu saisis — plans, historique, succès, informations d\'urgence — reste uniquement sur cet appareil, jamais envoyé ailleurs.\n\nSe connecter avec F3 Nation envoie ton nom F3 et tes infos de profil aux serveurs de F3 Nation, comme n\'importe quel outil officiel F3 Nation. Publier un backblast ou pointer HC envoie les détails de cet événement précis (présence, comptages, texte) à F3 Nation aussi.\n\nLe chat est local uniquement pour l\'instant — il n\'est pas encore connecté à Slack, et rien de ce que tu y écris ne quitte cet appareil.';
 
   @override
   String get settingsAutoBackupRestore =>

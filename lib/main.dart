@@ -52,6 +52,28 @@ void main() async {
 Future<void> _runApp() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Sentry already reports build-time widget errors silently in the
+  // background — without this, the user's only signal is Flutter's default
+  // grey/red error screen, which reads as broken rather than "handled."
+  ErrorWidget.builder = (details) => Container(
+        color: F3Colors.background,
+        alignment: Alignment.center,
+        padding: const EdgeInsets.all(24),
+        child: const Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.error_outline_rounded,
+                color: F3Colors.accent, size: 40),
+            SizedBox(height: 12),
+            Text(
+              "Something went wrong here — we've been notified and we're on it.",
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white, fontSize: 14),
+            ),
+          ],
+        ),
+      );
+
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,

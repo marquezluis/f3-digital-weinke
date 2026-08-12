@@ -4,10 +4,12 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:flutter/services.dart';
 import '../l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/app_version.dart';
 import 'package:share_plus/share_plus.dart';
 import '../models/auth_models.dart';
@@ -196,6 +198,26 @@ class SettingsScreen extends StatelessWidget {
               _SectionHeader(l10n.settingsData),
               const SizedBox(height: 8),
               _NavTile(
+                icon: Icons.info_outline_rounded,
+                title: l10n.settingsDataFlow,
+                subtitle: l10n.settingsDataFlowSub,
+                color: F3Colors.catMary,
+                onTap: () => showDialog(
+                  context: context,
+                  builder: (dialogContext) => AlertDialog(
+                    title: Text(l10n.settingsDataFlowConfirmTitle),
+                    content: Text(l10n.settingsDataFlowConfirmBody),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(dialogContext),
+                        child: const Text('OK'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              _NavTile(
                 icon: Icons.upload_rounded,
                 title: l10n.settingsExportBackup,
                 subtitle: l10n.settingsExportBackupSub,
@@ -278,6 +300,14 @@ class SettingsScreen extends StatelessWidget {
                 color: F3Colors.catMary,
                 onTap: () => _showAutoBackupSheet(context),
               ),
+              const SizedBox(height: 8),
+              _NavTile(
+                icon: Icons.delete_forever_rounded,
+                title: l10n.settingsDeleteAllData,
+                subtitle: l10n.settingsDeleteAllDataSub,
+                color: Colors.red.shade700,
+                onTap: () => _confirmDeleteAllData(context),
+              ),
               const SizedBox(height: 28),
 
               // ── About ─────────────────────────────────────────────────────
@@ -313,6 +343,45 @@ class SettingsScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+Future<void> _confirmDeleteAllData(BuildContext context) async {
+  final l10n = AppLocalizations.of(context)!;
+  final messenger = ScaffoldMessenger.of(context);
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: Text(l10n.settingsDeleteAllDataConfirmTitle),
+      content: Text(l10n.settingsDeleteAllDataConfirmBody),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(dialogContext, false),
+          child: const Text('CANCEL'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(dialogContext, true),
+          style: TextButton.styleFrom(foregroundColor: Colors.red.shade700),
+          child: const Text('DELETE EVERYTHING'),
+        ),
+      ],
+    ),
+  );
+  if (confirmed != true) return;
+
+  // Local-only wipe — this app has no F3 Nation account-deletion capability
+  // of its own, only what's stored on this device (history, achievements,
+  // custom exercises, EH prospects, tokens, emergency info, settings).
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.clear();
+  await const FlutterSecureStorage().deleteAll();
+
+  if (!messenger.mounted) return;
+  messenger.showSnackBar(
+    SnackBar(
+      content: Text(l10n.settingsDeleteAllDataDone),
+      duration: const Duration(seconds: 8),
+    ),
+  );
 }
 
 Future<void> _showAutoBackupSheet(BuildContext context) async {

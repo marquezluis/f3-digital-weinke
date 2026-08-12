@@ -1066,62 +1066,75 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
     );
   }
 
-  Future<void> _run(
+  /// Returns whether [op] actually succeeded — callers used to infer this by
+  /// substring-matching the flash message for "fail", which silently treated
+  /// the "sign in first" precondition message as success (it doesn't contain
+  /// "fail") and would also misfire for any non-English failure copy.
+  Future<bool> _run(
       Future<String?> Function(int eiId, int uid, String token) op,
       String okMsg) async {
     final id = widget.event.numericId;
-    if (id == null) return;
+    if (id == null) return false;
     setState(() => _busy = true);
     try {
       final c = await _creds();
       if (c.token == null || c.uid == null) {
         setState(
             () => _flash = AppLocalizations.of(context)!.scheduleSignInFirst);
-        return;
+        return false;
       }
       final err = await op(id, c.uid!, c.token!);
       setState(() => _flash = err ?? okMsg);
+      return err == null;
     } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
 
   Future<void> _hc() async {
-    await _run(
+    final wasAttending = _attending;
+    // Optimistic: flip immediately so HC feels like an instant commit rather
+    // than waiting on a network round-trip; revert if the write fails.
+    setState(() => _attending = true);
+    final ok = await _run(
       (id, uid, token) => context
           .read<F3ApiService>()
           .signUpForEvent(eventInstanceId: id, userId: uid),
       AppLocalizations.of(context)!.scheduleHcSuccess,
     );
-    if (_flash != null && !_flash!.toLowerCase().contains('fail')) {
-      setState(() => _attending = true);
+    if (ok) {
       _scheduleReminders();
       await _autoRepostPreblastIfNeeded();
+    } else if (mounted) {
+      setState(() => _attending = wasAttending);
     }
   }
 
   Future<void> _unhc() async {
-    await _run(
+    final wasAttending = _attending;
+    setState(() => _attending = false);
+    final ok = await _run(
       (id, uid, token) => context
           .read<F3ApiService>()
           .withdrawFromEvent(eventInstanceId: id, userId: uid),
       AppLocalizations.of(context)!.scheduleUnhcSuccess,
     );
-    if (_flash != null && !_flash!.toLowerCase().contains('fail')) {
-      setState(() => _attending = false);
+    if (ok) {
       final id = widget.event.numericId;
       if (id != null) NotificationService().cancelEventReminders(id);
       await _autoRepostPreblastIfNeeded();
+    } else if (mounted) {
+      setState(() => _attending = wasAttending);
     }
   }
 
   Future<void> _takeQ() async {
-    await _run(
+    final ok = await _run(
       (id, uid, token) =>
           context.read<F3ApiService>().takeQ(eventInstanceId: id, userId: uid),
       AppLocalizations.of(context)!.scheduleTakeQSuccess,
     );
-    if (_flash != null && !_flash!.toLowerCase().contains('fail') && mounted) {
+    if (ok && mounted) {
       // qF3Name/userIsQ are a snapshot from whenever this event was last
       // fetched — never update themselves, so the Take Q/Drop Q buttons
       // (and the "Who's in" Q tag) would otherwise stay stale until the
@@ -1141,13 +1154,13 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
   /// attendance entirely (and the Q along with it, since it deletes the
   /// whole attendance record).
   Future<void> _dropQ() async {
-    await _run(
+    final ok = await _run(
       (id, uid, token) => context
           .read<F3ApiService>()
           .removeQ(eventInstanceId: id, userId: uid),
       AppLocalizations.of(context)!.scheduleDropQSuccess,
     );
-    if (_flash != null && !_flash!.toLowerCase().contains('fail')) {
+    if (ok) {
       final id = widget.event.numericId;
       if (id != null) NotificationService().cancelEventReminders(id);
       // Same staleness fix as _takeQ — see there. removeQ keeps the PAX

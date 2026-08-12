@@ -156,8 +156,14 @@ class HomeScreen extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(16, 18, 16, 0),
               sliver: SliverToBoxAdapter(
                 child: Consumer<F3ApiService>(
-                  builder: (context, api, _) =>
-                      api.isConfigured ? const _TodayHero() : const SizedBox.shrink(),
+                  builder: (context, api, _) => api.isConfigured
+                      ? const _TodayHero()
+                      // Only reachable on a dev/debug build missing its API
+                      // key — every real user is already F3-Nation-signed-in
+                      // by the time they reach Home — but a silent blank
+                      // space here used to look like a bug rather than a
+                      // build config gap.
+                      : const _ApiNotConfiguredNotice(),
                 ),
               ),
             ),
@@ -187,6 +193,14 @@ class HomeScreen extends StatelessWidget {
                       // long scroll where it's easy to never see.
                       if (regionSvc.ehProspects.isNotEmpty) ...[
                         _EhProspectsCard(region: regionSvc),
+                        const SizedBox(height: 8),
+                      ],
+                      // A brand-new PAX with no history yet sees almost
+                      // nothing else on this screen — give them a next
+                      // action instead of a page that looks unfinished.
+                      if (sessions.isEmpty) ...[
+                        _FirstBeatdownNudge(
+                            onTap: () => _openWeinke(context)),
                         const SizedBox(height: 8),
                       ],
                       if (sessions.isNotEmpty)
@@ -561,6 +575,87 @@ class _QuickCard extends StatelessWidget {
 }
 
 // ─── Last beatdown card ───────────────────────────────────────────────────────
+
+class _ApiNotConfiguredNotice extends StatelessWidget {
+  const _ApiNotConfiguredNotice();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: context.f3elevated,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: context.f3divider),
+      ),
+      child: Row(children: [
+        Icon(Icons.wifi_off_rounded, color: context.f3textMuted, size: 16),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            "F3 API key isn't set for this build — schedule features are unavailable.",
+            style: TextStyle(color: context.f3textMuted, fontSize: 11.5),
+          ),
+        ),
+      ]),
+    );
+  }
+}
+
+class _FirstBeatdownNudge extends StatelessWidget {
+  final VoidCallback onTap;
+  const _FirstBeatdownNudge({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: F3Colors.accent.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: F3Colors.accent.withValues(alpha: 0.3)),
+          ),
+          child: Row(children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: F3Colors.accent.withValues(alpha: 0.15),
+              ),
+              child: const Icon(Icons.bolt_rounded,
+                  color: F3Colors.accent, size: 22),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(l10n.homeFirstBeatdownTitle,
+                      style: TextStyle(
+                          color: context.f3textPrimary,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 15)),
+                  const SizedBox(height: 2),
+                  Text(l10n.homeFirstBeatdownSubtitle,
+                      style: TextStyle(
+                          color: context.f3textSecondary, fontSize: 12.5)),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded, color: F3Colors.accent),
+          ]),
+        ),
+      ),
+    );
+  }
+}
 
 class _LastBeatdownCard extends StatelessWidget {
   final WorkoutHistory session;

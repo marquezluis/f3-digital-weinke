@@ -370,6 +370,12 @@ abstract class AppLocalizations {
   /// **'Sign in with your F3 Nation account to continue.'**
   String get loginGateSubtitle;
 
+  /// No description provided for @loginGateWhy.
+  ///
+  /// In en, this message translates to:
+  /// **'This links your real F3 name and region, so your HCs, backblasts, and Q credit count for real — not just as local notes on this phone.'**
+  String get loginGateWhy;
+
   /// No description provided for @loginGateSessionExpired.
   ///
   /// In en, this message translates to:
@@ -639,6 +645,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'LAST PLAN'**
   String get homeLastPlan;
+
+  /// No description provided for @homeFirstBeatdownTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Build your first Weinke'**
+  String get homeFirstBeatdownTitle;
+
+  /// No description provided for @homeFirstBeatdownSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate or hand-build a beatdown to get started'**
+  String get homeFirstBeatdownSubtitle;
 
   /// No description provided for @homeLastBeatdown.
   ///
@@ -1198,6 +1216,12 @@ abstract class AppLocalizations {
   /// **'Refresh my location'**
   String get browseAosRefreshLocation;
 
+  /// No description provided for @browseAosLocationWhy.
+  ///
+  /// In en, this message translates to:
+  /// **'Finding AOs near you — your location is only used to sort this list and is never sent anywhere.'**
+  String get browseAosLocationWhy;
+
   /// No description provided for @browseAosLocationError.
   ///
   /// In en, this message translates to:
@@ -1671,6 +1695,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This overwrites your current profile, history, and roster with the pasted backup. This can\'t be undone.'**
   String get settingsImportBackupConfirmBody;
+
+  /// No description provided for @settingsDeleteAllData.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete All Local Data'**
+  String get settingsDeleteAllData;
+
+  /// No description provided for @settingsDeleteAllDataSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Permanently erase everything stored on this device'**
+  String get settingsDeleteAllDataSub;
+
+  /// No description provided for @settingsDeleteAllDataConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete everything on this device?'**
+  String get settingsDeleteAllDataConfirmTitle;
+
+  /// No description provided for @settingsDeleteAllDataConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This permanently deletes your beatdown history, achievements, custom exercises, EH prospects, emergency info, and all other local settings — everything Digital Weinke has stored on this device. This does not touch your F3 Nation account. This can\'t be undone.'**
+  String get settingsDeleteAllDataConfirmBody;
+
+  /// No description provided for @settingsDeleteAllDataDone.
+  ///
+  /// In en, this message translates to:
+  /// **'All local data deleted. Close and reopen the app to finish.'**
+  String get settingsDeleteAllDataDone;
+
+  /// No description provided for @settingsDataFlow.
+  ///
+  /// In en, this message translates to:
+  /// **'Where Your Data Goes'**
+  String get settingsDataFlow;
+
+  /// No description provided for @settingsDataFlowSub.
+  ///
+  /// In en, this message translates to:
+  /// **'What\'s local-only vs. sent to F3 Nation'**
+  String get settingsDataFlowSub;
+
+  /// No description provided for @settingsDataFlowConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Where your data goes'**
+  String get settingsDataFlowConfirmTitle;
+
+  /// No description provided for @settingsDataFlowConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'By default, everything you enter — plans, history, achievements, emergency info — stays on this device only, never sent anywhere.\n\nSigning in with F3 Nation sends your PAX name and profile info to F3 Nation\'s own servers, the same as any official F3 Nation tool. Publishing a backblast or HC\'ing sends that specific event\'s details (attendance, counts, text) to F3 Nation too.\n\nChat is local-only for now — it is not connected to Slack yet, and nothing you type there leaves this device.'**
+  String get settingsDataFlowConfirmBody;
 
   /// No description provided for @settingsAutoBackupRestore.
   ///
