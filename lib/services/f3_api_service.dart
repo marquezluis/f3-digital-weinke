@@ -379,6 +379,75 @@ class F3ApiService extends ChangeNotifier {
     };
   }
 
+  /// Locations where the signed-in PAX has editor/admin role — scopes the
+  /// in-app "Edit AO Location" admin screen to AOs they can actually write
+  /// to, mirroring the real admin.f3nation.com portal's own access model.
+  /// `onlyMine` is resolved server-side against whoever the bearer token
+  /// belongs to, so this must run with the user's own token, not the app's
+  /// shared API key.
+  Future<List<F3Location>> getMyLocations(String userAccessToken) async {
+    final data =
+        await _get('/v1/location?onlyMine=true', bearerOverride: userAccessToken);
+    if (data == null) return [];
+    final list = data['locations'] as List<dynamic>? ?? [];
+    return list
+        .map((e) => F3Location.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Updates an existing location (`POST /v1/location`, `location.crupdate`
+  /// — the same endpoint creates when `id` is omitted, but this screen only
+  /// ever edits). Requires editor role for the location's organization, so
+  /// this always runs with the signed-in PAX's own token — the API enforces
+  /// that role check against the real editor, not this app's service
+  /// account. Every field is sent (not just changed ones): this backs a
+  /// full edit form, so a field the user cleared should persist as cleared,
+  /// unlike [updateUserProfile]'s partial-patch shape. Returns null on
+  /// success, else an error string.
+  Future<String?> updateLocation({
+    required String userAccessToken,
+    required int id,
+    required int orgId,
+    required String name,
+    required bool isActive,
+    String? description,
+    double? latitude,
+    double? longitude,
+    String? addressStreet,
+    String? addressStreet2,
+    String? addressCity,
+    String? addressState,
+    String? addressZip,
+    String? addressCountry,
+    String? email,
+  }) async {
+    final payload = <String, dynamic>{
+      'id': id,
+      'orgId': orgId,
+      'name': name,
+      'isActive': isActive,
+      'description': description,
+      'latitude': latitude,
+      'longitude': longitude,
+      'addressStreet': addressStreet,
+      'addressStreet2': addressStreet2,
+      'addressCity': addressCity,
+      'addressState': addressState,
+      'addressZip': addressZip,
+      'addressCountry': addressCountry,
+      'email': email,
+    };
+    final res = await _post('/v1/location', payload,
+        bearerOverride: userAccessToken);
+    if (res.status == 200 || res.status == 201) {
+      // Stale after a write — force a refetch next time either is read.
+      _cachedLocations = null;
+      _cachedAoLocations = null;
+      return null;
+    }
+    return 'Location update failed (${res.status}): ${res.body}';
+  }
+
   // ── Events / Beatdowns ────────────────────────────────────────────────────
 
   /// [userId] is required by the API (`regionOrgId` + `userId` together

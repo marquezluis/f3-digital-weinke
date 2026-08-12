@@ -14,6 +14,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../models/app_version.dart';
 import 'package:share_plus/share_plus.dart';
 import '../models/auth_models.dart';
+import 'admin_location_screen.dart';
 import '../services/app_profile_service.dart' hide AppRole;
 import '../services/auth_service.dart';
 import '../services/codex_sync_service.dart';
@@ -698,6 +699,17 @@ class _F3NationLinksSectionState extends State<_F3NationLinksSection> {
                 subtitle: 'Manage locations, events, and org settings',
                 color: Colors.red.shade700,
                 onTap: () => _open('https://admin.f3nation.com'),
+              ),
+              const SizedBox(height: 8),
+              _NavTile(
+                icon: Icons.edit_location_alt_rounded,
+                title: 'Edit AO Location',
+                subtitle: "Edit an AO's address, coordinates, and details — right here in the app",
+                color: F3Colors.catBodyweight,
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AdminLocationsScreen()),
+                ),
               ),
               const SizedBox(height: 8),
               _NavTile(

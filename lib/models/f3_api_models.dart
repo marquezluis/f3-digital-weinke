@@ -209,6 +209,15 @@ class F3Location {
   // joined the same way as [aoName], via `/v1/event`'s `parents[].parentId`.
   // Used to look up the AO's logo from `/v1/org`, which is keyed by org id.
   final String? aoOrgId;
+  // Fields only needed by the admin "Edit AO Location" screen — carried by
+  // both `GET /v1/location` and `GET /v1/location/id/{id}` but unused
+  // elsewhere, so they weren't parsed until that write flow needed a full
+  // prefill (`location.crupdate`'s request shape includes all of these).
+  final bool isActive;
+  final String? addressStreet2;
+  final String? addressZip;
+  final String? addressCountry;
+  final String? email;
 
   const F3Location({
     required this.id,
@@ -224,6 +233,11 @@ class F3Location {
     this.schedule = const [],
     this.aoName,
     this.aoOrgId,
+    this.isActive = true,
+    this.addressStreet2,
+    this.addressZip,
+    this.addressCountry,
+    this.email,
   });
 
   F3Location withSchedule(List<F3WeeklyWorkout> schedule,
@@ -242,6 +256,11 @@ class F3Location {
         schedule: schedule,
         aoName: aoName ?? this.aoName,
         aoOrgId: aoOrgId ?? this.aoOrgId,
+        isActive: isActive,
+        addressStreet2: addressStreet2,
+        addressZip: addressZip,
+        addressCountry: addressCountry,
+        email: email,
       );
 
   /// `GET /v1/location` returns `locationName`/`latitude`/`longitude`/
@@ -258,6 +277,11 @@ class F3Location {
         state: (json['addressState'] as String?)?.trim(),
         street: json['addressStreet'] as String?,
         city: json['addressCity'] as String?,
+        isActive: json['isActive'] as bool? ?? true,
+        addressStreet2: json['addressStreet2'] as String?,
+        addressZip: json['addressZip'] as String?,
+        addressCountry: json['addressCountry'] as String?,
+        email: json['email'] as String?,
       );
 }
 

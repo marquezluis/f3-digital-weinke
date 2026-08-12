@@ -114,4 +114,70 @@ void main() {
       expect(e.backblastSlackChannelId, isNull);
     });
   });
+
+  group('F3Location.fromJson', () {
+    test('parses the GET /v1/location list shape (locationName, regionId)', () {
+      final loc = F3Location.fromJson({
+        'id': 42,
+        'locationName': 'The Bunker',
+        'regionId': 7,
+        'latitude': 35.1,
+        'longitude': -80.8,
+        'addressStreet': '123 Main St',
+        'addressCity': 'Charlotte',
+        'addressState': 'NC',
+      });
+      expect(loc.id, '42');
+      expect(loc.name, 'The Bunker');
+      expect(loc.orgId, '7');
+      expect(loc.lat, 35.1);
+      expect(loc.lon, -80.8);
+      expect(loc.street, '123 Main St');
+      expect(loc.city, 'Charlotte');
+      expect(loc.state, 'NC');
+    });
+
+    test('parses the admin write-form fields (isActive, address2/zip/country, email)',
+        () {
+      final loc = F3Location.fromJson({
+        'id': 42,
+        'locationName': 'The Bunker',
+        'regionId': 7,
+        'isActive': false,
+        'addressStreet2': 'Suite 5',
+        'addressZip': '28202',
+        'addressCountry': 'US',
+        'email': 'q@example.com',
+      });
+      expect(loc.isActive, isFalse);
+      expect(loc.addressStreet2, 'Suite 5');
+      expect(loc.addressZip, '28202');
+      expect(loc.addressCountry, 'US');
+      expect(loc.email, 'q@example.com');
+    });
+
+    test('isActive defaults to true when absent', () {
+      final loc = F3Location.fromJson({'id': '1', 'name': 'Test AO'});
+      expect(loc.isActive, isTrue);
+    });
+
+    test('withSchedule preserves the admin write-form fields', () {
+      const loc = F3Location(
+        id: '1',
+        name: 'The Bunker',
+        orgId: '7',
+        isActive: false,
+        addressStreet2: 'Suite 5',
+        addressZip: '28202',
+        addressCountry: 'US',
+        email: 'q@example.com',
+      );
+      final withSchedule = loc.withSchedule(const []);
+      expect(withSchedule.isActive, isFalse);
+      expect(withSchedule.addressStreet2, 'Suite 5');
+      expect(withSchedule.addressZip, '28202');
+      expect(withSchedule.addressCountry, 'US');
+      expect(withSchedule.email, 'q@example.com');
+    });
+  });
 }
