@@ -32,6 +32,7 @@ import 'workout_screen.dart';
 import 'qsource_screen.dart';
 import 'browse_aos_screen.dart';
 import 'brotherhood_screen.dart';
+import 'chat_screen.dart';
 import 'heatmap_screen.dart';
 import '../utils/shared_plan_importer.dart';
 
@@ -123,19 +124,25 @@ class HomeScreen extends StatelessWidget {
                                         fontSize: 15,
                                         fontWeight: FontWeight.w700),
                                   ),
-                                  Text(
-                                    // The rotating daily mottos (_dailyMotto)
-                                    // are deliberately left English-only for
-                                    // now — 25 short motivational lines is a
-                                    // large translation surface on its own,
-                                    // scoped out of this pass.
-                                    isGloom ? l10n.homeSyitg : _dailyMotto(now),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                        color: context.f3textSecondary,
-                                        fontSize: 12,
-                                        fontStyle: FontStyle.italic),
+                                  Tooltip(
+                                    message: isGloom
+                                        ? 'The gloom = the dark, early-morning hours before sunrise most F3 beatdowns happen in.'
+                                        : '',
+                                    triggerMode: TooltipTriggerMode.longPress,
+                                    child: Text(
+                                      // The rotating daily mottos (_dailyMotto)
+                                      // are deliberately left English-only for
+                                      // now — 25 short motivational lines is a
+                                      // large translation surface on its own,
+                                      // scoped out of this pass.
+                                      isGloom ? l10n.homeSyitg : _dailyMotto(now),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                          color: context.f3textSecondary,
+                                          fontSize: 12,
+                                          fontStyle: FontStyle.italic),
+                                    ),
                                   ),
                                 ],
                               ),
@@ -217,6 +224,30 @@ class HomeScreen extends StatelessWidget {
                       if (sessions.isNotEmpty) ...[
                         const SizedBox(height: 8),
                         _StreakCard(streak: streak),
+                      ],
+                      // History's "greatest hits" filter (rating == 1) was a
+                      // strong retention hook with zero surfacing outside
+                      // History itself — a nostalgia nudge on a slow week
+                      // (nothing posted yet) can pull a lapsed PAX back.
+                      if (streak.status != StreakStatus.secured) ...[
+                        Builder(builder: (context) {
+                          final hits =
+                              sessions.where((e) => e.rating == 1).toList();
+                          if (hits.isEmpty) return const SizedBox.shrink();
+                          final pick = hits[
+                              _dayOfYear(DateTime.now()) % hits.length];
+                          return Column(children: [
+                            const SizedBox(height: 8),
+                            _GreatestHitNudge(
+                              title: pick.title,
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) => const HistoryScreen()),
+                              ),
+                            ),
+                          ]);
+                        }),
                       ],
                       if (sessions.isNotEmpty) ...[
                         const SizedBox(height: 8),
@@ -340,6 +371,20 @@ class HomeScreen extends StatelessWidget {
                     ),
                     // Recent-exercises carousel moved to the Exicon library.
                     // Schedule has its own tab now, so no duplicate card here.
+                    // Chat previously had no entry point anywhere on Home
+                    // despite being the newest engagement surface — it was
+                    // only reachable by already being on Brotherhood.
+                    _QuickCard(
+                      icon: Icons.forum_rounded,
+                      title: l10n.homeRegionChat,
+                      subtitle: l10n.homeRegionChatSub,
+                      color: F3Colors.catBodyweight,
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const ChatScreen()),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
                     _QuickCard(
                       icon: Icons.bolt_rounded,
                       title: l10n.homeGenerateBeatdown,
@@ -603,6 +648,56 @@ class _ApiNotConfiguredNotice extends StatelessWidget {
           ),
         ),
       ]),
+    );
+  }
+}
+
+class _GreatestHitNudge extends StatelessWidget {
+  final String title;
+  final VoidCallback onTap;
+  const _GreatestHitNudge({required this.title, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: context.f3card,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: context.f3divider),
+          ),
+          child: Row(children: [
+            const Icon(Icons.star_rounded, color: F3Colors.phaseCOT, size: 22),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Run it back',
+                      style: TextStyle(
+                          color: context.f3textPrimary,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14)),
+                  Text(
+                      title.isEmpty
+                          ? 'A greatest hit from your history'
+                          : title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          color: context.f3textSecondary, fontSize: 12)),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded, color: context.f3textMuted),
+          ]),
+        ),
+      ),
     );
   }
 }
@@ -1220,26 +1315,34 @@ class _CoreValues extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: F3Colors.accent.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(12),
+        color: F3Colors.accent.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(14),
         border:
-            Border.all(color: F3Colors.accent.withValues(alpha: 0.2)),
+            Border.all(color: F3Colors.accent.withValues(alpha: 0.3), width: 1.5),
       ),
       child: Builder(builder: (context) {
         final l10n = AppLocalizations.of(context)!;
         return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          // F3's founding identity was reading as a quiet caption-sized
+          // afterthought next to a dozen equally-weighted cards — bigger
+          // title, an icon per value, and more breathing room make it read
+          // as a statement instead of fine print.
           Text(l10n.homeCoreValuesTitle,
               style: const TextStyle(
                   color: F3Colors.accent,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w900,
                   letterSpacing: 1.5)),
-          const SizedBox(height: 8),
-          _F(l10n.homeCoreFitness, l10n.homeCoreFitnessDesc),
-          _F(l10n.homeCoreFellowship, l10n.homeCoreFellowshipDesc),
-          _F(l10n.homeCoreFaith, l10n.homeCoreFaithDesc),
+          const SizedBox(height: 14),
+          _F(Icons.fitness_center_rounded, l10n.homeCoreFitness,
+              l10n.homeCoreFitnessDesc),
+          const SizedBox(height: 10),
+          _F(Icons.groups_rounded, l10n.homeCoreFellowship,
+              l10n.homeCoreFellowshipDesc),
+          const SizedBox(height: 10),
+          _F(Icons.favorite_rounded, l10n.homeCoreFaith, l10n.homeCoreFaithDesc),
         ]);
       }),
     );
@@ -1247,26 +1350,33 @@ class _CoreValues extends StatelessWidget {
 }
 
 class _F extends StatelessWidget {
+  final IconData icon;
   final String label;
   final String desc;
-  const _F(this.label, this.desc);
+  const _F(this.icon, this.label, this.desc);
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
-      child: RichText(
-        text: TextSpan(children: [
-          TextSpan(text: '$label  ',
-              style: const TextStyle(
-                  color: F3Colors.accent,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 13)),
-          TextSpan(text: desc,
-              style: TextStyle(
-                  color: context.f3textSecondary, fontSize: 13)),
-        ]),
-      ),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: F3Colors.accent, size: 18),
+        const SizedBox(width: 10),
+        Expanded(
+          child: RichText(
+            text: TextSpan(children: [
+              TextSpan(text: '$label  ',
+                  style: const TextStyle(
+                      color: F3Colors.accent,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 14)),
+              TextSpan(text: desc,
+                  style: TextStyle(
+                      color: context.f3textSecondary, fontSize: 13)),
+            ]),
+          ),
+        ),
+      ],
     );
   }
 }

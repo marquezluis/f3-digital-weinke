@@ -103,6 +103,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsAbout => 'ABOUT';
 
   @override
+  String get settingsF3Glossary => 'F3 Lingo';
+
+  @override
+  String get settingsF3GlossarySub =>
+      'Q, PAX, AO, HC, and other F3 terms explained';
+
+  @override
   String get changelogTitle => 'CHANGELOG';
 
   @override
@@ -205,21 +212,21 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get onboardingIntro1Body =>
-      'Generate or hand-build a Weinke from the full F3 Exicon, with Spartan AI as your Co-Q for audibles and prep.';
+      'F3\'s whole thing is showing up for each other before sunrise, no excuses. Generate or hand-build a Weinke from the full F3 Exicon, with Spartan AI as your Co-Q for audibles and prep.';
 
   @override
   String get onboardingIntro2Title => 'Run the Q';
 
   @override
   String get onboardingIntro2Body =>
-      'A live, phase-aware timer walks you through the beatdown, then turns it into a backblast you can share. Works fully offline — no signal at the AO, no problem.';
+      'This is where PAX push each other past what they\'d do alone. A live, phase-aware timer walks you through the beatdown, then turns it into a backblast you can share. Works fully offline — no signal at the AO, no problem.';
 
   @override
   String get onboardingIntro3Title => 'Connect to F3 Nation';
 
   @override
   String get onboardingIntro3Body =>
-      'HC to beatdowns, take the Q, post preblasts and backblasts, and find AOs near you — all tied to your F3 account.';
+      'You\'re not just using an app — you\'re joining a real brotherhood of PAX across the country. HC to beatdowns, take the Q, post preblasts and backblasts, and find AOs near you — all tied to your F3 account.';
 
   @override
   String get onboardingSetupTitle => 'Optional setup';
@@ -260,6 +267,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get homeQuickActions => 'QUICK ACTIONS';
+
+  @override
+  String get homeRegionChat => 'Region Chat';
+
+  @override
+  String get homeRegionChatSub => 'Catch up with your region';
 
   @override
   String get homeGenerateBeatdown => 'Generate Beatdown';
@@ -634,7 +647,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get scheduleSignInToPostPreblast => 'Sign in to post a preblast.';
 
   @override
-  String get schedulePreblastPosted => 'Preblast posted.';
+  String get schedulePreblastPosted =>
+      'Preblast posted. PAX will know what they\'re in for.';
 
   @override
   String get schedulePreblastAutoUpdated => 'Preblast refreshed to match.';

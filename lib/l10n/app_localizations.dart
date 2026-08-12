@@ -274,6 +274,18 @@ abstract class AppLocalizations {
   /// **'ABOUT'**
   String get settingsAbout;
 
+  /// No description provided for @settingsF3Glossary.
+  ///
+  /// In en, this message translates to:
+  /// **'F3 Lingo'**
+  String get settingsF3Glossary;
+
+  /// No description provided for @settingsF3GlossarySub.
+  ///
+  /// In en, this message translates to:
+  /// **'Q, PAX, AO, HC, and other F3 terms explained'**
+  String get settingsF3GlossarySub;
+
   /// Title for the changelog bottom sheet.
   ///
   /// In en, this message translates to:
@@ -463,7 +475,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingIntro1Body.
   ///
   /// In en, this message translates to:
-  /// **'Generate or hand-build a Weinke from the full F3 Exicon, with Spartan AI as your Co-Q for audibles and prep.'**
+  /// **'F3\'s whole thing is showing up for each other before sunrise, no excuses. Generate or hand-build a Weinke from the full F3 Exicon, with Spartan AI as your Co-Q for audibles and prep.'**
   String get onboardingIntro1Body;
 
   /// No description provided for @onboardingIntro2Title.
@@ -475,7 +487,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingIntro2Body.
   ///
   /// In en, this message translates to:
-  /// **'A live, phase-aware timer walks you through the beatdown, then turns it into a backblast you can share. Works fully offline — no signal at the AO, no problem.'**
+  /// **'This is where PAX push each other past what they\'d do alone. A live, phase-aware timer walks you through the beatdown, then turns it into a backblast you can share. Works fully offline — no signal at the AO, no problem.'**
   String get onboardingIntro2Body;
 
   /// No description provided for @onboardingIntro3Title.
@@ -487,7 +499,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingIntro3Body.
   ///
   /// In en, this message translates to:
-  /// **'HC to beatdowns, take the Q, post preblasts and backblasts, and find AOs near you — all tied to your F3 account.'**
+  /// **'You\'re not just using an app — you\'re joining a real brotherhood of PAX across the country. HC to beatdowns, take the Q, post preblasts and backblasts, and find AOs near you — all tied to your F3 account.'**
   String get onboardingIntro3Body;
 
   /// No description provided for @onboardingSetupTitle.
@@ -561,6 +573,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'QUICK ACTIONS'**
   String get homeQuickActions;
+
+  /// No description provided for @homeRegionChat.
+  ///
+  /// In en, this message translates to:
+  /// **'Region Chat'**
+  String get homeRegionChat;
+
+  /// No description provided for @homeRegionChatSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Catch up with your region'**
+  String get homeRegionChatSub;
 
   /// No description provided for @homeGenerateBeatdown.
   ///
@@ -1195,7 +1219,7 @@ abstract class AppLocalizations {
   /// No description provided for @schedulePreblastPosted.
   ///
   /// In en, this message translates to:
-  /// **'Preblast posted.'**
+  /// **'Preblast posted. PAX will know what they\'re in for.'**
   String get schedulePreblastPosted;
 
   /// No description provided for @schedulePreblastAutoUpdated.

@@ -131,13 +131,21 @@ class SettingsService extends ChangeNotifier {
     _myF3Name         = prefs.getString(_keyMyF3Name) ?? '';
     _ttsVoice         = prefs.getString(_keyTtsVoice) ?? '';
 
-    final themeModeStr = prefs.getString(_keyThemeMode) ?? 'dark';
+    // Defaulting to dark and English forced a decision on a brand-new user
+    // before they had any context for it — System theme and the device's
+    // own language are the right first guess; both stay fully changeable in
+    // Settings afterward.
+    final themeModeStr = prefs.getString(_keyThemeMode) ?? 'system';
     _themeMode = switch (themeModeStr) {
       'light'  => ThemeMode.light,
-      'system' => ThemeMode.system,
-      _        => ThemeMode.dark,
+      'dark'   => ThemeMode.dark,
+      _        => ThemeMode.system,
     };
-    final localeStr = prefs.getString(_keyLocale) ?? 'en';
+    const supportedLocales = {'en', 'es', 'fr'};
+    final deviceLocale = PlatformDispatcher.instance.locale.languageCode;
+    final defaultLocale =
+        supportedLocales.contains(deviceLocale) ? deviceLocale : 'en';
+    final localeStr = prefs.getString(_keyLocale) ?? defaultLocale;
     _locale = Locale(localeStr);
 
     _musicEnabled     = prefs.getBool(_keyMusicEnabled) ?? false;

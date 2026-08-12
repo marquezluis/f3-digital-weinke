@@ -15,9 +15,7 @@ import '../models/f3_api_models.dart';
 import '../services/app_profile_service.dart';
 import '../services/auth_service.dart';
 import '../services/f3_api_service.dart';
-import '../services/settings_service.dart' hide AppRole;
 import '../theme/app_theme.dart';
-import '../widgets/theme_language_picker.dart';
 import 'emergency_screen.dart';
 
 class LoginGateScreen extends StatefulWidget {
@@ -183,34 +181,11 @@ class _LoginGateScreenState extends State<LoginGateScreen> {
                 ),
               ),
               const SizedBox(height: 18),
-              // Language + theme, right up front — but only for a PAX who's
-              // never been through onboarding. A returning user landing back
-              // here (session expired, signed out) already made this choice;
-              // re-showing it every time read as "asking again" even though
-              // it's just pre-filled with their existing setting. Settings
-              // remains reachable post-sign-in for anyone who wants to change
-              // it later.
-              Consumer<AppProfileService>(
-                builder: (context, profile, _) {
-                  if (profile.introSeen) return const SizedBox.shrink();
-                  return Consumer<SettingsService>(
-                    builder: (context, settings, _) => Column(
-                      children: [
-                        LanguagePicker(
-                          current: settings.locale.languageCode,
-                          onSelect: (code) => settings.setLocale(Locale(code)),
-                        ),
-                        const SizedBox(height: 8),
-                        ThemePicker(
-                          current: settings.themeMode,
-                          onSelect: (mode) => settings.setThemeMode(mode),
-                        ),
-                        const SizedBox(height: 18),
-                      ],
-                    ),
-                  );
-                },
-              ),
+              // Language/theme pickers used to gate first launch here —
+              // removed now that SettingsService defaults to the device's
+              // own locale and System theme (see settings_service.dart),
+              // so there's nothing to ask before there's any context for
+              // it. Both remain fully changeable in Settings afterward.
               Text(
                 AppLocalizations.of(context)!.loginGateSubtitle,
                 textAlign: TextAlign.center,

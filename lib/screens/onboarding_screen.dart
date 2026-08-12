@@ -10,6 +10,7 @@ import '../l10n/app_localizations.dart';
 import '../services/app_profile_service.dart';
 import '../services/settings_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/f3_glossary_sheet.dart';
 import '../widgets/onboarding_scene.dart';
 import 'emergency_edit_screen.dart';
 
@@ -24,23 +25,30 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final _controller = PageController();
   int _page = 0;
 
-  List<({IconData icon, String title, String body})> _intro(BuildContext context) {
+  List<({IconData icon, String title, String body, bool showGlossaryLink})>
+      _intro(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return [
       (
         icon: Icons.bolt_rounded,
         title: l10n.onboardingIntro1Title,
         body: l10n.onboardingIntro1Body,
+        showGlossaryLink: false,
       ),
       (
         icon: Icons.timer_rounded,
         title: l10n.onboardingIntro2Title,
         body: l10n.onboardingIntro2Body,
+        showGlossaryLink: false,
       ),
       (
         icon: Icons.groups_rounded,
         title: l10n.onboardingIntro3Title,
         body: l10n.onboardingIntro3Body,
+        // This page is the first one to actually use HC/Q/preblast/
+        // backblast — the exact moment a glossary link is worth something,
+        // instead of buried somewhere unrelated.
+        showGlossaryLink: true,
       ),
     ];
   }
@@ -82,6 +90,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         icon: p.icon,
                         title: p.title,
                         body: p.body,
+                        showGlossaryLink: p.showGlossaryLink,
                       )),
                   _SetupPage(onDone: _finish),
                 ],
@@ -137,8 +146,13 @@ class _IntroPage extends StatelessWidget {
   final IconData icon;
   final String title;
   final String body;
-  const _IntroPage(
-      {required this.icon, required this.title, required this.body});
+  final bool showGlossaryLink;
+  const _IntroPage({
+    required this.icon,
+    required this.title,
+    required this.body,
+    this.showGlossaryLink = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -170,6 +184,13 @@ class _IntroPage extends StatelessWidget {
               textAlign: TextAlign.center,
               style: TextStyle(
                   color: context.f3textSecondary, fontSize: 15, height: 1.5)),
+          if (showGlossaryLink) ...[
+            const SizedBox(height: 10),
+            TextButton(
+              onPressed: () => showF3GlossarySheet(context),
+              child: const Text('What do these words mean?'),
+            ),
+          ],
         ],
       ),
     );

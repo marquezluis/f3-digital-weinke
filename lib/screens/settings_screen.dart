@@ -24,6 +24,7 @@ import '../services/f3_api_service.dart';
 import '../services/settings_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/greeting.dart';
+import '../widgets/f3_glossary_sheet.dart';
 import '../widgets/theme_language_picker.dart';
 import 'profile_screen.dart';
 import 'emergency_screen.dart';
@@ -312,6 +313,14 @@ class SettingsScreen extends StatelessWidget {
 
               // ── About ─────────────────────────────────────────────────────
               _SectionHeader(l10n.settingsAbout),
+              const SizedBox(height: 8),
+              _NavTile(
+                icon: Icons.menu_book_rounded,
+                title: l10n.settingsF3Glossary,
+                subtitle: l10n.settingsF3GlossarySub,
+                color: F3Colors.catCoupon,
+                onTap: () => showF3GlossarySheet(context),
+              ),
               const SizedBox(height: 8),
               Builder(builder: (context) {
                 final count = context

@@ -595,7 +595,7 @@ class _BackblastScreenState extends State<BackblastScreen> {
       if (!mounted) return;
       HapticFeedback.mediumImpact();
       _publishResult(
-        'Published to F3 Nation',
+        'Posted. Good work, PAX.',
         'Backblast written'
         '${eiId != null ? ' · $attWritten of ${entry.pax.length} PAX recorded · Q credit logged' : ''}'
         '$slackNote.'
