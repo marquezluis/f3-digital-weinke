@@ -29,6 +29,7 @@ class _LoginGateScreenState extends State<LoginGateScreen> {
   bool _busy = false;
   String? _error;
   bool _sessionExpired = false;
+  int? _aoCount;
 
   @override
   void initState() {
@@ -38,6 +39,21 @@ class _LoginGateScreenState extends State<LoginGateScreen> {
     // on a normal manual sign-out or a first-ever launch.
     _sessionExpired =
         context.read<F3ApiService>().consumeSessionExpiredNotice();
+    _loadSocialProof();
+  }
+
+  /// A real AO count, not a guessed/placeholder number — the app's own
+  /// baked-in API key already works pre-sign-in (it's independent of the
+  /// user's own F3 Nation login), so this is honest social proof, not
+  /// fabricated. Best-effort: silently skipped if it fails or the app has
+  /// no API key configured (a dev/debug build).
+  Future<void> _loadSocialProof() async {
+    final api = context.read<F3ApiService>();
+    if (!api.isConfigured) return;
+    final orgs = await api.getOrgs();
+    if (!mounted) return;
+    final aoCount = orgs.where((o) => o.type.toLowerCase() == 'ao').length;
+    if (aoCount > 0) setState(() => _aoCount = aoCount);
   }
 
   Future<void> _signIn() async {
@@ -180,6 +196,18 @@ class _LoginGateScreenState extends State<LoginGateScreen> {
                   ),
                 ),
               ),
+              if (_aoCount != null) ...[
+                const SizedBox(height: 10),
+                Center(
+                  child: Text(
+                    '$_aoCount AOs and counting nationwide',
+                    style: TextStyle(
+                        color: context.f3textMuted,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
               const SizedBox(height: 18),
               // Language/theme pickers used to gate first launch here —
               // removed now that SettingsService defaults to the device's

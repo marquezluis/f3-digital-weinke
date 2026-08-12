@@ -9,6 +9,7 @@
 // public or nationwide distribution.
 
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/qsource_data.dart';
 import '../theme/app_theme.dart';
 
@@ -20,8 +21,15 @@ class QSourceScreen extends StatefulWidget {
 }
 
 class _QSourceScreenState extends State<QSourceScreen> {
+  static const _keyBookmarks = 'qsource_bookmarks_v1';
+  static const _keyRecent = 'qsource_recent_v1';
+  static const _maxRecent = 5;
+
   // Track which sections are expanded; start with first two open.
   late final List<bool> _expanded;
+  late final List<GlobalKey> _sectionKeys;
+  Set<String> _bookmarks = {};
+  List<String> _recent = [];
 
   @override
   void initState() {
@@ -30,6 +38,59 @@ class _QSourceScreenState extends State<QSourceScreen> {
       QSourceData.allSections.length,
       (i) => i < 2, // first two sections open by default
     );
+    _sectionKeys =
+        List.generate(QSourceData.allSections.length, (_) => GlobalKey());
+    _loadPrefs();
+  }
+
+  Future<void> _loadPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    setState(() {
+      _bookmarks = (prefs.getStringList(_keyBookmarks) ?? []).toSet();
+      _recent = prefs.getStringList(_keyRecent) ?? [];
+    });
+  }
+
+  Future<void> _toggleBookmark(String title) async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      if (_bookmarks.contains(title)) {
+        _bookmarks.remove(title);
+      } else {
+        _bookmarks.add(title);
+      }
+    });
+    await prefs.setStringList(_keyBookmarks, _bookmarks.toList());
+  }
+
+  Future<void> _recordRecentlyViewed(String title) async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _recent.remove(title);
+      _recent.insert(0, title);
+      if (_recent.length > _maxRecent) {
+        _recent = _recent.sublist(0, _maxRecent);
+      }
+    });
+    await prefs.setStringList(_keyRecent, _recent);
+  }
+
+  void _jumpTo(String title) {
+    final index =
+        QSourceData.allSections.indexWhere((s) => s.title == title);
+    if (index == -1) return;
+    if (!_expanded[index]) {
+      setState(() => _expanded[index] = true);
+    }
+    _recordRecentlyViewed(title);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final ctx = _sectionKeys[index].currentContext;
+      if (ctx != null) {
+        Scrollable.ensureVisible(ctx,
+            duration: const Duration(milliseconds: 300), alignment: 0.05);
+      }
+    });
   }
 
   @override
@@ -119,6 +180,19 @@ class _QSourceScreenState extends State<QSourceScreen> {
               ),
             ),
 
+            // ── Quick jump (bookmarks + recently viewed) ─────────────────────
+            if (_bookmarks.isNotEmpty || _recent.isNotEmpty)
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                sliver: SliverToBoxAdapter(
+                  child: _QuickJumpRow(
+                    bookmarks: _bookmarks,
+                    recent: _recent,
+                    onTap: _jumpTo,
+                  ),
+                ),
+              ),
+
             // ── Expand / Collapse All ────────────────────────────────────────
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
@@ -167,11 +241,16 @@ class _QSourceScreenState extends State<QSourceScreen> {
                   (context, index) {
                     final section = QSourceData.allSections[index];
                     return _SectionCard(
+                      key: _sectionKeys[index],
                       section: section,
                       isExpanded: _expanded[index],
+                      isBookmarked: _bookmarks.contains(section.title),
                       onToggle: () {
-                        setState(() => _expanded[index] = !_expanded[index]);
+                        final opening = !_expanded[index];
+                        setState(() => _expanded[index] = opening);
+                        if (opening) _recordRecentlyViewed(section.title);
                       },
+                      onToggleBookmark: () => _toggleBookmark(section.title),
                     );
                   },
                   childCount: QSourceData.allSections.length,
@@ -185,17 +264,70 @@ class _QSourceScreenState extends State<QSourceScreen> {
   }
 }
 
+// ─── Quick jump row ───────────────────────────────────────────────────────────
+// Bookmarks first, then recently-viewed sections not already bookmarked —
+// a Q prepping before a workout used to re-search from scratch every time.
+
+class _QuickJumpRow extends StatelessWidget {
+  final Set<String> bookmarks;
+  final List<String> recent;
+  final ValueChanged<String> onTap;
+
+  const _QuickJumpRow({
+    required this.bookmarks,
+    required this.recent,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final recentOnly = recent.where((t) => !bookmarks.contains(t));
+    final chips = [...bookmarks, ...recentOnly];
+    if (chips.isEmpty) return const SizedBox.shrink();
+    return SizedBox(
+      height: 34,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: chips.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 6),
+        itemBuilder: (context, i) {
+          final title = chips[i];
+          final isBookmark = bookmarks.contains(title);
+          return ActionChip(
+            avatar: Icon(
+              isBookmark ? Icons.bookmark_rounded : Icons.history_rounded,
+              size: 15,
+              color: isBookmark ? F3Colors.accent : context.f3textMuted,
+            ),
+            label: Text(title, style: const TextStyle(fontSize: 12)),
+            onPressed: () => onTap(title),
+            backgroundColor: context.f3card,
+            side: BorderSide(color: context.f3divider),
+            visualDensity: VisualDensity.compact,
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+          );
+        },
+      ),
+    );
+  }
+}
+
 // ─── Section card ─────────────────────────────────────────────────────────────
 
 class _SectionCard extends StatelessWidget {
   final QGuideSection section;
   final bool isExpanded;
+  final bool isBookmarked;
   final VoidCallback onToggle;
+  final VoidCallback onToggleBookmark;
 
   const _SectionCard({
+    super.key,
     required this.section,
     required this.isExpanded,
+    required this.isBookmarked,
     required this.onToggle,
+    required this.onToggleBookmark,
   });
 
   @override
@@ -256,7 +388,20 @@ class _SectionCard extends StatelessWidget {
                           ],
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      IconButton(
+                        tooltip: isBookmarked ? 'Remove bookmark' : 'Bookmark this section',
+                        icon: Icon(
+                          isBookmarked
+                              ? Icons.bookmark_rounded
+                              : Icons.bookmark_border_rounded,
+                          color: isBookmarked
+                              ? F3Colors.accent
+                              : context.f3textMuted,
+                          size: 20,
+                        ),
+                        onPressed: onToggleBookmark,
+                        visualDensity: VisualDensity.compact,
+                      ),
                       AnimatedRotation(
                         turns: isExpanded ? 0.5 : 0,
                         duration: const Duration(milliseconds: 200),

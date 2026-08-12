@@ -297,9 +297,7 @@ class HomeScreen extends StatelessWidget {
                           .where((e) => e.completed && !e.isTemplate)
                           .firstOrNull;
                       return _QuickStartRow(
-                        hasDraft: workoutSvc.hasDraftPlan,
                         lastSession: lastSession,
-                        onResume: () => _openWeinke(context),
                         onRandom: () {
                           context.read<CurrentWorkoutService>().clearDraft();
                           _openWeinke(context);
@@ -1292,16 +1290,12 @@ void _loadLastSession(BuildContext context, WorkoutHistory session) {
 }
 
 class _QuickStartRow extends StatelessWidget {
-  final bool hasDraft;
   final WorkoutHistory? lastSession;
-  final VoidCallback onResume;
   final VoidCallback onRandom;
   final VoidCallback? onLoadLast;
 
   const _QuickStartRow({
-    required this.hasDraft,
     required this.lastSession,
-    required this.onResume,
     required this.onRandom,
     this.onLoadLast,
   });
@@ -1320,17 +1314,12 @@ class _QuickStartRow extends StatelessWidget {
                 letterSpacing: 1.5)),
         const SizedBox(height: 8),
         Row(children: [
-          if (hasDraft) ...[
-            Expanded(
-              child: _StartChip(
-                icon: Icons.play_circle_rounded,
-                label: l10n.homeResume,
-                color: F3Colors.accent,
-                onTap: onResume,
-              ),
-            ),
-            const SizedBox(width: 8),
-          ],
+          // "Resume" used to live here even when a draft existed — but the
+          // current-plan sneak-peek card right below this row already does
+          // the identical "tap to continue your draft" job, with a richer
+          // preview (actual exercise names) than a bare chip could show.
+          // Two adjacent elements for the same action was clutter, not
+          // redundancy-as-safety-net.
           Expanded(
             child: _StartChip(
               icon: Icons.bolt_rounded,

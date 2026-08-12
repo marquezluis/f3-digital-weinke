@@ -4,6 +4,7 @@
 // EMOM/Tabata interval overlay, confetti on session completion, TTS callouts.
 
 import 'dart:async';
+import 'dart:math' as math;
 import 'dart:math' show pi;
 import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
@@ -58,6 +59,26 @@ class _TimerScreenState extends State<TimerScreen> {
   bool _autoAdvance = false;
   static const int _autoAdvanceSecs = 180; // 3 min per exercise
   int? _autoAdvanceElapsedAtLastAdvance;
+
+  // Mumblechatter used to only ever fire from a manual tap — a nice detail
+  // nobody stumbles into if they never notice the icon. Auto mode fires it
+  // at a random-feeling interval on its own, opt-in, off by default.
+  bool _mumblechatterAuto = false;
+  Timer? _mumblechatterTimer;
+  final _rng = math.Random();
+
+  void _scheduleMumblechatter() {
+    _mumblechatterTimer?.cancel();
+    if (!_mumblechatterAuto) return;
+    // 90–180s apart, never on a fixed cadence — a metronome would feel like
+    // a notification, not a surprise callout from the Q.
+    final delay = Duration(seconds: 90 + _rng.nextInt(91));
+    _mumblechatterTimer = Timer(delay, () {
+      if (!mounted || !_mumblechatterAuto) return;
+      _fireMumblechatter();
+      _scheduleMumblechatter();
+    });
+  }
 
   void _startRest() {
     _restTimer?.cancel();
@@ -211,6 +232,7 @@ class _TimerScreenState extends State<TimerScreen> {
     _tts.stop();
     _stopInterval();
     _restTimer?.cancel();
+    _mumblechatterTimer?.cancel();
     _liveCotCtrl.dispose();
     super.dispose();
   }
@@ -427,7 +449,14 @@ class _TimerScreenState extends State<TimerScreen> {
                   Icons.self_improvement_rounded,
                   color: _restEnabled ? F3Colors.accent : null,
                 ),
-                tooltip: _restEnabled ? 'Rest between exercises ON' : 'Rest between exercises OFF',
+                // Off by default — many F3 workouts intentionally keep
+                // moving between exercises rather than build in a pause,
+                // so this needed to explain that choice, not just state
+                // current on/off status with no context for why off is
+                // the starting point.
+                tooltip: _restEnabled
+                    ? 'Rest between exercises ON — tap to turn off'
+                    : 'Rest between exercises OFF (default — many F3 workouts keep moving)',
                 onPressed: () {
                   HapticFeedback.selectionClick();
                   setState(() {
@@ -437,7 +466,7 @@ class _TimerScreenState extends State<TimerScreen> {
                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                     content: Text(_restEnabled
                         ? 'Rest timer ON — ${_restDurationSecs}s between exercises'
-                        : 'Rest timer OFF'),
+                        : 'Rest timer OFF — keeping the pace up between exercises'),
                     duration: const Duration(seconds: 2),
                   ));
                 },
@@ -498,6 +527,26 @@ class _TimerScreenState extends State<TimerScreen> {
                 icon: const Icon(Icons.campaign_rounded),
                 tooltip: 'Mumblechatter',
                 onPressed: _fireMumblechatter,
+              ),
+              IconButton(
+                icon: Icon(
+                  Icons.shuffle_rounded,
+                  color: _mumblechatterAuto ? F3Colors.accent : null,
+                ),
+                tooltip: _mumblechatterAuto
+                    ? 'Auto mumblechatter ON — tap to turn off'
+                    : 'Auto mumblechatter OFF — surprise callouts every couple minutes',
+                onPressed: () {
+                  HapticFeedback.selectionClick();
+                  setState(() => _mumblechatterAuto = !_mumblechatterAuto);
+                  _scheduleMumblechatter();
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text(_mumblechatterAuto
+                        ? 'Auto mumblechatter ON — expect surprise callouts'
+                        : 'Auto mumblechatter OFF'),
+                    duration: const Duration(seconds: 2),
+                  ));
+                },
               ),
               IconButton(
                 icon: const Icon(Icons.save_rounded),

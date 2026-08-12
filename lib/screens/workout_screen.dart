@@ -504,7 +504,16 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
         ),
       );
       if (confirm == true && mounted) {
-        await MusicLauncher.launch(svc.musicProvider, svc.musicPlaylistUrl);
+        final launched =
+            await MusicLauncher.launch(svc.musicProvider, svc.musicPlaylistUrl);
+        // Was discarding the success/failure result — a failed launch (bad
+        // link, no app installed to handle it) looked identical to a
+        // working one, just silently doing nothing.
+        if (!launched && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Couldn't open your music app.")),
+          );
+        }
       }
     }
 

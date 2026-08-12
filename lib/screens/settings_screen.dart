@@ -24,6 +24,7 @@ import '../services/region_service.dart';
 import '../services/f3_api_service.dart';
 import '../services/settings_service.dart';
 import '../theme/app_theme.dart';
+import '../utils/date_format.dart';
 import '../utils/greeting.dart';
 import '../widgets/f3_glossary_sheet.dart';
 import '../widgets/theme_language_picker.dart';
@@ -406,15 +407,12 @@ Future<void> _showAutoBackupSheet(BuildContext context) async {
   final backups = await LocalBackupService.listAutoBackups();
   if (!context.mounted) return;
 
-  const months = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-  ];
+  final localeCode = Localizations.localeOf(context).languageCode;
   String label(DateTime d) {
     final h = d.hour % 12 == 0 ? 12 : d.hour % 12;
     final period = d.hour < 12 ? 'AM' : 'PM';
     final m = d.minute.toString().padLeft(2, '0');
-    return '${months[d.month - 1]} ${d.day}, ${d.year} · $h:$m $period';
+    return '${shortMonthDayYear(d, localeCode)} · $h:$m $period';
   }
 
   await showModalBottomSheet(

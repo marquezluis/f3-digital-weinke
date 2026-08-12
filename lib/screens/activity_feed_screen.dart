@@ -12,6 +12,7 @@ import '../services/history_service.dart';
 import '../services/region_service.dart';
 import '../services/feed_service.dart';
 import '../theme/app_theme.dart';
+import '../utils/date_format.dart';
 
 class ActivityFeedScreen extends StatelessWidget {
   const ActivityFeedScreen({super.key});
@@ -85,18 +86,10 @@ class _FeedTile extends StatelessWidget {
         FeedItemType.hardCommit => F3Colors.phaseWarmup,
       };
 
-  static String _shortDate(DateTime date) {
-    const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-    ];
-    return '${months[date.month - 1]} ${date.day}';
-  }
-
   @override
   Widget build(BuildContext context) {
     final dateAndAo = [
-      _shortDate(item.date),
+      shortMonthDay(item.date, Localizations.localeOf(context).languageCode),
       if (item.aoName != null && item.aoName!.isNotEmpty) item.aoName!,
     ].join(' · ');
 

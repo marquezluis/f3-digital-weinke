@@ -15,6 +15,7 @@ import 'heatmap_screen.dart';
 import 'achievements_screen.dart';
 import 'activity_feed_screen.dart';
 import 'chat_screen.dart';
+import '../utils/date_format.dart';
 
 class BrotherhoodScreen extends StatefulWidget {
   const BrotherhoodScreen({super.key});
@@ -452,7 +453,7 @@ class _BrotherhoodScreenState extends State<BrotherhoodScreen> {
                       const SizedBox(width: 12),
                       Text(
                         pickedFirstPost != null
-                            ? 'First Post: ${_shortDate(pickedFirstPost!)}'
+                            ? 'First Post: ${shortMonthDay(pickedFirstPost!, Localizations.localeOf(context).languageCode)}'
                             : 'First Post Date (optional)',
                         style: TextStyle(
                           color: pickedFirstPost != null
@@ -588,13 +589,6 @@ class _BrotherhoodScreenState extends State<BrotherhoodScreen> {
     );
   }
 
-  static String _shortDate(DateTime date) {
-    const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-    ];
-    return '${months[date.month - 1]} ${date.day}';
-  }
 }
 
 // ── Hero Card ─────────────────────────────────────────────────────────────────
@@ -955,25 +949,48 @@ class _FngCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Avatar
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: F3Colors.accent.withValues(alpha: 0.15),
-              shape: BoxShape.circle,
-              border: Border.all(
-                  color: F3Colors.accent.withValues(alpha: 0.35)),
-            ),
-            child: Center(
-              child: Text(
-                pax.name.isNotEmpty ? pax.name[0].toUpperCase() : '?',
-                style: const TextStyle(
-                  color: F3Colors.accent,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
+          // Avatar, ringed with progress through the 90-day FNG window when
+          // known — turns the pipeline into something visibly moving toward
+          // a finish line instead of just a static name list.
+          SizedBox(
+            width: 44,
+            height: 44,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                if (daysSince != null)
+                  SizedBox(
+                    width: 44,
+                    height: 44,
+                    child: CircularProgressIndicator(
+                      value: (daysSince / 90).clamp(0, 1).toDouble(),
+                      strokeWidth: 2.5,
+                      backgroundColor: context.f3divider,
+                      valueColor:
+                          const AlwaysStoppedAnimation(Color(0xFFFF9800)),
+                    ),
+                  ),
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: F3Colors.accent.withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                        color: F3Colors.accent.withValues(alpha: 0.35)),
+                  ),
+                  child: Center(
+                    child: Text(
+                      pax.name.isNotEmpty ? pax.name[0].toUpperCase() : '?',
+                      style: const TextStyle(
+                        color: F3Colors.accent,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ),
           ),
           const SizedBox(width: 12),
@@ -1334,14 +1351,6 @@ class _HcCard extends StatelessWidget {
   final String aoName;
   const _HcCard({required this.hc, required this.aoName});
 
-  static String _shortDate(DateTime date) {
-    const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-    ];
-    return '${months[date.month - 1]} ${date.day}';
-  }
-
   @override
   Widget build(BuildContext context) {
     final subtitle = [
@@ -1375,7 +1384,7 @@ class _HcCard extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  '${_shortDate(hc.date)} · $subtitle',
+                  '${shortMonthDay(hc.date, Localizations.localeOf(context).languageCode)} · $subtitle',
                   style: TextStyle(
                     color: context.f3textSecondary,
                     fontSize: 12,
@@ -1396,18 +1405,10 @@ class _BeatdownTile extends StatelessWidget {
   final AttendanceRecord entry;
   const _BeatdownTile({required this.entry});
 
-  static String _shortDate(DateTime date) {
-    const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-    ];
-    return '${months[date.month - 1]} ${date.day}';
-  }
-
   @override
   Widget build(BuildContext context) {
     final subtitle = [
-      _shortDate(entry.date),
+      shortMonthDay(entry.date, Localizations.localeOf(context).languageCode),
       '${entry.totalCount} PAX',
       if (entry.fngCount > 0) '${entry.fngCount} FNG',
     ].join(' · ');

@@ -754,7 +754,10 @@ class _SaveSessionSheetState extends State<SaveSessionSheet> {
                               color: Colors.white, strokeWidth: 2),
                         )
                       : const Icon(Icons.save_rounded),
-                  label: Text(_saving ? 'SAVING…' : 'SAVE SESSION'),
+                  // Matches this sheet's own "SAVE BEATDOWN" header above —
+                  // was "SAVE SESSION," generic app-speak for the same
+                  // action the sheet already names correctly at the top.
+                  label: Text(_saving ? 'SAVING…' : 'SAVE BEATDOWN'),
                 ),
               ),
             ],

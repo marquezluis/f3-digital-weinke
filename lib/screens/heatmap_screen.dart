@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import '../models/workout_history.dart';
 import '../services/history_service.dart';
 import '../theme/app_theme.dart';
+import '../utils/date_format.dart';
 
 class HeatmapScreen extends StatelessWidget {
   const HeatmapScreen({super.key});
@@ -61,7 +62,7 @@ class _HeatmapView extends StatelessWidget {
     String? lastMonth;
     for (int col = 0; col < totalWeeks; col++) {
       final weekStart = gridStart.add(Duration(days: col * 7));
-      final monthLabel = _monthLabel(weekStart);
+      final monthLabel = monthAbbrev(weekStart, Localizations.localeOf(context).languageCode);
       if (monthLabel != lastMonth) {
         months.add(monthLabel);
         monthCols.add(col);
@@ -189,9 +190,9 @@ class _HeatmapView extends StatelessWidget {
                       );
                       return Tooltip(
                         message: count > 0
-                            ? '$count session${count == 1 ? '' : 's'} · ${_fullDate(day)}'
+                            ? '$count session${count == 1 ? '' : 's'} · ${shortMonthDayYear(day, Localizations.localeOf(context).languageCode)}'
                                 '${photos != null ? ' · 📷' : ''}'
-                            : _fullDate(day),
+                            : shortMonthDayYear(day, Localizations.localeOf(context).languageCode),
                         child: photos == null
                             ? cell
                             : GestureDetector(
@@ -257,7 +258,7 @@ class _HeatmapView extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(_fullDate(day),
+              Text(shortMonthDayYear(day, Localizations.localeOf(sheetContext).languageCode),
                   style: TextStyle(
                       color: sheetContext.f3textPrimary,
                       fontSize: 16,
@@ -296,17 +297,6 @@ class _HeatmapView extends StatelessWidget {
     return d.subtract(Duration(days: d.weekday - 1));
   }
 
-  String _monthLabel(DateTime d) {
-    const months = ['Jan','Feb','Mar','Apr','May','Jun',
-        'Jul','Aug','Sep','Oct','Nov','Dec'];
-    return months[d.month - 1];
-  }
-
-  String _fullDate(DateTime d) {
-    const months = ['Jan','Feb','Mar','Apr','May','Jun',
-        'Jul','Aug','Sep','Oct','Nov','Dec'];
-    return '${months[d.month - 1]} ${d.day}, ${d.year}';
-  }
 }
 
 class _StatCell extends StatelessWidget {
