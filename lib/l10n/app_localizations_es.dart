@@ -698,7 +698,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get browseAosClearAll => 'Borrar todo';
 
   @override
-  String get browseAosNoAosFound => 'No se encontraron AOs';
+  String get browseAosNoAosFound => 'No hay AOs por aquí';
 
   @override
   String get browseAosCouldntLoad =>
@@ -713,7 +713,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get browseAosNoBeatdownsScheduled =>
-      'Aún no hay beatdowns programados';
+      'Todavía nada en la agenda por aquí';
 
   @override
   String get browseAosApiNotConfiguredTitle =>
@@ -1029,7 +1029,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get settingsExiconCountSub =>
-      'Codex completo de F3, incluido sin conexión.';
+      'Una instantánea incluida del Codex F3 — puede desactualizarse respecto al Exicon en vivo de F3 Nation.';
 
   @override
   String get settingsFullyOffline => 'Totalmente sin conexión';

@@ -1297,7 +1297,7 @@ abstract class AppLocalizations {
   /// No description provided for @browseAosNoAosFound.
   ///
   /// In en, this message translates to:
-  /// **'No AOs found'**
+  /// **'No AOs out here'**
   String get browseAosNoAosFound;
 
   /// No description provided for @browseAosCouldntLoad.
@@ -1321,7 +1321,7 @@ abstract class AppLocalizations {
   /// No description provided for @browseAosNoBeatdownsScheduled.
   ///
   /// In en, this message translates to:
-  /// **'No beatdowns scheduled yet'**
+  /// **'Nothing on the schedule here yet'**
   String get browseAosNoBeatdownsScheduled;
 
   /// No description provided for @browseAosApiNotConfiguredTitle.
@@ -1861,7 +1861,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsExiconCountSub.
   ///
   /// In en, this message translates to:
-  /// **'Full F3 Codex, bundled offline.'**
+  /// **'A bundled snapshot of the F3 Codex — may drift from F3 Nation\'s live Exicon over time.'**
   String get settingsExiconCountSub;
 
   /// No description provided for @settingsFullyOffline.

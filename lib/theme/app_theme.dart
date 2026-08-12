@@ -241,6 +241,14 @@ class AppTheme {
                 ? F3Colors.accent.withValues(alpha: 0.4)
                 : F3LightColors.divider),
       ),
+      // Every bare CircularProgressIndicator() across the app — a dozen+
+      // call sites, most without an explicit color — was falling back to
+      // Material's default indicator color instead of F3 red, reading as
+      // an unstyled/generic loading state rather than an intentional one.
+      // One theme property fixes every call site at once.
+      progressIndicatorTheme: const ProgressIndicatorThemeData(
+        color: F3Colors.accent,
+      ),
     );
   }
 
@@ -400,6 +408,9 @@ class AppTheme {
             s.contains(WidgetState.selected)
                 ? F3Colors.accent.withValues(alpha: 0.4)
                 : F3Colors.divider),
+      ),
+      progressIndicatorTheme: const ProgressIndicatorThemeData(
+        color: F3Colors.accent,
       ),
     );
   }

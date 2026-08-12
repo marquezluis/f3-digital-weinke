@@ -93,6 +93,7 @@ class _ChatScreenState extends State<ChatScreen> {
               channels: channels,
               selectedId: _selectedChannelId,
               onSelect: (id) => setState(() => _selectedChannelId = id),
+              chat: chat,
             ),
             Expanded(
               child: messages.isEmpty
@@ -116,11 +117,13 @@ class _ChannelSwitcher extends StatelessWidget {
   final List<ChatChannel> channels;
   final String selectedId;
   final ValueChanged<String> onSelect;
+  final ChatService chat;
 
   const _ChannelSwitcher({
     required this.channels,
     required this.selectedId,
     required this.onSelect,
+    required this.chat,
   });
 
   @override
@@ -139,19 +142,36 @@ class _ChannelSwitcher extends StatelessWidget {
         itemBuilder: (context, i) {
           final channel = channels[i];
           final selected = channel.id == selectedId;
-          return ChoiceChip(
-            label: Text('#${channel.label}'),
-            labelStyle: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: selected ? Colors.white : context.f3textSecondary,
+          final channelMessages = chat.messagesFor(channel.id);
+          // No relay yet (see ChatService header), so every message here
+          // was sent by the local PAX themselves — there's no honest
+          // "unread from someone else" signal to show yet. A last-message
+          // preview is real and useful today without pretending otherwise.
+          final last = channelMessages.isEmpty ? null : channelMessages.last;
+          return Tooltip(
+            message: last == null
+                ? 'No messages yet'
+                : '${last.authorName}: ${last.text}',
+            triggerMode: TooltipTriggerMode.longPress,
+            child: ChoiceChip(
+              label: Text('#${channel.label}'),
+              labelStyle: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: selected ? Colors.white : context.f3textSecondary,
+              ),
+              avatar: last == null
+                  ? null
+                  : Icon(Icons.circle,
+                      size: 6,
+                      color: selected ? Colors.white : F3Colors.accent),
+              selected: selected,
+              onSelected: (_) => onSelect(channel.id),
+              selectedColor: F3Colors.accent,
+              backgroundColor: context.f3card,
+              side: BorderSide(color: selected ? F3Colors.accent : context.f3divider),
+              visualDensity: VisualDensity.compact,
             ),
-            selected: selected,
-            onSelected: (_) => onSelect(channel.id),
-            selectedColor: F3Colors.accent,
-            backgroundColor: context.f3card,
-            side: BorderSide(color: selected ? F3Colors.accent : context.f3divider),
-            visualDensity: VisualDensity.compact,
           );
         },
       ),
@@ -209,6 +229,39 @@ class _EmptyChat extends StatelessWidget {
   }
 }
 
+// Real F3 Slack shows an avatar for every PAX; this local-only chat had
+// nothing but a plain text name, which reads as a generic message board
+// rather than the actual crew talking. No photo data exists for other PAX
+// here, so a colored initial — stable per name, like Slack's own fallback
+// avatars — is the honest approximation.
+class _ChatAvatar extends StatelessWidget {
+  final String name;
+  const _ChatAvatar({required this.name});
+
+  static const _palette = [
+    Color(0xFF5B9BD5),
+    Color(0xFF9C6FE0),
+    Color(0xFF4CAF50),
+    Color(0xFFFF9800),
+    Color(0xFFE91E63),
+    Color(0xFF26A69A),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final trimmed = name.trim();
+    final initial = trimmed.isEmpty ? '?' : trimmed[0].toUpperCase();
+    final color = _palette[trimmed.hashCode.abs() % _palette.length];
+    return CircleAvatar(
+      radius: 15,
+      backgroundColor: color.withValues(alpha: 0.25),
+      child: Text(initial,
+          style: TextStyle(
+              color: color, fontWeight: FontWeight.w800, fontSize: 13)),
+    );
+  }
+}
+
 class _MessageBubble extends StatelessWidget {
   final ChatMessage message;
   const _MessageBubble({required this.message});
@@ -226,51 +279,63 @@ class _MessageBubble extends StatelessWidget {
     final bubbleColor = message.isMine ? F3Colors.accent : context.f3card;
     final textColor = message.isMine ? Colors.white : context.f3textPrimary;
 
+    final bubble = Column(
+      crossAxisAlignment: align,
+      children: [
+        if (!message.isMine)
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 2),
+            child: Text(
+              message.authorName,
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: context.f3textMuted),
+            ),
+          ),
+        Container(
+          constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.62),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: bubbleColor,
+            borderRadius: BorderRadius.circular(14),
+            border: message.isMine ? null : Border.all(color: context.f3divider),
+          ),
+          child: Text(message.text, style: TextStyle(color: textColor, fontSize: 14)),
+        ),
+        Padding(
+          padding: const EdgeInsets.only(top: 2, left: 4, right: 4),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(_time(message.sentAt), style: TextStyle(fontSize: 10, color: context.f3textMuted)),
+              if (message.isMine && message.status == ChatMessageStatus.sending) ...[
+                const SizedBox(width: 4),
+                SizedBox(
+                  width: 8,
+                  height: 8,
+                  child: CircularProgressIndicator(strokeWidth: 1.5, color: context.f3textMuted),
+                ),
+              ],
+              if (message.isMine && message.status == ChatMessageStatus.failed) ...[
+                const SizedBox(width: 4),
+                Icon(Icons.error_outline_rounded, size: 10, color: Colors.red.shade300),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Column(
-        crossAxisAlignment: align,
-        children: [
-          if (!message.isMine)
-            Padding(
-              padding: const EdgeInsets.only(left: 4, bottom: 2),
-              child: Text(
-                message.authorName,
-                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: context.f3textMuted),
-              ),
-            ),
-          Container(
-            constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: bubbleColor,
-              borderRadius: BorderRadius.circular(14),
-              border: message.isMine ? null : Border.all(color: context.f3divider),
-            ),
-            child: Text(message.text, style: TextStyle(color: textColor, fontSize: 14)),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(top: 2, left: 4, right: 4),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(_time(message.sentAt), style: TextStyle(fontSize: 10, color: context.f3textMuted)),
-                if (message.isMine && message.status == ChatMessageStatus.sending) ...[
-                  const SizedBox(width: 4),
-                  SizedBox(
-                    width: 8,
-                    height: 8,
-                    child: CircularProgressIndicator(strokeWidth: 1.5, color: context.f3textMuted),
-                  ),
-                ],
-                if (message.isMine && message.status == ChatMessageStatus.failed) ...[
-                  const SizedBox(width: 4),
-                  Icon(Icons.error_outline_rounded, size: 10, color: Colors.red.shade300),
-                ],
+      child: Row(
+        mainAxisAlignment: message.isMine ? MainAxisAlignment.end : MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: message.isMine
+            ? [Flexible(child: bubble)]
+            : [
+                _ChatAvatar(name: message.authorName),
+                const SizedBox(width: 8),
+                Flexible(child: bubble),
               ],
-            ),
-          ),
-        ],
       ),
     );
   }

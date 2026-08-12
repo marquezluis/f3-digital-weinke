@@ -46,11 +46,31 @@ class HomeScreen extends StatelessWidget {
     final now = DateTime.now();
     final isGloom = now.hour < 9;
     final l10n = AppLocalizations.of(context)!;
+    // Captured by the StatefulBuilder closure below, not declared inside
+    // it — StatefulBuilder's setState only rebuilds its own closure, so a
+    // variable declared inside that closure would reset to 0 on every one
+    // of those rebuilds instead of actually incrementing.
+    var refreshTick = 0;
 
     return Scaffold(
       backgroundColor: context.f3bg,
       body: SafeArea(
-        child: CustomScrollView(
+        // Home is the most-visited F3-API-backed screen in the app (Today
+        // Hero) but was the one screen missing pull-to-refresh that
+        // Schedule/Browse AOs/Profile/Settings all already have. Remounting
+        // _TodayHero via a changed key re-triggers its own fetch — simplest
+        // way to do this without threading a refresh callback down into it.
+        child: StatefulBuilder(builder: (context, setState) {
+          return RefreshIndicator(
+            onRefresh: () async {
+              setState(() => refreshTick++);
+              // Give the remounted _TodayHero a moment to kick off its
+              // fetch — RefreshIndicator's own spinner is what the user
+              // actually watches during the pull gesture.
+              await Future.delayed(const Duration(milliseconds: 400));
+            },
+            child: CustomScrollView(
+          key: ValueKey(refreshTick),
           slivers: [
             // ── Wordmark + compact identity ─────────────────────────────
             // The old design gave the personal welcome card the same visual
@@ -130,18 +150,24 @@ class HomeScreen extends StatelessWidget {
                                         : '',
                                     triggerMode: TooltipTriggerMode.longPress,
                                     child: Text(
-                                      // The rotating daily mottos (_dailyMotto)
-                                      // are deliberately left English-only for
-                                      // now — 25 short motivational lines is a
-                                      // large translation surface on its own,
-                                      // scoped out of this pass.
-                                      isGloom ? l10n.homeSyitg : _dailyMotto(now),
+                                      // Was small italic caption text that
+                                      // read as disposable filler — a size
+                                      // bump + medium weight (no italic,
+                                      // which reads as "aside," not "said
+                                      // with intent") gives this on-brand
+                                      // detail actual presence without
+                                      // competing with the Today Hero below,
+                                      // which stays the one dominant element.
+                                      isGloom
+                                          ? l10n.homeSyitg
+                                          : _dailyMotto(
+                                              now, settingsSvc.locale.languageCode),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                       style: TextStyle(
                                           color: context.f3textSecondary,
-                                          fontSize: 12,
-                                          fontStyle: FontStyle.italic),
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w500),
                                     ),
                                   ),
                                 ],
@@ -458,8 +484,10 @@ class HomeScreen extends StatelessWidget {
             ),
             // Version & credits live in the You tab (Settings → About) now,
             // not on the home launchpad.
-          ],
-        ),
+              ],
+            ),
+          );
+        }),
       ),
     );
   }
@@ -479,7 +507,11 @@ class HomeScreen extends StatelessWidget {
 int _dayOfYear(DateTime d) =>
     d.difference(DateTime(d.year, 1, 1)).inDays;
 
-const _mottos = [
+// Index-aligned across all three languages, so the same day always shows
+// the "same" motto in whichever language the PAX reads — was English-only,
+// leaving Spanish/French PAX with the full app except this one recurring
+// touch.
+const _mottosEn = [
   'Leave no man behind, but leave no man where you found him.',
   'Every man needs to struggle to find his purpose.',
   'Pain is the feeling of weakness leaving the body.',
@@ -507,8 +539,70 @@ const _mottos = [
   'Plant yourself. Then grow.',
 ];
 
-String _dailyMotto(DateTime d) =>
-    _mottos[_dayOfYear(d) % _mottos.length];
+const _mottosEs = [
+  'No dejes a nadie atrás, pero tampoco lo dejes donde lo encontraste.',
+  'Todo hombre necesita luchar para encontrar su propósito.',
+  'El dolor es la sensación de la debilidad abandonando el cuerpo.',
+  'Preséntate. Trabaja duro. Anima a los demás.',
+  'Haz EH a alguien esta semana.',
+  'Siempre puedes hacer más de lo que crees que puedes.',
+  'El Six no gana quedándose en casa.',
+  'Planta tu shovelflag y ponte a trabajar.',
+  'El fitness es el vehículo, la fraternidad es el destino.',
+  'Las cosas difíciles hechas juntos nos hacen mejores hombres.',
+  'Tu difícil es difícil. Mi difícil es difícil. Solo tenemos diferentes difíciles.',
+  'F3: Fitness, Fraternidad, Fe — un beatdown a la vez.',
+  'Acostúmbrate a estar incómodo.',
+  'Un hombre que se lidera a sí mismo puede liderar a otros.',
+  'El hierro afila al hierro.',
+  'El único mal entrenamiento es el que no hiciste.',
+  'Aceleramos el crecimiento de los hombres.',
+  'EH: Exhortar, Insistir e Invitar.',
+  'El Q marca el tono. Los PAX marcan el estándar.',
+  'El mumble chatter es parte del beatdown.',
+  'Nadie viene a salvarte. Sálvate primero, luego regresa por el Six.',
+  'Suficientemente fuerte para liderar. Suficientemente humilde para seguir.',
+  'Tu 0530 marca el tono de todo tu día.',
+  'La coffeeteria se gana.',
+  'Plántate. Luego crece.',
+];
+
+const _mottosFr = [
+  'Ne laisse personne derrière, mais ne le laisse pas non plus où tu l\'as trouvé.',
+  'Chaque homme doit lutter pour trouver son but.',
+  'La douleur, c\'est la faiblesse qui quitte le corps.',
+  'Montre-toi. Travaille dur. Encourage les autres.',
+  'Fais de l\'EH à quelqu\'un cette semaine.',
+  'Tu peux toujours faire plus que ce que tu penses.',
+  'Le Six ne gagne pas en restant à la maison.',
+  'Plante ton shovelflag et mets-toi au travail.',
+  'Le fitness est le véhicule, la fraternité est la destination.',
+  'Les choses difficiles faites ensemble font de nous de meilleurs hommes.',
+  'Ton dur est dur. Mon dur est dur. On a juste des durs différents.',
+  'F3 : Fitness, Fraternité, Foi — un beatdown à la fois.',
+  'Habitue-toi à être inconfortable.',
+  'Un homme qui se dirige lui-même peut diriger les autres.',
+  'Le fer aiguise le fer.',
+  'Le seul mauvais entraînement est celui que tu n\'as pas fait.',
+  'Nous accélérons la croissance des hommes.',
+  'EH : Exhorter, Harceler et Inviter.',
+  'Le Q donne le ton. Les PAX fixent la norme.',
+  'Le mumble chatter fait partie du beatdown.',
+  'Personne ne viendra te sauver. Sauve-toi d\'abord, puis reviens chercher le Six.',
+  'Assez fort pour diriger. Assez humble pour suivre.',
+  'Ton 0530 donne le ton à toute ta journée.',
+  'La coffeeteria se mérite.',
+  'Plante-toi. Puis grandis.',
+];
+
+String _dailyMotto(DateTime d, String languageCode) {
+  final mottos = switch (languageCode) {
+    'es' => _mottosEs,
+    'fr' => _mottosFr,
+    _ => _mottosEn,
+  };
+  return mottos[_dayOfYear(d) % mottos.length];
+}
 
 // StreakStatus/StreakInfo/_streakInfo/_daysLeftInWeek now live in
 // ../utils/streak_calculator.dart, so the logic is actually unit-testable —

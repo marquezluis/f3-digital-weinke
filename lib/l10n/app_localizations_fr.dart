@@ -702,7 +702,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get browseAosClearAll => 'Tout effacer';
 
   @override
-  String get browseAosNoAosFound => 'Aucun AO trouvé';
+  String get browseAosNoAosFound => 'Aucun AO par ici';
 
   @override
   String get browseAosCouldntLoad =>
@@ -716,7 +716,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get browseAosZoomForMore => 'Dézoome pour en voir plus';
 
   @override
-  String get browseAosNoBeatdownsScheduled => 'Pas encore de beatdown prévu';
+  String get browseAosNoBeatdownsScheduled =>
+      'Encore rien au programme par ici';
 
   @override
   String get browseAosApiNotConfiguredTitle =>
@@ -1032,7 +1033,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get settingsExiconCount => '907 exercices de l\'Exicon';
 
   @override
-  String get settingsExiconCountSub => 'Codex F3 complet, inclus hors ligne.';
+  String get settingsExiconCountSub =>
+      'Un instantané inclus du Codex F3 — peut ne plus correspondre à l\'Exicon en direct de F3 Nation avec le temps.';
 
   @override
   String get settingsFullyOffline => 'Entièrement hors ligne';

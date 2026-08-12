@@ -690,7 +690,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get browseAosClearAll => 'Clear all';
 
   @override
-  String get browseAosNoAosFound => 'No AOs found';
+  String get browseAosNoAosFound => 'No AOs out here';
 
   @override
   String get browseAosCouldntLoad => 'Couldn\'t load AOs — pull to refresh.';
@@ -702,7 +702,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get browseAosZoomForMore => 'Zoom out for more';
 
   @override
-  String get browseAosNoBeatdownsScheduled => 'No beatdowns scheduled yet';
+  String get browseAosNoBeatdownsScheduled =>
+      'Nothing on the schedule here yet';
 
   @override
   String get browseAosApiNotConfiguredTitle => 'F3 Nation API not configured';
@@ -1007,7 +1008,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsExiconCount => '907 Exicon exercises';
 
   @override
-  String get settingsExiconCountSub => 'Full F3 Codex, bundled offline.';
+  String get settingsExiconCountSub =>
+      'A bundled snapshot of the F3 Codex — may drift from F3 Nation\'s live Exicon over time.';
 
   @override
   String get settingsFullyOffline => 'Fully offline';
