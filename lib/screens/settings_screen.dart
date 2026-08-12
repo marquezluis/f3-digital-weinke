@@ -16,6 +16,8 @@ import 'package:share_plus/share_plus.dart';
 import '../models/auth_models.dart';
 import '../services/app_profile_service.dart' hide AppRole;
 import '../services/auth_service.dart';
+import '../services/codex_sync_service.dart';
+import '../services/exercise_service.dart';
 import '../services/history_service.dart';
 import '../services/local_app_lock_service.dart';
 import '../services/local_backup_service.dart';
@@ -346,6 +348,7 @@ class SettingsScreen extends StatelessWidget {
                 title: l10n.settingsExiconCount,
                 subtitle: l10n.settingsExiconCountSub,
               ),
+              const _CodexSyncTile(),
               _InfoTile(
                 icon: Icons.wifi_off_rounded,
                 title: l10n.settingsFullyOffline,
@@ -1267,6 +1270,96 @@ class _InfoTile extends StatelessWidget {
             Text(title, style: TextStyle(color: context.f3textPrimary, fontWeight: FontWeight.w600, fontSize: 14)),
             Text(subtitle, style: TextStyle(color: context.f3textMuted, fontSize: 12)),
           ])),
+        ]),
+      ),
+    );
+  }
+}
+
+// ── Codex sync ────────────────────────────────────────────────────────────────
+// Manual, on-demand only — no background network calls, matching the app's
+// offline-first default. Pulls demo video links + confirms which custom
+// exercises now match the real, live Exicon (see CodexSyncService).
+
+class _CodexSyncTile extends StatefulWidget {
+  const _CodexSyncTile();
+
+  @override
+  State<_CodexSyncTile> createState() => _CodexSyncTileState();
+}
+
+class _CodexSyncTileState extends State<_CodexSyncTile> {
+  bool _syncing = false;
+  String? _resultMessage;
+
+  Future<void> _sync() async {
+    setState(() {
+      _syncing = true;
+      _resultMessage = null;
+    });
+    final exerciseSvc = context.read<ExerciseService>();
+    final codexSvc = context.read<CodexSyncService>();
+    final result = await codexSvc.sync(exerciseSvc.all);
+    if (!mounted) return;
+    if (result == null) {
+      setState(() {
+        _syncing = false;
+        _resultMessage = "Couldn't reach the Codex — check your connection.";
+      });
+      return;
+    }
+    exerciseSvc.applyVideoLinks(codexSvc.videoLinksByName);
+    exerciseSvc.applyLiveExiconNames(codexSvc.liveExiconNames);
+    setState(() {
+      _syncing = false;
+      _resultMessage = 'Found demo videos for ${result.matched} of '
+          '${result.total} exercises.';
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final codexSvc = context.watch<CodexSyncService>();
+    final lastSynced = codexSvc.lastSyncedAt;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: context.f3card,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: context.f3divider),
+        ),
+        child: Row(children: [
+          Icon(Icons.sync_rounded, color: context.f3textMuted, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Sync with Official Codex',
+                    style: TextStyle(
+                        color: context.f3textPrimary,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14)),
+                Text(
+                  _resultMessage ??
+                      (lastSynced == null
+                          ? 'Never synced — pulls demo videos and confirms official exercises'
+                          : 'Last synced ${shortMonthDayYear(lastSynced, Localizations.localeOf(context).languageCode)}'),
+                  style: TextStyle(color: context.f3textMuted, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          _syncing
+              ? const SizedBox(
+                  width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+              : TextButton(
+                  onPressed: _sync,
+                  child: const Text('SYNC'),
+                ),
         ]),
       ),
     );

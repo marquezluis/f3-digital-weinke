@@ -100,6 +100,11 @@ class Exercise {
   final String? simpleExplanation;
   final String? modification;
   final String? safetyCue;
+  // Populated by CodexSyncService matching this exercise's name against the
+  // live F3 Nation Exicon (codex.f3nation.com) — never bundled at build
+  // time, since the bundled asset needs to stay a static, offline-safe
+  // snapshot. Null until a sync has actually found a match.
+  final String? videoLink;
 
   const Exercise({
     required this.id,
@@ -114,6 +119,7 @@ class Exercise {
     this.simpleExplanation,
     this.modification,
     this.safetyCue,
+    this.videoLink,
   });
 
   factory Exercise.fromJson(Map<String, dynamic> json) {
@@ -136,6 +142,7 @@ class Exercise {
       simpleExplanation: json['simpleExplanation'] as String?,
       modification: json['modification'] as String?,
       safetyCue: json['safetyCue'] as String?,
+      videoLink: json['videoLink'] as String?,
     );
   }
 
@@ -152,6 +159,7 @@ class Exercise {
         if (simpleExplanation != null) 'simpleExplanation': simpleExplanation,
         if (modification != null) 'modification': modification,
         if (safetyCue != null) 'safetyCue': safetyCue,
+        if (videoLink != null) 'videoLink': videoLink,
       };
 
   /// Returns a copy with a different category — used for "swap" logic.
@@ -168,6 +176,26 @@ class Exercise {
         simpleExplanation: simpleExplanation,
         modification: modification,
         safetyCue: safetyCue,
+        videoLink: videoLink,
+      );
+
+  /// Returns a copy with a demo video link attached — used by
+  /// CodexSyncService to overlay live Exicon data onto the bundled/custom
+  /// list without mutating the original.
+  Exercise withVideoLink(String? newVideoLink) => Exercise(
+        id: id,
+        name: name,
+        description: description,
+        aliases: aliases,
+        category: category,
+        equipment: equipment,
+        intensity: intensity,
+        secondsPerSet: secondsPerSet,
+        callStyle: callStyle,
+        simpleExplanation: simpleExplanation,
+        modification: modification,
+        safetyCue: safetyCue,
+        videoLink: newVideoLink,
       );
 
   @override

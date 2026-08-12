@@ -14,6 +14,7 @@ class ExerciseService extends ChangeNotifier {
   List<Exercise> _exercises = [];
   List<Exercise> _customExercises = [];
   bool _loaded = false;
+  Set<String> _liveExiconNames = {};
 
   Future<void> load() async {
     if (_loaded) return;
@@ -81,6 +82,43 @@ class ExerciseService extends ChangeNotifier {
   void injectForTesting(List<Exercise> exercises) {
     _exercises = List<Exercise>.from(exercises);
     _loaded = true;
+  }
+
+  /// Overlays demo video links (from CodexSyncService, matched by
+  /// normalized exercise name) onto the bundled + custom lists. Doesn't
+  /// touch the bundled asset itself — this only ever affects the in-memory
+  /// copy, reapplied fresh every app launch from CodexSyncService's own
+  /// persisted map.
+  void applyVideoLinks(Map<String, String> linksByNormalizedName) {
+    if (linksByNormalizedName.isEmpty) return;
+    String? linkFor(Exercise e) =>
+        linksByNormalizedName[e.name.trim().toLowerCase()];
+    _exercises =
+        _exercises.map((e) => e.withVideoLink(linkFor(e) ?? e.videoLink)).toList();
+    _customExercises = _customExercises
+        .map((e) => e.withVideoLink(linkFor(e) ?? e.videoLink))
+        .toList();
+    notifyListeners();
+  }
+
+  /// The full set of exercise names (normalized) confirmed present in the
+  /// live F3 Nation Exicon as of the last CodexSyncService sync — used by
+  /// [isOfficial] to decide whether a *custom* exercise has since become
+  /// recognizable as a real, canonical F3 movement.
+  void applyLiveExiconNames(Set<String> namesByNormalizedName) {
+    _liveExiconNames = namesByNormalizedName;
+    notifyListeners();
+  }
+
+  /// Bundled exercises are Official by default — they were sourced from
+  /// the Exicon at build time. Custom (Q-written) exercises start Pending
+  /// and only become Official once a live sync confirms the same name now
+  /// exists in the real Exicon. Visible to any user browsing exercises,
+  /// not admin-gated — it's just "is this a recognized F3 movement."
+  bool isOfficial(Exercise exercise) {
+    final isCustom = _customExercises.any((c) => c.id == exercise.id);
+    if (!isCustom) return true;
+    return _liveExiconNames.contains(exercise.name.trim().toLowerCase());
   }
 
   Exercise? findById(String id) => all.where((e) => e.id == id).firstOrNull;

@@ -11,6 +11,7 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 import 'services/app_profile_service.dart';
 import 'services/auth_service.dart';
 import 'services/chat_service.dart';
+import 'services/codex_sync_service.dart';
 import 'services/current_workout_service.dart';
 import 'services/custom_achievement_service.dart';
 import 'services/emergency_service.dart';
@@ -94,6 +95,14 @@ Future<void> _runApp() async {
   final exerciseService = ExerciseService();
   await exerciseService.load();
 
+  final codexSyncService = CodexSyncService();
+  await codexSyncService.load();
+  // Reapply whatever was found on the last sync — no network call here,
+  // just replaying the already-persisted state onto this session's
+  // in-memory exercise list.
+  exerciseService.applyVideoLinks(codexSyncService.videoLinksByName);
+  exerciseService.applyLiveExiconNames(codexSyncService.liveExiconNames);
+
   final settingsService = SettingsService();
   await settingsService.load();
   SpartanService.instance.init(kGeminiApiKey);
@@ -129,6 +138,7 @@ Future<void> _runApp() async {
 
   runApp(DigitalWeinke(
     exerciseService: exerciseService,
+    codexSyncService: codexSyncService,
     appProfileService: appProfileService,
     authService: authService,
     settingsService: settingsService,
@@ -142,6 +152,7 @@ Future<void> _runApp() async {
 
 class DigitalWeinke extends StatelessWidget {
   final ExerciseService exerciseService;
+  final CodexSyncService codexSyncService;
   final AppProfileService appProfileService;
   final AuthService authService;
   final SettingsService settingsService;
@@ -154,6 +165,7 @@ class DigitalWeinke extends StatelessWidget {
   const DigitalWeinke({
     super.key,
     required this.exerciseService,
+    required this.codexSyncService,
     required this.appProfileService,
     required this.authService,
     required this.settingsService,
@@ -170,6 +182,7 @@ class DigitalWeinke extends StatelessWidget {
       providers: [
         // ExerciseService now extends ChangeNotifier (custom exercises notify).
         ChangeNotifierProvider<ExerciseService>.value(value: exerciseService),
+        ChangeNotifierProvider<CodexSyncService>.value(value: codexSyncService),
         ChangeNotifierProvider<AppProfileService>.value(
             value: appProfileService),
         ChangeNotifierProvider<AuthService>.value(value: authService),
