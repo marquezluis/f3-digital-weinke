@@ -31,6 +31,7 @@ class SettingsService extends ChangeNotifier {
   static const _keyTtsVoice        = 'tts_voice';
   static const _keyThemeMode       = 'theme_mode';
   static const _keyLocale          = 'locale';
+  static const _keyFirstLaunchDate = 'first_launch_date';
 
   WorkoutSettings _settings = const WorkoutSettings();
   WorkoutSettings get settings => _settings;
@@ -86,6 +87,9 @@ class SettingsService extends ChangeNotifier {
 
   String _musicPlaylistUrl = '';
   String get musicPlaylistUrl => _musicPlaylistUrl;
+
+  DateTime? _firstLaunchDate;
+  DateTime? get firstLaunchDate => _firstLaunchDate;
 
   /// Load persisted settings; call once at startup.
   Future<void> load() async {
@@ -154,6 +158,17 @@ class SettingsService extends ChangeNotifier {
       (p) => p.name == prefs.getString(_keyMusicProvider),
       orElse: () => MusicProvider.spotify,
     );
+
+    // Stamped once, the very first time this ever loads — the anchor for
+    // the "first week" founding-quest window (see FoundingQuestCard).
+    final firstLaunchStr = prefs.getString(_keyFirstLaunchDate);
+    if (firstLaunchStr == null) {
+      _firstLaunchDate = DateTime.now();
+      await prefs.setString(
+          _keyFirstLaunchDate, _firstLaunchDate!.toIso8601String());
+    } else {
+      _firstLaunchDate = DateTime.tryParse(firstLaunchStr);
+    }
 
     SpartanService.instance.init(_geminiApiKey);
 

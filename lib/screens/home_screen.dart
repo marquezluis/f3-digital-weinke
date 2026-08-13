@@ -2,8 +2,6 @@
 // Digital Weinke — home dashboard.
 // Branding: F3 "Badass Black" + red-orange accent.
 
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
@@ -25,6 +23,8 @@ import '../services/f3_api_service.dart';
 import '../models/f3_api_models.dart';
 import 'schedule_screen.dart' show MineFilter;
 import '../widgets/exercise_detail_sheet.dart';
+import '../widgets/founding_quest_card.dart';
+import '../widgets/self_avatar.dart';
 import '../theme/app_theme.dart';
 import 'history_screen.dart';
 import 'profile_screen.dart';
@@ -125,7 +125,7 @@ class HomeScreen extends StatelessWidget {
                                 builder: (_) => const ProfileScreen()),
                           ),
                           child: Row(children: [
-                            const _HomeAvatar(size: 40),
+                            const SelfAvatar(size: 40),
                             const SizedBox(width: 10),
                             Expanded(
                               child: Column(
@@ -228,6 +228,7 @@ class HomeScreen extends StatelessWidget {
                         _EhProspectsCard(region: regionSvc),
                         const SizedBox(height: 8),
                       ],
+                      const FoundingQuestCard(),
                       // A brand-new PAX with no history yet sees almost
                       // nothing else on this screen — give them a next
                       // action instead of a page that looks unfinished.
@@ -607,58 +608,6 @@ String _dailyMotto(DateTime d, String languageCode) {
 // it used to be private to this file.
 
 // ─── Quick action card ────────────────────────────────────────────────────────
-
-// ─── Home avatar ──────────────────────────────────────────────────────────────
-
-/// Circular profile avatar in the home header. Shows the F3 Nation avatar
-/// when synced, else the user's initial, else a shield. Purely visual — the
-/// whole welcome card it sits in (not just this avatar) opens the profile.
-class _HomeAvatar extends StatelessWidget {
-  final double size;
-  const _HomeAvatar({this.size = 48});
-
-  @override
-  Widget build(BuildContext context) {
-    return Consumer<AppProfileService>(
-      builder: (context, profile, _) {
-        final name = profile.displayName;
-        final initial =
-            name.isNotEmpty ? name.characters.first.toUpperCase() : '';
-        ImageProvider? img;
-        if (profile.localAvatarPath.isNotEmpty &&
-            File(profile.localAvatarPath).existsSync()) {
-          img = FileImage(File(profile.localAvatarPath));
-        } else if (profile.avatarUrl.isNotEmpty) {
-          img = NetworkImage(profile.avatarUrl);
-        }
-        return Container(
-          width: size,
-          height: size,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: F3Colors.accent.withValues(alpha: 0.14),
-            border: Border.all(
-                color: F3Colors.accent.withValues(alpha: 0.5), width: 2),
-            image: img != null
-                ? DecorationImage(image: img, fit: BoxFit.cover)
-                : null,
-          ),
-          alignment: Alignment.center,
-          child: img != null
-              ? null
-              : (initial.isNotEmpty
-                  ? Text(initial,
-                      style: TextStyle(
-                          color: F3Colors.accent,
-                          fontWeight: FontWeight.w900,
-                          fontSize: size * 0.42))
-                  : Icon(Icons.shield_rounded,
-                      color: F3Colors.accent, size: size * 0.5)),
-        );
-      },
-    );
-  }
-}
 
 class _QuickCard extends StatelessWidget {
   final IconData icon;

@@ -16,6 +16,7 @@ import '../services/app_profile_service.dart';
 import '../services/auth_service.dart';
 import '../services/f3_api_service.dart';
 import '../theme/app_theme.dart';
+import 'browse_aos_screen.dart';
 import 'emergency_screen.dart';
 
 class LoginGateScreen extends StatefulWidget {
@@ -283,6 +284,19 @@ class _LoginGateScreenState extends State<LoginGateScreen> {
                 label: Text(_busy
                     ? AppLocalizations.of(context)!.loginGateSigningIn
                     : AppLocalizations.of(context)!.loginGateSignIn),
+              ),
+              const SizedBox(height: 10),
+              // Not gated on auth — BrowseAosScreen fetches with the app's
+              // own API key, same as the AO count above. Lets someone see
+              // real, live AOs before deciding to link an F3 Nation account.
+              TextButton.icon(
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const BrowseAosScreen()),
+                ),
+                style: TextButton.styleFrom(foregroundColor: context.f3textSecondary),
+                icon: const Icon(Icons.map_outlined, size: 18),
+                label: Text(AppLocalizations.of(context)!.loginGateBrowseAos),
               ),
               const Spacer(),
               // Life-safety: reachable with no auth, no network.

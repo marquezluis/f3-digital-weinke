@@ -1,8 +1,6 @@
 // lib/screens/settings_screen.dart
 // Workout generation settings: coupon mode, intensity filter.
 
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_tts/flutter_tts.dart';
@@ -14,6 +12,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../models/app_version.dart';
 import 'package:share_plus/share_plus.dart';
 import '../models/auth_models.dart';
+import '../widgets/self_avatar.dart';
 import 'admin_location_screen.dart';
 import '../services/app_profile_service.dart' hide AppRole;
 import '../services/auth_service.dart';
@@ -81,6 +80,27 @@ class SettingsScreen extends StatelessWidget {
               ),
 
               const SizedBox(height: 28),
+
+              // ── Profile / Settings boundary ──────────────────────────────
+              // The "You" tab conflates identity (who you are) with app
+              // config (how the app behaves) on one long scroll — this marks
+              // where one ends and the other begins, rather than a full
+              // split into separate screens.
+              Row(children: [
+                Expanded(child: Divider(color: context.f3divider)),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  child: Text(
+                    l10n.settingsPreferencesDivider,
+                    style: TextStyle(
+                        color: context.f3textMuted,
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w600),
+                  ),
+                ),
+                Expanded(child: Divider(color: context.f3divider)),
+              ]),
+              const SizedBox(height: 20),
 
               // ── Appearance ────────────────────────────────────────────────
               _SectionHeader(l10n.settingsAppearance),
@@ -830,28 +850,9 @@ class _ProfileBannerState extends State<_ProfileBanner> {
                       color: F3Colors.accent.withValues(alpha: 0.3)),
                 ),
                 child: Row(children: [
-            // Avatar: local photo → F3 Nation avatar → shield. The whole
-            // card (not just this image) opens the full profile — see the
-            // InkWell wrapping `banner` below.
-            () {
-              ImageProvider? img;
-              if (profile.localAvatarPath.isNotEmpty &&
-                  File(profile.localAvatarPath).existsSync()) {
-                img = FileImage(File(profile.localAvatarPath));
-              } else if (profile.avatarUrl.isNotEmpty) {
-                img = NetworkImage(profile.avatarUrl);
-              }
-              return CircleAvatar(
-                radius: 26,
-                backgroundColor: F3Colors.accent.withValues(alpha: 0.14),
-                foregroundImage: img,
-                onForegroundImageError: img != null ? (e, s) {} : null,
-                child: img == null
-                    ? const Icon(Icons.shield_rounded,
-                        color: F3Colors.accent, size: 26)
-                    : null,
-              );
-            }(),
+            // The whole card (not just this avatar) opens the full profile
+            // — see the InkWell wrapping `banner` below.
+            const SelfAvatar(size: 52),
             const SizedBox(width: 14),
             Expanded(
               child: Column(

@@ -23,6 +23,7 @@
   "rolePaxName": "PAX",
   "rolePaxDesc": "Je me présente et je transpire. Donne-moi le minuteur et la bibliothèque.",
   "settingsTitle": "PARAMÈTRES",
+  "settingsPreferencesDivider": "Préférences de l'application ci-dessous — votre profil est ci-dessus",
   "settingsAppearance": "APPARENCE",
   "settingsThemeDark": "Sombre",
   "settingsThemeLight": "Clair",
@@ -54,6 +55,7 @@
   "loginGateSigningIn": "Connexion en cours…",
   "loginGateSignIn": "Se connecter avec F3 Nation",
   "loginGateEmergencyInfo": "Informations d'urgence",
+  "loginGateBrowseAos": "Voir les AO près de chez vous d'abord",
 
   "localLoginTagline": "F3 NATION · SPARTAN UP",
   "localLoginWelcomeBack": "Bon retour, {name}.",

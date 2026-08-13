@@ -92,6 +92,10 @@
   "@settingsTitle": {
     "description": "Title for the settings screen."
   },
+  "settingsPreferencesDivider": "App preferences below — your profile is above",
+  "@settingsPreferencesDivider": {
+    "description": "Marks the boundary between the profile identity section and the app-settings sections below it on the You tab."
+  },
   "settingsAppearance": "APPEARANCE",
   "@settingsAppearance": {
     "description": "Section header for the appearance settings."
@@ -165,6 +169,7 @@
   "loginGateSigningIn": "Signing in…",
   "loginGateSignIn": "Sign in with F3 Nation",
   "loginGateEmergencyInfo": "Emergency Info",
+  "loginGateBrowseAos": "See AOs near you first",
 
   "localLoginTagline": "F3 NATION · SPARTAN UP",
   "localLoginWelcomeBack": "Welcome back, {name}.",

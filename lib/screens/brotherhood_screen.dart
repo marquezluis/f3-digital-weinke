@@ -27,6 +27,29 @@ class BrotherhoodScreen extends StatefulWidget {
 class _BrotherhoodScreenState extends State<BrotherhoodScreen> {
   bool _crewExpanded = false;
 
+  // Quick-jump anchors — same Scrollable.ensureVisible technique as
+  // QSource's bookmark jump (qsource_screen.dart) — this board has 7 named
+  // sections stacked on one long scroll with no way to skip ahead.
+  static const _sectionTitles = [
+    'EH PROSPECTS',
+    'FNG PIPELINE',
+    'YOUR AOs',
+    'YOUR CREW',
+    'HARD COMMITS',
+    'RECENT BEATDOWNS',
+    'YOUR STATS',
+  ];
+  final Map<String, GlobalKey> _sectionKeys = {
+    for (final title in _sectionTitles) title: GlobalKey(),
+  };
+
+  void _jumpTo(String title) {
+    final ctx = _sectionKeys[title]?.currentContext;
+    if (ctx == null) return;
+    Scrollable.ensureVisible(ctx,
+        duration: const Duration(milliseconds: 300), alignment: 0.05);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -73,24 +96,60 @@ class _BrotherhoodScreenState extends State<BrotherhoodScreen> {
                   _HeroCard(profile: profile, region: region),
                   const SizedBox(height: 16),
 
+                  // ── PAX of the Quarter ────────────────────────────────────
+                  if (region.paxOfTheQuarter != null) ...[
+                    _PaxOfTheQuarterCard(pick: region.paxOfTheQuarter!),
+                    const SizedBox(height: 16),
+                  ],
+
                   // ── Region Chat ───────────────────────────────────────────
                   _ChatEntryCard(region: profile.region),
+                  const SizedBox(height: 16),
+
+                  // ── Quick jump ────────────────────────────────────────────
+                  SizedBox(
+                    height: 32,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _sectionTitles.length,
+                      separatorBuilder: (_, __) => const SizedBox(width: 8),
+                      itemBuilder: (_, i) {
+                        final title = _sectionTitles[i];
+                        return ActionChip(
+                          label: Text(title,
+                              style: const TextStyle(
+                                  fontSize: 11.5, fontWeight: FontWeight.w700)),
+                          backgroundColor: context.f3card,
+                          side: BorderSide(color: context.f3divider),
+                          labelStyle: TextStyle(color: context.f3textSecondary),
+                          onPressed: () => _jumpTo(title),
+                        );
+                      },
+                    ),
+                  ),
                   const SizedBox(height: 24),
 
                   // ── EH Prospects ──────────────────────────────────────────
-                  _EhProspectsSection(
-                    region: region,
-                    onAdd: () => _showEhProspectSheet(context),
+                  KeyedSubtree(
+                    key: _sectionKeys['EH PROSPECTS'],
+                    child: _EhProspectsSection(
+                      region: region,
+                      onAdd: () => _showEhProspectSheet(context),
+                    ),
                   ),
 
                   // ── FNG Pipeline ──────────────────────────────────────────
-                  _FngPipelineSection(
-                    region: region,
-                    onAddPax: () => _showPaxSheet(context),
+                  KeyedSubtree(
+                    key: _sectionKeys['FNG PIPELINE'],
+                    child: _FngPipelineSection(
+                      region: region,
+                      onAddPax: () => _showPaxSheet(context),
+                    ),
                   ),
 
                   // ── Your AOs ──────────────────────────────────────────────
                   _SectionHeader(
+                    key: _sectionKeys['YOUR AOs'],
                     title: 'YOUR AOs',
                     action: 'ADD +',
                     onAction: () => _showAoSheet(context),
@@ -115,6 +174,7 @@ class _BrotherhoodScreenState extends State<BrotherhoodScreen> {
 
                   // ── Your Crew ─────────────────────────────────────────────
                   _SectionHeader(
+                    key: _sectionKeys['YOUR CREW'],
                     title: 'YOUR CREW',
                     action: 'ADD +',
                     onAction: () => _showPaxSheet(context),
@@ -132,6 +192,7 @@ class _BrotherhoodScreenState extends State<BrotherhoodScreen> {
 
                   // ── Hard Commits ──────────────────────────────────────────
                   _SectionHeader(
+                    key: _sectionKeys['HARD COMMITS'],
                     title: 'HARD COMMITS',
                     action: region.aos.isEmpty ? null : 'ADD +',
                     onAction:
@@ -148,7 +209,9 @@ class _BrotherhoodScreenState extends State<BrotherhoodScreen> {
                   const SizedBox(height: 24),
 
                   // ── Recent Beatdowns ──────────────────────────────────────
-                  const _SectionHeader(title: 'RECENT BEATDOWNS'),
+                  _SectionHeader(
+                      key: _sectionKeys['RECENT BEATDOWNS'],
+                      title: 'RECENT BEATDOWNS'),
                   const SizedBox(height: 8),
                   if (region.recentAttendance.isEmpty)
                     const _EmptyState(
@@ -163,7 +226,8 @@ class _BrotherhoodScreenState extends State<BrotherhoodScreen> {
 
                   // ── Your Stats ────────────────────────────────────────────
                   const SizedBox(height: 24),
-                  const _SectionHeader(title: 'YOUR STATS'),
+                  _SectionHeader(
+                      key: _sectionKeys['YOUR STATS'], title: 'YOUR STATS'),
                   const SizedBox(height: 8),
                   Material(
                     color: context.f3card,
@@ -592,6 +656,62 @@ class _BrotherhoodScreenState extends State<BrotherhoodScreen> {
 }
 
 // ── Hero Card ─────────────────────────────────────────────────────────────────
+
+/// Recognizes whoever's shown up most in this Q's own logged attendance
+/// over the last 90 days. Local-only, honestly scoped — no nation-wide
+/// leaderboard exists to pull a real "quarter" ranking from.
+class _PaxOfTheQuarterCard extends StatelessWidget {
+  final ({String paxName, int postCount}) pick;
+  const _PaxOfTheQuarterCard({required this.pick});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: F3Colors.phaseCOT.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: F3Colors.phaseCOT.withValues(alpha: 0.35)),
+      ),
+      child: Row(children: [
+        Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: F3Colors.phaseCOT.withValues(alpha: 0.18),
+          ),
+          alignment: Alignment.center,
+          child: const Icon(Icons.emoji_events_rounded,
+              color: F3Colors.phaseCOT, size: 24),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('PAX OF THE QUARTER',
+                  style: TextStyle(
+                      color: F3Colors.phaseCOT,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1)),
+              const SizedBox(height: 2),
+              Text(pick.paxName,
+                  style: TextStyle(
+                      color: context.f3textPrimary,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w900)),
+              Text('${pick.postCount} posts in the last 90 days',
+                  style: TextStyle(
+                      color: context.f3textMuted, fontSize: 12)),
+            ],
+          ),
+        ),
+      ]),
+    );
+  }
+}
 
 class _HeroCard extends StatelessWidget {
   final AppProfileService profile;
@@ -1463,6 +1583,7 @@ class _SectionHeader extends StatelessWidget {
   final bool accentTitle;
 
   const _SectionHeader({
+    super.key,
     required this.title,
     this.action,
     this.onAction,
@@ -1495,7 +1616,10 @@ class _SectionHeader extends StatelessWidget {
             child: Text(
               action!,
               style: const TextStyle(
-                color: F3Colors.accent,
+                // Secondary tier — this is a utility action next to a
+                // section title, not the screen's primary CTA, so it
+                // shouldn't compete with accent red for attention.
+                color: F3Colors.accentSecondary,
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
               ),

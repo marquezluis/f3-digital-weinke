@@ -51,6 +51,13 @@ class F3Colors {
   // ── Accent ────────────────────────────────────────────────────────────────
   static const Color accent        = Color(0xFFEA160B); // F3 Nation red, brightened for legibility — see file header
   static const Color accentDim     = Color(0xFFB01008);
+  // Second hierarchy tier — accent red had been doing double duty as both
+  // "this is the primary action" and "this is just a tinted icon/border,"
+  // which flattened its own signal value. Reserve accent for genuinely
+  // primary CTAs; use this muted bronze for secondary/utility actions
+  // (e.g. an inline "ADD +" next to a section header) that still want some
+  // color, just not competing with the real call to action on screen.
+  static const Color accentSecondary = Color(0xFFC9A227);
 
   // ── Phase colours (segment bar + phase header) ────────────────────────────
   static const Color phaseDisclaimer = Color(0xFF7B8EAA); // steel blue

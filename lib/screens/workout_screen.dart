@@ -33,6 +33,7 @@ import '../services/workout_generator.dart';
 import '../services/settings_service.dart';
 import '../services/spartan_service.dart';
 import '../theme/app_theme.dart';
+import '../utils/q_mode_transition.dart';
 import '../widgets/exercise_card.dart';
 import '../widgets/exercise_detail_sheet.dart';
 import '../widgets/save_session_sheet.dart';
@@ -519,9 +520,10 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
 
     if (mounted) {
       // Q Mode is now reached as a pushed route (Plan hub), not a tab index.
+      final reducedMotion = context.read<SettingsService>().reducedMotion;
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => const TimerScreen()),
+        qModeRoute(const TimerScreen(), reducedMotion: reducedMotion),
       );
     }
   }

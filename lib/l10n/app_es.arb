@@ -23,6 +23,7 @@
   "rolePaxName": "PAX",
   "rolePaxDesc": "Me presento y sudo. Dame el cronómetro y la biblioteca.",
   "settingsTitle": "AJUSTES",
+  "settingsPreferencesDivider": "Preferencias de la app abajo — tu perfil está arriba",
   "settingsAppearance": "APARIENCIA",
   "settingsThemeDark": "Oscuro",
   "settingsThemeLight": "Claro",
@@ -54,6 +55,7 @@
   "loginGateSigningIn": "Iniciando sesión…",
   "loginGateSignIn": "Inicia sesión con F3 Nation",
   "loginGateEmergencyInfo": "Información de emergencia",
+  "loginGateBrowseAos": "Ver AOs cercanos primero",
 
   "localLoginTagline": "F3 NATION · SPARTAN UP",
   "localLoginWelcomeBack": "Bienvenido de nuevo, {name}.",

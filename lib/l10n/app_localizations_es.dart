@@ -85,6 +85,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get settingsTitle => 'AJUSTES';
 
   @override
+  String get settingsPreferencesDivider =>
+      'Preferencias de la app abajo — tu perfil está arriba';
+
+  @override
   String get settingsAppearance => 'APARIENCIA';
 
   @override
@@ -175,6 +179,9 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get loginGateEmergencyInfo => 'Información de emergencia';
+
+  @override
+  String get loginGateBrowseAos => 'Ver AOs cercanos primero';
 
   @override
   String get localLoginTagline => 'F3 NATION · SPARTAN UP';

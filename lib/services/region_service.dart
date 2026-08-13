@@ -52,6 +52,28 @@ class RegionService extends ChangeNotifier {
     return List.unmodifiable(copy);
   }
 
+  /// The PAX with the most posts in the last 90 days, from this device's
+  /// own locally-logged attendance — there's no nation-wide leaderboard API
+  /// to pull from (see [[f3-nation-ecosystem]]), so this is honestly scoped
+  /// to what this Q has actually recorded. Returns null rather than crowning
+  /// someone off a single beatdown — needs at least 3 recorded posts in the
+  /// window to surface at all.
+  ({String paxName, int postCount})? get paxOfTheQuarter {
+    final cutoff = DateTime.now().subtract(const Duration(days: 90));
+    final counts = <String, int>{};
+    for (final entry in _attendance) {
+      if (entry.date.isBefore(cutoff)) continue;
+      for (final name in entry.paxNames) {
+        if (name.trim().isEmpty) continue;
+        counts[name] = (counts[name] ?? 0) + 1;
+      }
+    }
+    if (counts.isEmpty) return null;
+    final top = counts.entries.reduce((a, b) => b.value > a.value ? b : a);
+    if (top.value < 3) return null;
+    return (paxName: top.key, postCount: top.value);
+  }
+
   RegionSnapshot toSnapshot() => RegionSnapshot(
         aos: _aos,
         pax: _pax,

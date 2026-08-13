@@ -238,6 +238,12 @@ abstract class AppLocalizations {
   /// **'SETTINGS'**
   String get settingsTitle;
 
+  /// Marks the boundary between the profile identity section and the app-settings sections below it on the You tab.
+  ///
+  /// In en, this message translates to:
+  /// **'App preferences below — your profile is above'**
+  String get settingsPreferencesDivider;
+
   /// Section header for the appearance settings.
   ///
   /// In en, this message translates to:
@@ -411,6 +417,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Emergency Info'**
   String get loginGateEmergencyInfo;
+
+  /// No description provided for @loginGateBrowseAos.
+  ///
+  /// In en, this message translates to:
+  /// **'See AOs near you first'**
+  String get loginGateBrowseAos;
 
   /// No description provided for @localLoginTagline.
   ///

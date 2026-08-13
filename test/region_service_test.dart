@@ -141,4 +141,69 @@ void main() {
       });
     });
   });
+
+  group('paxOfTheQuarter', () {
+    AttendanceRecord record(String id, DateTime date, List<String> pax) =>
+        AttendanceRecord(
+          id: id,
+          historyId: id,
+          aoName: 'The Flag',
+          date: date,
+          paxNames: pax,
+        );
+
+    test('returns null with no attendance at all', () async {
+      final service = RegionService();
+      await service.load();
+      expect(service.paxOfTheQuarter, isNull);
+    });
+
+    test('returns null when the top PAX has fewer than 3 posts', () async {
+      final service = RegionService();
+      await service.load();
+      final now = DateTime.now();
+      await service.replaceSnapshot(RegionSnapshot(attendance: [
+        record('1', now, const ['Alpha']),
+        record('2', now, const ['Alpha']),
+      ]));
+
+      expect(service.paxOfTheQuarter, isNull);
+    });
+
+    test('picks the PAX with the most posts in the last 90 days', () async {
+      final service = RegionService();
+      await service.load();
+      final now = DateTime.now();
+      await service.replaceSnapshot(RegionSnapshot(attendance: [
+        record('1', now, const ['Alpha', 'Bravo']),
+        record('2', now, const ['Alpha']),
+        record('3', now, const ['Alpha', 'Bravo']),
+        record('4', now, const ['Bravo']),
+      ]));
+
+      final pick = service.paxOfTheQuarter;
+      expect(pick, isNotNull);
+      expect(pick!.paxName, 'Alpha');
+      expect(pick.postCount, 3);
+    });
+
+    test('ignores attendance older than 90 days', () async {
+      final service = RegionService();
+      await service.load();
+      final now = DateTime.now();
+      final tooOld = now.subtract(const Duration(days: 91));
+      await service.replaceSnapshot(RegionSnapshot(attendance: [
+        record('1', tooOld, const ['Alpha']),
+        record('2', tooOld, const ['Alpha']),
+        record('3', tooOld, const ['Alpha']),
+        record('4', now, const ['Bravo']),
+        record('5', now, const ['Bravo']),
+        record('6', now, const ['Bravo']),
+      ]));
+
+      final pick = service.paxOfTheQuarter;
+      expect(pick, isNotNull);
+      expect(pick!.paxName, 'Bravo');
+    });
+  });
 }

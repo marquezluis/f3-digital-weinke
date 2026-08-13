@@ -20,6 +20,7 @@ import '../services/geo_service.dart';
 import '../services/history_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/filter_pill.dart';
+import 'near_me_now_screen.dart';
 import 'schedule_screen.dart';
 
 /// Hard cap on markers drawn at once — a safety net for whatever's in the
@@ -355,6 +356,14 @@ class _BrowseAosScreenState extends State<BrowseAosScreen> {
         title: Text(l10n.browseAosTitle),
         backgroundColor: context.f3bg,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.radar_rounded),
+            tooltip: 'F3 near me right now',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const NearMeNowScreen()),
+            ),
+          ),
           IconButton(
             icon: _locating
                 ? const SizedBox(

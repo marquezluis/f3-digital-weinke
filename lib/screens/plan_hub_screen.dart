@@ -1,17 +1,19 @@
 // lib/screens/plan_hub_screen.dart
 // The "Plan" tab: the Q's toolkit for building and running a beatdown. Hosts
-// Q Mode, the Weinke builder, the Exicon library, and the Spartan Co-Q as
-// pushed routes. Their state lives in services (TimerService,
-// CurrentWorkoutService), so opening them fresh here preserves the running
-// timer and the draft plan.
+// Q Mode, the Weinke builder, and the Exicon library as pushed routes. Their
+// state lives in services (TimerService, CurrentWorkoutService), so opening
+// them fresh here preserves the running timer and the draft plan. Spartan
+// Co-Q deliberately isn't duplicated here — the global FAB in
+// shell_screen.dart already reaches it from every tab.
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/current_workout_service.dart';
+import '../services/settings_service.dart';
 import '../theme/app_theme.dart';
+import '../utils/q_mode_transition.dart';
 import 'deck_of_pain_screen.dart';
 import 'library_screen.dart';
-import 'spartan_chat_screen.dart';
 import 'timer_screen.dart';
 import 'workout_screen.dart';
 
@@ -20,6 +22,12 @@ class PlanHubScreen extends StatelessWidget {
 
   void _push(BuildContext context, Widget screen) {
     Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
+  }
+
+  void _pushQMode(BuildContext context) {
+    final reducedMotion = context.read<SettingsService>().reducedMotion;
+    Navigator.push(context,
+        qModeRoute(const TimerScreen(), reducedMotion: reducedMotion));
   }
 
   @override
@@ -45,7 +53,7 @@ class PlanHubScreen extends StatelessWidget {
             icon: Icons.play_circle_rounded,
             title: 'Q Mode',
             subtitle: 'Run the live, phase-aware beatdown timer',
-            onTap: () => _push(context, const TimerScreen()),
+            onTap: () => _pushQMode(context),
           ),
           const SizedBox(height: 12),
           _ToolCard(
@@ -64,14 +72,6 @@ class PlanHubScreen extends StatelessWidget {
             subtitle: 'Search & filter the full F3 exercise library',
             color: F3Colors.catBodyweight,
             onTap: () => _push(context, const LibraryScreen()),
-          ),
-          const SizedBox(height: 8),
-          _ToolCard(
-            icon: Icons.shield_rounded,
-            title: 'Spartan Co-Q',
-            subtitle: 'AI assistant for audibles, prep & FNG names',
-            color: F3Colors.catCoupon,
-            onTap: () => _push(context, const SpartanChatScreen()),
           ),
           const SizedBox(height: 8),
           _ToolCard(
