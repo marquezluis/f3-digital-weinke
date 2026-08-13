@@ -235,6 +235,9 @@ class F3ApiService extends ChangeNotifier {
     String? lastName,
     String? email,
     String? phone,
+    String? emergencyContact,
+    String? emergencyPhone,
+    String? emergencyNotes,
   }) async {
     final payload = <String, dynamic>{
       'id': userId,
@@ -243,6 +246,9 @@ class F3ApiService extends ChangeNotifier {
       if (lastName != null) 'lastName': lastName,
       if (email != null) 'email': email,
       if (phone != null) 'phone': phone,
+      if (emergencyContact != null) 'emergencyContact': emergencyContact,
+      if (emergencyPhone != null) 'emergencyPhone': emergencyPhone,
+      if (emergencyNotes != null) 'emergencyNotes': emergencyNotes,
     };
     final res = await _post('/v1/user', payload);
     if (res.status == 200 || res.status == 201) return null;

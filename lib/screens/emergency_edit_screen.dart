@@ -1,10 +1,19 @@
 // lib/screens/emergency_edit_screen.dart
-// Form to enter/edit emergency info. Saves to the local encrypted store only.
+// Form to enter/edit emergency info. Always saves to the local encrypted
+// store; contact name/phone/notes additionally best-effort sync with F3
+// Nation's own user record when signed in (see EmergencyService's header
+// comment for which fields and why only those three).
+
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../models/auth_models.dart';
 import '../services/app_profile_service.dart';
+import '../services/auth_service.dart';
 import '../services/emergency_service.dart';
+import '../services/f3_api_service.dart';
+import '../services/settings_service.dart';
 import '../theme/app_theme.dart';
 
 class EmergencyEditScreen extends StatefulWidget {
@@ -34,6 +43,7 @@ class _EmergencyEditScreenState extends State<EmergencyEditScreen> {
       'contactRelationship':
           TextEditingController(text: i.contactRelationship),
       'contactPhone': TextEditingController(text: i.contactPhone),
+      'syncNotes': TextEditingController(text: i.syncNotes),
       'bloodType': TextEditingController(text: i.bloodType),
       'allergies': TextEditingController(text: i.allergies),
       'conditions': TextEditingController(text: i.conditions),
@@ -45,6 +55,79 @@ class _EmergencyEditScreenState extends State<EmergencyEditScreen> {
       'aedLocation': TextEditingController(text: i.aedLocation),
       'emsAccessNotes': TextEditingController(text: i.emsAccessNotes),
     };
+
+    // Best-effort prefill of the AO-site fields, life-safety form so worth
+    // saving the retype: prefer today's "I'm at the flag" AO, else the
+    // PAX's home AO, then try to resolve a real street address for it from
+    // F3 Nation's own location data. Never overwrites data already saved.
+    if (_c['aoName']!.text.isEmpty) {
+      final settings = context.read<SettingsService>();
+      final profile = context.read<AppProfileService>();
+      final aoName = settings.atTheFlagAo ?? profile.homeAo;
+      if (aoName.isNotEmpty) {
+        _c['aoName']!.text = aoName;
+        if (_c['aoLocation']!.text.isEmpty) _resolveAoAddress(aoName);
+      }
+    }
+
+    // Best-effort prefill of the F3-Nation-synced fields from the PAX's own
+    // profile — same "never overwrite what's already saved locally" rule as
+    // the AO-address prefill above.
+    if (_c['contactName']!.text.isEmpty ||
+        _c['contactPhone']!.text.isEmpty ||
+        _c['syncNotes']!.text.isEmpty) {
+      _prefillFromF3Profile();
+    }
+  }
+
+  bool _isLinked(AuthService auth) =>
+      auth.currentUser?.identities
+          .any((i) => i.provider == AuthProvider.f3nation) ??
+      false;
+
+  Future<void> _prefillFromF3Profile() async {
+    try {
+      final auth = context.read<AuthService>();
+      if (!_isLinked(auth)) return;
+      final token = await auth.getF3AccessToken();
+      if (token == null || !mounted) return;
+      final profile =
+          await context.read<F3ApiService>().getMyProfile(userAccessToken: token);
+      if (profile == null || !mounted) return;
+      if (_c['contactName']!.text.isEmpty &&
+          (profile.emergencyContact ?? '').isNotEmpty) {
+        _c['contactName']!.text = profile.emergencyContact!;
+      }
+      if (_c['contactPhone']!.text.isEmpty &&
+          (profile.emergencyPhone ?? '').isNotEmpty) {
+        _c['contactPhone']!.text = profile.emergencyPhone!;
+      }
+      if (_c['syncNotes']!.text.isEmpty &&
+          (profile.emergencyNotes ?? '').isNotEmpty) {
+        _c['syncNotes']!.text = profile.emergencyNotes!;
+      }
+    } catch (_) {
+      // Best-effort only — fields just stay as they were for manual entry.
+    }
+  }
+
+  Future<void> _resolveAoAddress(String aoName) async {
+    try {
+      final locations = await context.read<F3ApiService>().getLocations();
+      for (final loc in locations) {
+        final name = loc.aoName ?? loc.name;
+        if (name.toLowerCase() != aoName.toLowerCase()) continue;
+        final parts = [loc.street, loc.city, loc.state]
+            .where((p) => p != null && p.isNotEmpty)
+            .join(', ');
+        if (parts.isNotEmpty && mounted && _c['aoLocation']!.text.isEmpty) {
+          _c['aoLocation']!.text = parts;
+        }
+        break;
+      }
+    } catch (_) {
+      // Best-effort only — the field just stays blank for manual entry.
+    }
   }
 
   @override
@@ -60,6 +143,7 @@ class _EmergencyEditScreenState extends State<EmergencyEditScreen> {
       contactName: _c['contactName']!.text.trim(),
       contactRelationship: _c['contactRelationship']!.text.trim(),
       contactPhone: _c['contactPhone']!.text.trim(),
+      syncNotes: _c['syncNotes']!.text.trim(),
       bloodType: _c['bloodType']!.text.trim(),
       allergies: _c['allergies']!.text.trim(),
       conditions: _c['conditions']!.text.trim(),
@@ -75,12 +159,50 @@ class _EmergencyEditScreenState extends State<EmergencyEditScreen> {
     );
     final messenger = ScaffoldMessenger.of(context);
     final nav = Navigator.of(context);
+    final auth = context.read<AuthService>();
+    final api = context.read<F3ApiService>();
+    final authUserId = context.read<AppProfileService>().authUserId;
     await context.read<EmergencyService>().save(info);
+    unawaited(_pushSyncedFields(
+      auth: auth,
+      api: api,
+      authUserId: authUserId,
+      contactName: info.contactName,
+      contactPhone: info.contactPhone,
+      syncNotes: info.syncNotes,
+    ));
     if (!messenger.mounted) return;
     messenger.showSnackBar(
       const SnackBar(content: Text('Emergency info saved (on this device).')),
     );
     nav.pop();
+  }
+
+  /// Best-effort push of the F3-Nation-synced fields — never blocks the save
+  /// or surfaces a failure to the user; a life-safety form shouldn't stall
+  /// or error out on a flaky connection when the data it actually needs is
+  /// already safely on-device.
+  Future<void> _pushSyncedFields({
+    required AuthService auth,
+    required F3ApiService api,
+    required String authUserId,
+    required String contactName,
+    required String contactPhone,
+    required String syncNotes,
+  }) async {
+    try {
+      if (!_isLinked(auth)) return;
+      final userId = int.tryParse(authUserId);
+      if (userId == null) return;
+      await api.updateUserProfile(
+        userId: userId,
+        emergencyContact: contactName,
+        emergencyPhone: contactPhone,
+        emergencyNotes: syncNotes,
+      );
+    } catch (_) {
+      // Best-effort only.
+    }
   }
 
   Widget _field(String key, String label, {int maxLines = 1, TextInputType? kb}) {
@@ -121,13 +243,18 @@ class _EmergencyEditScreenState extends State<EmergencyEditScreen> {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          Text('Stored only on this device, encrypted. Never sent to any server.',
+          Text(
+              'Contact name, phone, and notes below sync to your F3 Nation '
+              'profile. Everything else on this screen stays on this device '
+              'only, encrypted.',
               style: TextStyle(color: context.f3textMuted, fontSize: 12)),
           const SizedBox(height: 16),
           _Header('Personal Medical'),
-          _field('contactName', 'Emergency contact name'),
+          _field('contactName', 'Emergency contact name (synced)'),
           _field('contactRelationship', 'Relationship'),
-          _field('contactPhone', 'Contact phone', kb: TextInputType.phone),
+          _field('contactPhone', 'Contact phone (synced)',
+              kb: TextInputType.phone),
+          _field('syncNotes', 'Notes (synced)', maxLines: 2),
           _field('bloodType', 'Blood type'),
           _field('allergies', 'Allergies', maxLines: 2),
           _field('conditions', 'Medical conditions', maxLines: 2),

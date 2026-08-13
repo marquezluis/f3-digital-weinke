@@ -70,6 +70,15 @@ class F3UserProfile {
   // before parsing a key name that might just be wrong.
   final String? f3NameOrigin;
   final String? myF3Why;
+  // The only emergency fields F3 Nation's own user record supports today —
+  // confirmed against packages/api/src/router/me/index.ts on the F3 Nation
+  // monorepo. Deliberately just these three: broader medical data (blood
+  // type, allergies, conditions, medications) has no server-side field, and
+  // adding one is a PHI/privacy decision for the F3 Nation team, not this
+  // app, to make.
+  final String? emergencyContact;
+  final String? emergencyPhone;
+  final String? emergencyNotes;
   final List<F3UserRole> roles;
   final List<F3UserPosition> positions;
 
@@ -85,6 +94,9 @@ class F3UserProfile {
     this.phone,
     this.f3NameOrigin,
     this.myF3Why,
+    this.emergencyContact,
+    this.emergencyPhone,
+    this.emergencyNotes,
     this.roles = const [],
     this.positions = const [],
   });
@@ -149,6 +161,9 @@ class F3UserProfile {
       phone: str(data['phone']),
       f3NameOrigin: str(meta['f3_name_origin']),
       myF3Why: str(meta['my_f3_why']),
+      emergencyContact: str(data['emergencyContact']),
+      emergencyPhone: str(data['emergencyPhone']),
+      emergencyNotes: str(data['emergencyNotes']),
       roles: roles,
       positions: positions,
     );
