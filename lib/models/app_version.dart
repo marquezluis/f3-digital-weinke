@@ -25,13 +25,54 @@ class AppVersion {
   // automatically, since release notes are hand-written prose. Update these
   // four constants and add a new AppRelease entry below whenever you want a
   // build's changes to actually show up in the in-app Release Log.
-  static const String current = '2.4.15';
-  static const String versionName = '2.4.15';
-  static const String buildNumber = '27';
-  static const String displayName = 'Digital Weinke v2.4.15';
-  static const String fullDisplayName = 'Digital Weinke v2.4.15+27';
+  static const String current = '2.5.0';
+  static const String versionName = '2.5.0';
+  static const String buildNumber = '28';
+  static const String displayName = 'Digital Weinke v2.5.0';
+  static const String fullDisplayName = 'Digital Weinke v2.5.0+28';
 
   static const List<AppRelease> releases = [
+    AppRelease(
+      version: '2.5.0',
+      title: 'The Big One',
+      summary:
+          'A full pass on onboarding, Home, Brotherhood Board, and Settings, plus two real F3 Nation integrations — live Codex sync and a native admin screen — driven by a 100-item UX audit.',
+      newItems: [
+        'Region Chat — a channel-aware chat screen (#general + one per AO), the local-only half of the planned Slack bridge; messages stay on-device until the relay exists.',
+        'Home redesign around one dominant "Today" hero (Q\'ing, HC\'d, or a prompt to find a beatdown), a 10-week activity strip, PAX of the Quarter, this month\'s region recap, a guided first-week "Founding Quest" with a badge, and a global search box across the Exicon, Q Field Guide, and AOs at once.',
+        'Live Codex sync — pulls demo videos and confirms which exercises are Official vs. Pending directly from F3 Nation\'s real, live Exicon.',
+        'Native admin screen — edit an AO\'s Location (name, address, lat/long, active status) right in the app, writing to the real F3 Nation admin API, gated to editor/admin roles.',
+        'F3 Nation Links in Settings — Map, Near Me, F3 Me, PAX Vault, the Codex, Org Chart, plus role-gated Admin Tools.',
+        'F3 Moments — a chronological timeline of every Pic-o-Rama photo across every AO.',
+        '"F3 Near Me Right Now" — beatdowns starting within the hour, sorted by distance.',
+        '"I\'m at the flag" — a one-tap personal check-in for today (not a broadcast, just saves re-typing the AO when you save a backblast).',
+        'Real Circle of Trust capture during Q Mode — live note-taking that pre-fills the backblast\'s COT field instead of relying on memory.',
+        'App Lock now has a real toggle in Settings → Safety, not just a one-time onboarding choice.',
+        'TTS voice preview — hear a sample before picking a voice.',
+        'QSource bookmarking plus a recently-viewed quick-jump row.',
+        'Shareable achievement cards and a share-as-image option for preblasts.',
+        'F3 Lingo glossary (Q, PAX, AO, HC, EH, FNG, COT…) from onboarding and Settings.',
+        'Sign-in screen now shows a real, live AO count, and a "See AOs near you first" preview so you can browse before creating an account.',
+        'A brand-new onboarding illustration (original artwork) and a small celebration on completing setup.',
+      ],
+      enhancements: [
+        'Language now defaults to your device\'s own locale and theme to System, instead of forcing a choice up front — the picker\'s still in Settings if you want it.',
+        'Daily mottos are now translated into Spanish and French, and dates across the app are locale-aware instead of always showing English month names.',
+        'The "Community" tab is now "Fellowship," matching F3\'s own language.',
+        'HC/un-HC now respond instantly instead of waiting on the network.',
+        'Destructive actions (deleting a custom exercise, achievement, EH prospect, or importing a backup) now confirm first, consistently.',
+        'Headings and the app\'s wordmark now use a distinct display typeface instead of the same system font as everything else.',
+        'Publishing a backblast, HC\'ing, and other key actions now give haptic feedback on success or failure.',
+      ],
+      bugFixes: [
+        'A real streak-calculation bug: a perfectly consistent PAX\'s streak could silently reset to zero the moment a new week began, before they\'d had a chance to post yet.',
+        'Home\'s Quick Start row could overflow when all three actions showed together.',
+        'Schedule\'s "Mine" filter could silently clear itself when reopened and dismissed without a new choice.',
+        'The installed app name no longer implies official F3 Nation branding ahead of actual approval.',
+        'Several silent failures now show real feedback: a failed music-app launch, a failed Exicon external link, a failed F3 Nation sign-in.',
+        'Accessibility: a text-clipping bug in Home\'s identity row at large text sizes, and missing screen-reader labels on Q Mode\'s EMOM/Tabata steppers.',
+      ],
+    ),
     AppRelease(
       version: '2.4.15',
       title: 'The Region Chat Preview',

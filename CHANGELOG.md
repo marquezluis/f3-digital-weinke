@@ -11,6 +11,89 @@ whether or not that build shipped, so "how many builds have we done on
 
 ## [Unreleased]
 
+## [2.5.0] - 2026-08-13
+
+The biggest release yet — a full pass on onboarding, Home, Brotherhood
+Board, and Settings, plus two real F3 Nation integrations (live Codex
+sync and a native admin screen), driven by a 100-item UX audit.
+
+### Added
+- **Region Chat** — a channel-aware chat screen (#general + one per AO),
+  the local-only half of the planned Slack bridge; messages stay
+  on-device until the relay exists.
+- **Home redesign** around one dominant "Today" hero (Q'ing, HC'd, or a
+  prompt to find a beatdown), a 10-week activity strip, PAX of the
+  Quarter and this-month's region recap, a guided first-week "Founding
+  Quest" with a badge, and a global search box (Exicon, Q Field Guide,
+  AOs, all at once).
+- **Live Codex sync** — pulls demo videos and confirms which exercises
+  are Official vs. Pending directly from F3 Nation's real, live Exicon.
+- **Native admin screen** — edit an AO's Location (name, address,
+  lat/long, active status) right in the app, writing to the real F3
+  Nation admin API, gated to editor/admin roles.
+- **F3 Nation Links** in Settings — Map, Near Me, F3 Me, PAX Vault, the
+  Codex, Org Chart, plus role-gated Admin Tools.
+- **F3 Moments** — a chronological timeline of every Pic-o-Rama photo
+  across every AO.
+- **"F3 Near Me Right Now"** — beatdowns starting within the hour,
+  sorted by distance.
+- **"I'm at the flag"** — a one-tap personal check-in for today (not a
+  broadcast — just saves re-typing the AO when you save a backblast).
+- Real **Circle of Trust** capture during Q Mode — live note-taking that
+  pre-fills the backblast's COT field instead of relying on memory.
+- **App Lock** now has a real toggle in Settings → Safety, not just a
+  one-time onboarding choice.
+- **TTS voice preview** — hear a sample before picking a voice.
+- **QSource bookmarking** + a recently-viewed quick-jump row.
+- **Shareable achievement cards** and a **share-as-image** option for
+  preblasts, alongside the existing beatdown card share.
+- **F3 Lingo glossary** (Q, PAX, AO, HC, EH, FNG, COT…) from onboarding
+  and Settings.
+- Sign-in screen now shows a real, live AO count — genuine social proof.
+- A "See AOs near you first" preview on the sign-in screen — browse
+  real AOs before creating an account.
+- A brand-new onboarding illustration (original artwork, not F3 photos)
+  and a small celebration on completing setup.
+- A distinct "gearing up" transition into Q Mode.
+- Auto-mumblechatter — opt-in random callouts every 90–180s during a
+  live session.
+
+### Changed
+- Language now defaults to your device's own locale and theme to
+  System, instead of forcing a choice before you have any context —
+  the picker's still in Settings if you want it.
+- Daily mottos are now translated into Spanish and French.
+- Dates across the app (Activity Feed, Brotherhood, Heatmap, Settings)
+  are locale-aware instead of always showing English month names.
+- The "Community" tab is now "Fellowship," matching F3's own language.
+- HC/un-HC now respond instantly instead of waiting on the network.
+- Destructive actions (deleting a custom exercise, achievement, EH
+  prospect, or importing a backup) now confirm first, consistently.
+- Headings and the app's wordmark now use a distinct display typeface
+  instead of the same system font as everything else.
+- Publishing a backblast, HC'ing, and other key actions now give
+  haptic feedback on success or failure.
+
+### Fixed
+- A real streak-calculation bug: a perfectly consistent PAX's streak
+  could silently reset to zero the moment a new week began, before
+  they'd had a chance to post yet.
+- Home's Quick Start row could overflow when all three actions showed
+  together.
+- Schedule's "Mine" filter could silently clear itself when reopened
+  and dismissed without a new choice.
+- The installed app name no longer implies official F3 Nation
+  branding ahead of actual approval.
+- A Reduced Motion audit caught two animations (achievement-unlock
+  confetti, the onboarding scene) that weren't actually respecting the
+  in-app toggle.
+- Several silent failures now show real feedback: a failed music-app
+  launch, a failed Exicon external link, a failed F3 Nation sign-in
+  (previously showed raw error text).
+- Accessibility: a text-clipping bug in Home's identity row at large
+  text sizes, and missing screen-reader labels on Q Mode's EMOM/Tabata
+  steppers.
+
 ## [2.4.10] - 2026-07-30
 
 ### Added
