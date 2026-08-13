@@ -210,10 +210,13 @@ class AppTheme {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
       textTheme: const TextTheme(
-        displayLarge: TextStyle(color: F3LightColors.textPrimary, fontWeight: FontWeight.w900, fontSize: 48, height: 1.1),
-        displayMedium: TextStyle(color: F3LightColors.textPrimary, fontWeight: FontWeight.w800, fontSize: 36, height: 1.1),
-        displaySmall: TextStyle(color: F3Colors.accent, fontWeight: FontWeight.w800, fontSize: 64, letterSpacing: 2, fontFeatures: [FontFeature.tabularFigures()]),
-        titleLarge: TextStyle(color: F3LightColors.textPrimary, fontWeight: FontWeight.w800, fontSize: 22),
+        // Oswald on the display/title tier only — condensed and bold enough
+        // to carry real hierarchy against the body copy below, which stays
+        // on the system default for early-morning-light legibility (#47).
+        displayLarge: TextStyle(fontFamily: 'Oswald', color: F3LightColors.textPrimary, fontWeight: FontWeight.w900, fontSize: 48, height: 1.1),
+        displayMedium: TextStyle(fontFamily: 'Oswald', color: F3LightColors.textPrimary, fontWeight: FontWeight.w800, fontSize: 36, height: 1.1),
+        displaySmall: TextStyle(fontFamily: 'Oswald', color: F3Colors.accent, fontWeight: FontWeight.w800, fontSize: 64, letterSpacing: 2, fontFeatures: [FontFeature.tabularFigures()]),
+        titleLarge: TextStyle(fontFamily: 'Oswald', color: F3LightColors.textPrimary, fontWeight: FontWeight.w800, fontSize: 22),
         titleMedium: TextStyle(color: F3LightColors.textPrimary, fontWeight: FontWeight.w700, fontSize: 16),
         titleSmall: TextStyle(color: F3LightColors.textSecondary, fontWeight: FontWeight.w600, fontSize: 14, letterSpacing: 0.5),
         bodyLarge: TextStyle(color: F3LightColors.textPrimary, fontSize: 16, height: 1.55),
@@ -348,11 +351,20 @@ class AppTheme {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
       textTheme: const TextTheme(
+        // Oswald on the display/title tier — condensed, bold, distinct from
+        // the system sans body copy stays on (see #25). displaySmall is
+        // deliberately left alone despite the comment below: nothing in the
+        // app actually consumes it as live timer digits (verified via a
+        // repo-wide grep for textTheme.displaySmall), but it's documented
+        // for that purpose, so this stays conservative rather than assuming.
+        //
         // Used for huge exercise names during live workout
         displayLarge: TextStyle(
+          fontFamily: 'Oswald',
           color: F3Colors.textPrimary, fontWeight: FontWeight.w900, fontSize: 48,
           height: 1.1, letterSpacing: -0.5),
         displayMedium: TextStyle(
+          fontFamily: 'Oswald',
           color: F3Colors.textPrimary, fontWeight: FontWeight.w800, fontSize: 36,
           height: 1.1),
         // Timer countdown digits
@@ -361,6 +373,7 @@ class AppTheme {
           letterSpacing: 2,
           fontFeatures: [FontFeature.tabularFigures()]),
         titleLarge: TextStyle(
+          fontFamily: 'Oswald',
           color: F3Colors.textPrimary, fontWeight: FontWeight.w800, fontSize: 22),
         titleMedium: TextStyle(
           color: F3Colors.textPrimary, fontWeight: FontWeight.w700, fontSize: 16),

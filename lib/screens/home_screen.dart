@@ -86,7 +86,8 @@ class HomeScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Brand wordmark
+                    // Brand wordmark — Oswald, not the system sans everything
+                    // else on the app uses (see #25).
                     Row(
                       children: [
                         Expanded(
@@ -95,6 +96,7 @@ class HomeScreen extends StatelessWidget {
                               TextSpan(
                                 text: 'DIGITAL ',
                                 style: TextStyle(
+                                    fontFamily: 'Oswald',
                                     color: context.f3textPrimary,
                                     fontSize: 22,
                                     fontWeight: FontWeight.w900,
@@ -104,6 +106,7 @@ class HomeScreen extends StatelessWidget {
                               const TextSpan(
                                 text: 'WEINKE',
                                 style: TextStyle(
+                                    fontFamily: 'Oswald',
                                     color: F3Colors.accent,
                                     fontSize: 22,
                                     fontWeight: FontWeight.w900,

@@ -361,7 +361,7 @@ abstract class AppLocalizations {
   /// No description provided for @navCommunity.
   ///
   /// In en, this message translates to:
-  /// **'Community'**
+  /// **'Fellowship'**
   String get navCommunity;
 
   /// No description provided for @navYou.

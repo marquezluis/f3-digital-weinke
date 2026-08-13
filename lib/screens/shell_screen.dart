@@ -1,8 +1,18 @@
 // lib/screens/shell_screen.dart
 // Bottom-navigation shell — 5 intent-based tabs:
-//   0 Home · 1 Plan · 2 Schedule · 3 Community · 4 You
-// Plan hosts the Q toolkit (Weinke/Q Mode/Exicon/Spartan); Community is the
+//   0 Home · 1 Plan · 2 Schedule · 3 Fellowship · 4 You
+// Plan hosts the Q toolkit (Weinke/Q Mode/Exicon/Spartan); Fellowship (nee
+// "Community", relabeled to match F3's own vocabulary — see #91) is the
 // PAX/brotherhood surface (future messaging home); You is profile + settings.
+//
+// #91 asked for a full rebuild around Fitness/Fellowship/Faith (3 tabs, not
+// 5). Deliberately NOT done: Plan and Schedule are both full destinations
+// with real functionality today, and neither maps cleanly onto Faith —
+// collapsing them would either orphan that functionality or need new entry
+// points designed elsewhere first (plus at least one hardcoded tab-index
+// jump — see home_screen.dart's Schedule-tab shortcut — that assumes this
+// exact 5-tab order). That's a real information-architecture decision, not
+// a scoped code change; this label rename is the safe, honest slice.
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';

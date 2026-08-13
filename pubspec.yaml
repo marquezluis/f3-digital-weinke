@@ -72,6 +72,19 @@ flutter:
     - assets/data/exercises.json
     - assets/icon/
 
+  # Oswald — condensed, bold, all-caps-friendly display face for headings
+  # and the wordmark, so the app has real typographic hierarchy instead of
+  # the system sans doing every job. Body text deliberately stays on the
+  # system default: legibility in bad early-morning light matters more
+  # there than a second brand voice (see #47's glanceability work).
+  # Bundled locally (not fetched via the google_fonts package's runtime
+  # download) to match the app's offline-first, no-background-network
+  # convention. OFL-licensed — see assets/fonts/OSWALD-LICENSE.txt.
+  fonts:
+    - family: Oswald
+      fonts:
+        - asset: assets/fonts/Oswald-Variable.ttf
+
 flutter_launcher_icons:
   android: true
   ios: true

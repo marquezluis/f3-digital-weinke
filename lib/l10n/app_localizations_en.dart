@@ -148,7 +148,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get navSchedule => 'Schedule';
 
   @override
-  String get navCommunity => 'Community';
+  String get navCommunity => 'Fellowship';
 
   @override
   String get navYou => 'You';

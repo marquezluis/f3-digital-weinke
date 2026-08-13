@@ -148,7 +148,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get navSchedule => 'Horaire';
 
   @override
-  String get navCommunity => 'Communauté';
+  String get navCommunity => 'Fraternité';
 
   @override
   String get navYou => 'Toi';
