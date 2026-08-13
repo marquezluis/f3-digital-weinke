@@ -11,6 +11,7 @@ import '../services/region_service.dart';
 import '../services/app_profile_service.dart';
 import '../services/f3_api_service.dart';
 import '../theme/app_theme.dart';
+import 'f3_moments_screen.dart';
 import 'heatmap_screen.dart';
 import 'achievements_screen.dart';
 import 'activity_feed_screen.dart';
@@ -226,6 +227,10 @@ class _BrotherhoodScreenState extends State<BrotherhoodScreen> {
 
                   // ── Your Stats ────────────────────────────────────────────
                   const SizedBox(height: 24),
+                  if (region.monthlyRecap != null) ...[
+                    _MonthlyRecapCard(recap: region.monthlyRecap!),
+                    const SizedBox(height: 16),
+                  ],
                   _SectionHeader(
                       key: _sectionKeys['YOUR STATS'], title: 'YOUR STATS'),
                   const SizedBox(height: 8),
@@ -267,6 +272,18 @@ class _BrotherhoodScreenState extends State<BrotherhoodScreen> {
                             context,
                             MaterialPageRoute(
                                 builder: (_) => const AchievementsScreen())),
+                      ),
+                      ListTile(
+                        leading: Icon(Icons.photo_library_rounded,
+                            color: F3Colors.catCoupon),
+                        title: const Text('F3 Moments'),
+                        subtitle: const Text(
+                            'Every Pic-o-Rama photo, one timeline'),
+                        trailing: const Icon(Icons.chevron_right_rounded),
+                        onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const F3MomentsScreen())),
                       ),
                     ]),
                   ),
@@ -709,6 +726,95 @@ class _PaxOfTheQuarterCard extends StatelessWidget {
           ),
         ),
       ]),
+    );
+  }
+}
+
+/// This calendar month's recap — most-active AO and FNGs welcomed, from
+/// this device's own logged attendance. Same local-only honesty as PAX of
+/// the Quarter above.
+class _MonthlyRecapCard extends StatelessWidget {
+  final ({String topAoName, int topAoPosts, int fngCount, int totalPosts})
+      recap;
+  const _MonthlyRecapCard({required this.recap});
+
+  @override
+  Widget build(BuildContext context) {
+    final monthName = const [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ][DateTime.now().month - 1];
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: context.f3card,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: context.f3divider),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            Icon(Icons.calendar_month_rounded,
+                color: F3Colors.accent, size: 18),
+            const SizedBox(width: 8),
+            Text('${monthName.toUpperCase()} RECAP',
+                style: TextStyle(
+                    color: context.f3textPrimary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1)),
+          ]),
+          const SizedBox(height: 12),
+          Row(children: [
+            Expanded(
+              child: _RecapStat(
+                icon: Icons.flag_rounded,
+                value: recap.topAoName,
+                label: 'Most-active AO (${recap.topAoPosts} posts)',
+              ),
+            ),
+            Expanded(
+              child: _RecapStat(
+                icon: Icons.emoji_people_rounded,
+                value: '${recap.fngCount}',
+                label: recap.fngCount == 1
+                    ? 'FNG welcomed'
+                    : 'FNGs welcomed',
+              ),
+            ),
+          ]),
+        ],
+      ),
+    );
+  }
+}
+
+class _RecapStat extends StatelessWidget {
+  final IconData icon;
+  final String value;
+  final String label;
+  const _RecapStat(
+      {required this.icon, required this.value, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: context.f3textMuted, size: 18),
+        const SizedBox(height: 4),
+        Text(value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+                color: context.f3textPrimary,
+                fontSize: 15,
+                fontWeight: FontWeight.w800)),
+        Text(label,
+            style: TextStyle(color: context.f3textMuted, fontSize: 11)),
+      ],
     );
   }
 }

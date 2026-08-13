@@ -55,7 +55,19 @@ class PlanHubScreen extends StatelessWidget {
             subtitle: 'Run the live, phase-aware beatdown timer',
             onTap: () => _pushQMode(context),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 20),
+          // This tab used to read as four unlabeled tools with no sense of
+          // which job each belongs to — Q Mode is "run it now," everything
+          // below is "get ready before you get there."
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8, left: 2),
+            child: Text('PREP & REFERENCE',
+                style: TextStyle(
+                    color: context.f3textMuted,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.2)),
+          ),
           _ToolCard(
             icon: Icons.fitness_center_rounded,
             title: 'Build a Weinke',

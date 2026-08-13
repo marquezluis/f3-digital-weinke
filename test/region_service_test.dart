@@ -206,4 +206,50 @@ void main() {
       expect(pick!.paxName, 'Bravo');
     });
   });
+
+  group('monthlyRecap', () {
+    AttendanceRecord record(String id, DateTime date, String aoName,
+            {int fngCount = 0}) =>
+        AttendanceRecord(
+          id: id,
+          historyId: id,
+          aoName: aoName,
+          date: date,
+          fngCount: fngCount,
+        );
+
+    test('returns null with no attendance this month', () async {
+      final service = RegionService();
+      await service.load();
+      expect(service.monthlyRecap, isNull);
+    });
+
+    test('ignores attendance from a different month', () async {
+      final service = RegionService();
+      await service.load();
+      final lastMonth = DateTime.now().subtract(const Duration(days: 40));
+      await service.replaceSnapshot(RegionSnapshot(
+          attendance: [record('1', lastMonth, 'The Flag')]));
+
+      expect(service.monthlyRecap, isNull);
+    });
+
+    test('picks the most-active AO and sums FNGs this month', () async {
+      final service = RegionService();
+      await service.load();
+      final now = DateTime.now();
+      await service.replaceSnapshot(RegionSnapshot(attendance: [
+        record('1', now, 'The Flag', fngCount: 1),
+        record('2', now, 'The Flag', fngCount: 2),
+        record('3', now, 'The Hill'),
+      ]));
+
+      final recap = service.monthlyRecap;
+      expect(recap, isNotNull);
+      expect(recap!.topAoName, 'The Flag');
+      expect(recap.topAoPosts, 2);
+      expect(recap.fngCount, 3);
+      expect(recap.totalPosts, 3);
+    });
+  });
 }

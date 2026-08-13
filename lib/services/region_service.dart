@@ -52,6 +52,37 @@ class RegionService extends ChangeNotifier {
     return List.unmodifiable(copy);
   }
 
+  /// This calendar month's most-active AO and FNG count, from this device's
+  /// own logged attendance — same local-only honesty as [paxOfTheQuarter],
+  /// no nation-wide data to pull a real region recap from. Null when
+  /// nothing's been logged yet this month.
+  ({String topAoName, int topAoPosts, int fngCount, int totalPosts})?
+      get monthlyRecap {
+    final now = DateTime.now();
+    final thisMonth = _attendance
+        .where((e) => e.date.year == now.year && e.date.month == now.month)
+        .toList();
+    if (thisMonth.isEmpty) return null;
+
+    final aoCounts = <String, int>{};
+    var fngTotal = 0;
+    for (final entry in thisMonth) {
+      if (entry.aoName.trim().isNotEmpty) {
+        aoCounts[entry.aoName] = (aoCounts[entry.aoName] ?? 0) + 1;
+      }
+      fngTotal += entry.fngCount;
+    }
+    if (aoCounts.isEmpty) return null;
+    final topAo = aoCounts.entries.reduce((a, b) => b.value > a.value ? b : a);
+
+    return (
+      topAoName: topAo.key,
+      topAoPosts: topAo.value,
+      fngCount: fngTotal,
+      totalPosts: thisMonth.length,
+    );
+  }
+
   /// The PAX with the most posts in the last 90 days, from this device's
   /// own locally-logged attendance — there's no nation-wide leaderboard API
   /// to pull from (see [[f3-nation-ecosystem]]), so this is honestly scoped

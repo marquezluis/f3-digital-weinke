@@ -22,6 +22,8 @@ import '../services/settings_service.dart';
 import '../services/f3_api_service.dart';
 import '../models/f3_api_models.dart';
 import 'schedule_screen.dart' show MineFilter;
+import 'search_screen.dart';
+import '../widgets/at_the_flag_card.dart';
 import '../widgets/exercise_detail_sheet.dart';
 import '../widgets/founding_quest_card.dart';
 import '../widgets/self_avatar.dart';
@@ -85,27 +87,46 @@ class HomeScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Brand wordmark
-                    RichText(
-                      text: TextSpan(children: [
-                        TextSpan(
-                          text: 'DIGITAL ',
-                          style: TextStyle(
-                              color: context.f3textPrimary,
-                              fontSize: 22,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 2,
-                              height: 1),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: RichText(
+                            text: TextSpan(children: [
+                              TextSpan(
+                                text: 'DIGITAL ',
+                                style: TextStyle(
+                                    color: context.f3textPrimary,
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 2,
+                                    height: 1),
+                              ),
+                              const TextSpan(
+                                text: 'WEINKE',
+                                style: TextStyle(
+                                    color: F3Colors.accent,
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 2,
+                                    height: 1),
+                              ),
+                            ]),
+                          ),
                         ),
-                        const TextSpan(
-                          text: 'WEINKE',
-                          style: TextStyle(
-                              color: F3Colors.accent,
-                              fontSize: 22,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 2,
-                              height: 1),
+                        // No search anywhere in the app previously — Exicon,
+                        // QSource, and AOs were each only browsable from
+                        // inside their own screen.
+                        IconButton(
+                          icon: Icon(Icons.search_rounded,
+                              color: context.f3textSecondary),
+                          tooltip: 'Search',
+                          onPressed: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const SearchScreen()),
+                          ),
                         ),
-                      ]),
+                      ],
                     ),
                     const SizedBox(height: 14),
                     Builder(builder: (context) {
@@ -199,6 +220,12 @@ class HomeScreen extends StatelessWidget {
                       : const _ApiNotConfiguredNotice(),
                 ),
               ),
+            ),
+
+            // ── At the flag (personal check-in, not a broadcast) ─────────
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+              sliver: SliverToBoxAdapter(child: const AtTheFlagCard()),
             ),
 
             // Home is a launchpad: the 50-min timeline preview and the Exicon

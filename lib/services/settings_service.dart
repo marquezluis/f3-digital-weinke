@@ -32,6 +32,8 @@ class SettingsService extends ChangeNotifier {
   static const _keyThemeMode       = 'theme_mode';
   static const _keyLocale          = 'locale';
   static const _keyFirstLaunchDate = 'first_launch_date';
+  static const _keyAtTheFlagAo     = 'at_the_flag_ao';
+  static const _keyAtTheFlagSince  = 'at_the_flag_since';
 
   WorkoutSettings _settings = const WorkoutSettings();
   WorkoutSettings get settings => _settings;
@@ -90,6 +92,33 @@ class SettingsService extends ChangeNotifier {
 
   DateTime? _firstLaunchDate;
   DateTime? get firstLaunchDate => _firstLaunchDate;
+
+  // "I'm at the flag" — a personal check-in, not a broadcast. There's no
+  // relay to other PAX's devices, so this only ever shows on this PAX's own
+  // Home screen, for today only.
+  String? _atTheFlagAo;
+  String? get atTheFlagAo => _atTheFlagAo;
+  DateTime? _atTheFlagSince;
+  DateTime? get atTheFlagSince => _atTheFlagSince;
+
+  Future<void> checkInAtTheFlag(String aoName) async {
+    _atTheFlagAo = aoName;
+    _atTheFlagSince = DateTime.now();
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyAtTheFlagAo, aoName);
+    await prefs.setString(
+        _keyAtTheFlagSince, _atTheFlagSince!.toIso8601String());
+  }
+
+  Future<void> clearAtTheFlag() async {
+    _atTheFlagAo = null;
+    _atTheFlagSince = null;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_keyAtTheFlagAo);
+    await prefs.remove(_keyAtTheFlagSince);
+  }
 
   /// Load persisted settings; call once at startup.
   Future<void> load() async {
@@ -168,6 +197,23 @@ class SettingsService extends ChangeNotifier {
           _keyFirstLaunchDate, _firstLaunchDate!.toIso8601String());
     } else {
       _firstLaunchDate = DateTime.tryParse(firstLaunchStr);
+    }
+
+    // Only ever valid for the day it was set — a stale "at the flag" from
+    // yesterday would be actively misleading, not just outdated.
+    final atTheFlagSinceStr = prefs.getString(_keyAtTheFlagSince);
+    final atTheFlagSince =
+        atTheFlagSinceStr != null ? DateTime.tryParse(atTheFlagSinceStr) : null;
+    final now = DateTime.now();
+    if (atTheFlagSince != null &&
+        atTheFlagSince.year == now.year &&
+        atTheFlagSince.month == now.month &&
+        atTheFlagSince.day == now.day) {
+      _atTheFlagAo = prefs.getString(_keyAtTheFlagAo);
+      _atTheFlagSince = atTheFlagSince;
+    } else if (atTheFlagSinceStr != null) {
+      await prefs.remove(_keyAtTheFlagAo);
+      await prefs.remove(_keyAtTheFlagSince);
     }
 
     SpartanService.instance.init(_geminiApiKey);
