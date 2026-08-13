@@ -13,7 +13,7 @@ class LocalAppLockService {
 
   Future<bool> get isSupported async {
     try {
-      return _auth.isDeviceSupported();
+      return await _auth.isDeviceSupported();
     } catch (_) {
       return false;
     }
@@ -21,7 +21,7 @@ class LocalAppLockService {
 
   Future<bool> authenticate() async {
     try {
-      return _auth.authenticate(
+      return await _auth.authenticate(
         localizedReason: 'Unlock Digital Weinke',
         options: const AuthenticationOptions(
           stickyAuth: true,
