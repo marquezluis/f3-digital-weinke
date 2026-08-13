@@ -75,7 +75,13 @@ class _EmergencyEditScreenState extends State<EmergencyEditScreen> {
     // the AO-address prefill above.
     if (_c['contactName']!.text.isEmpty ||
         _c['contactPhone']!.text.isEmpty ||
-        _c['syncNotes']!.text.isEmpty) {
+        _c['syncNotes']!.text.isEmpty ||
+        _c['bloodType']!.text.isEmpty ||
+        _c['allergies']!.text.isEmpty ||
+        _c['conditions']!.text.isEmpty ||
+        _c['medications']!.text.isEmpty ||
+        _c['preferredHospital']!.text.isEmpty ||
+        !_organDonor) {
       _prefillFromF3Profile();
     }
   }
@@ -105,6 +111,27 @@ class _EmergencyEditScreenState extends State<EmergencyEditScreen> {
       if (_c['syncNotes']!.text.isEmpty &&
           (profile.emergencyNotes ?? '').isNotEmpty) {
         _c['syncNotes']!.text = profile.emergencyNotes!;
+      }
+      if (_c['bloodType']!.text.isEmpty && (profile.bloodType ?? '').isNotEmpty) {
+        _c['bloodType']!.text = profile.bloodType!;
+      }
+      if (_c['allergies']!.text.isEmpty && (profile.allergies ?? '').isNotEmpty) {
+        _c['allergies']!.text = profile.allergies!;
+      }
+      if (_c['conditions']!.text.isEmpty &&
+          (profile.medicalConditions ?? '').isNotEmpty) {
+        _c['conditions']!.text = profile.medicalConditions!;
+      }
+      if (_c['medications']!.text.isEmpty &&
+          (profile.medications ?? '').isNotEmpty) {
+        _c['medications']!.text = profile.medications!;
+      }
+      if (_c['preferredHospital']!.text.isEmpty &&
+          (profile.preferredHospital ?? '').isNotEmpty) {
+        _c['preferredHospital']!.text = profile.preferredHospital!;
+      }
+      if (!_organDonor && profile.organDonor == true && mounted) {
+        setState(() => _organDonor = true);
       }
     } catch (_) {
       // Best-effort only — fields just stay as they were for manual entry.
@@ -170,6 +197,12 @@ class _EmergencyEditScreenState extends State<EmergencyEditScreen> {
       contactName: info.contactName,
       contactPhone: info.contactPhone,
       syncNotes: info.syncNotes,
+      bloodType: info.bloodType,
+      allergies: info.allergies,
+      conditions: info.conditions,
+      medications: info.medications,
+      preferredHospital: info.preferredHospital,
+      organDonor: info.organDonor,
     ));
     if (!messenger.mounted) return;
     messenger.showSnackBar(
@@ -189,6 +222,12 @@ class _EmergencyEditScreenState extends State<EmergencyEditScreen> {
     required String contactName,
     required String contactPhone,
     required String syncNotes,
+    required String bloodType,
+    required String allergies,
+    required String conditions,
+    required String medications,
+    required String preferredHospital,
+    required bool organDonor,
   }) async {
     try {
       if (!_isLinked(auth)) return;
@@ -200,6 +239,32 @@ class _EmergencyEditScreenState extends State<EmergencyEditScreen> {
         emergencyPhone: contactPhone,
         emergencyNotes: syncNotes,
       );
+
+      // The less-common fields go in `meta` instead of real columns (per
+      // Tackle, 2026-08-13) — only through the user's own token, since
+      // that's the only endpoint that merges into meta rather than
+      // overwriting it (see updateMyMeta). Only non-empty fields are sent,
+      // and organDonor only when there's other medical data too, so a
+      // blank/untouched form never pushes a false that could stomp a real
+      // "yes" saved elsewhere (e.g. a future F3 Me UI for this).
+      final meta = <String, dynamic>{
+        if (bloodType.isNotEmpty) 'blood_type': bloodType,
+        if (allergies.isNotEmpty) 'allergies': allergies,
+        if (conditions.isNotEmpty) 'medical_conditions': conditions,
+        if (medications.isNotEmpty) 'medications': medications,
+        if (preferredHospital.isNotEmpty) 'preferred_hospital': preferredHospital,
+        if (organDonor ||
+            bloodType.isNotEmpty ||
+            allergies.isNotEmpty ||
+            conditions.isNotEmpty ||
+            medications.isNotEmpty ||
+            preferredHospital.isNotEmpty)
+          'organ_donor': organDonor,
+      };
+      if (meta.isEmpty) return;
+      final token = await auth.getF3AccessToken();
+      if (token == null) return;
+      await api.updateMyMeta(userAccessToken: token, meta: meta);
     } catch (_) {
       // Best-effort only.
     }
@@ -244,9 +309,10 @@ class _EmergencyEditScreenState extends State<EmergencyEditScreen> {
         padding: const EdgeInsets.all(20),
         children: [
           Text(
-              'Contact name, phone, and notes below sync to your F3 Nation '
-              'profile. Everything else on this screen stays on this device '
-              'only, encrypted.',
+              'Fields marked (synced) sync to your F3 Nation profile — '
+              'contact name/phone as real profile fields, the rest as '
+              'freeform notes any F3 Nation app can read. Everything else '
+              'on this screen stays on this device only, encrypted.',
               style: TextStyle(color: context.f3textMuted, fontSize: 12)),
           const SizedBox(height: 16),
           _Header('Personal Medical'),
@@ -255,16 +321,16 @@ class _EmergencyEditScreenState extends State<EmergencyEditScreen> {
           _field('contactPhone', 'Contact phone (synced)',
               kb: TextInputType.phone),
           _field('syncNotes', 'Notes (synced)', maxLines: 2),
-          _field('bloodType', 'Blood type'),
-          _field('allergies', 'Allergies', maxLines: 2),
-          _field('conditions', 'Medical conditions', maxLines: 2),
-          _field('medications', 'Current medications', maxLines: 2),
-          _field('preferredHospital', 'Preferred hospital'),
+          _field('bloodType', 'Blood type (synced)'),
+          _field('allergies', 'Allergies (synced)', maxLines: 2),
+          _field('conditions', 'Medical conditions (synced)', maxLines: 2),
+          _field('medications', 'Current medications (synced)', maxLines: 2),
+          _field('preferredHospital', 'Preferred hospital (synced)'),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
             value: _organDonor,
             onChanged: (v) => setState(() => _organDonor = v),
-            title: Text('Organ donor',
+            title: Text('Organ donor (synced)',
                 style: TextStyle(color: context.f3textPrimary, fontSize: 14)),
           ),
           const SizedBox(height: 16),

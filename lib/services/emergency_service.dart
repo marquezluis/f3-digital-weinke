@@ -1,14 +1,16 @@
 // lib/services/emergency_service.dart
 // Local, encrypted store for emergency info, readable from the login gate
 // without signing in or a network connection (see EmergencyScreen). All of
-// it lives in the device's secure storage; contactName, contactPhone, and
-// syncNotes additionally best-effort sync to F3 Nation's own
-// emergencyContact/emergencyPhone/emergencyNotes user fields when signed in
-// (see emergency_edit_screen.dart) — those three are the only emergency
-// fields F3 Nation's API exposes today. Blood type, allergies, conditions,
-// medications, organ-donor status, and AO-site fields have no server-side
-// home and are deliberately NOT synced (sensitive PHI; adding a field for
-// them is a call for the F3 Nation team to make, not this app).
+// it lives in the device's secure storage; most fields additionally
+// best-effort sync to F3 Nation when signed in (see
+// emergency_edit_screen.dart): contactName/contactPhone/syncNotes go to
+// real columns (emergencyContact/emergencyPhone/emergencyNotes), and
+// bloodType/allergies/conditions/medications/preferredHospital/organDonor
+// go into the freeform `meta` JSON field — per Tackle (2026-08-13),
+// F3 Nation only gives real columns to core/common fields and expects
+// everything else to live in meta instead, for any app to read. Only
+// AO-site fields (nearestEr, aedLocation, emsAccessNotes, ...) stay
+// local-only — they're per-location safety data, not user profile data.
 
 import 'dart:convert';
 import 'package:flutter/foundation.dart';

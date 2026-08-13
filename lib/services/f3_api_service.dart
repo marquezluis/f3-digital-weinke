@@ -208,6 +208,37 @@ class F3ApiService extends ChangeNotifier {
     }
   }
 
+  /// Generic authenticated PATCH. Returns (statusCode, decodedBodyOrNull).
+  /// Used for the self-service /v1/me/profile update — unlike the other
+  /// write helpers, this one always needs [bearerOverride]: it's a
+  /// protectedProcedure keyed off the caller's own session, so the app's
+  /// shared API key (which resolves to the key's own owner) can't use it.
+  Future<({int status, dynamic body})> _patch(
+    String path,
+    Map<String, dynamic> payload, {
+    required String bearerOverride,
+  }) async {
+    try {
+      final res = await http
+          .patch(
+            Uri.parse('$_base$path'),
+            headers: _headers(bearerOverride),
+            body: json.encode(payload),
+          )
+          .timeout(const Duration(seconds: 15));
+      if (res.statusCode == 401) {
+        _markSessionInvalid();
+      }
+      dynamic decoded;
+      try {
+        decoded = res.body.isNotEmpty ? json.decode(res.body) : null;
+      } catch (_) {}
+      return (status: res.statusCode, body: decoded);
+    } catch (e) {
+      return (status: -1, body: e.toString());
+    }
+  }
+
   // ── Profile ───────────────────────────────────────────────────────────────
 
   /// Fetches the signed-in user's own profile. Pass [userAccessToken] (the
@@ -253,6 +284,30 @@ class F3ApiService extends ChangeNotifier {
     final res = await _post('/v1/user', payload);
     if (res.status == 200 || res.status == 201) return null;
     return 'Profile update failed (${res.status}): ${res.body}';
+  }
+
+  /// Merges fields into the signed-in PAX's own F3 Nation `meta` JSON —
+  /// per Tackle (2026-08-13), core/common fields get real columns
+  /// (`emergencyContact` etc., written via [updateUserProfile]), but
+  /// anything less common belongs in `meta` instead, freeform, for any app
+  /// to read. Unlike [updateUserProfile], this must go through
+  /// `PATCH /v1/me/profile` with the PAX's own token — that's the only
+  /// endpoint that merges into the existing `meta` object server-side
+  /// (`COALESCE(meta, '{}') || newMeta`); the app-key `POST /v1/user` path
+  /// would overwrite the whole column and silently erase whatever the real
+  /// F3 Me app already saved there (`f3_name_origin`, `my_f3_why`, ...).
+  /// Returns null on success, else an error string.
+  Future<String?> updateMyMeta({
+    required String userAccessToken,
+    required Map<String, dynamic> meta,
+  }) async {
+    final res = await _patch(
+      '/v1/me/profile',
+      {'meta': meta},
+      bearerOverride: userAccessToken,
+    );
+    if (res.status == 200 || res.status == 201) return null;
+    return 'Meta update failed (${res.status}): ${res.body}';
   }
 
   Future<F3UserProfile?> findPaxByF3Name(String f3Name) async {
