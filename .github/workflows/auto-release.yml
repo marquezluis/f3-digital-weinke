@@ -75,6 +75,7 @@ jobs:
         if: steps.version.outputs.is_new_line == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
+          NOTES: ${{ steps.notes.outputs.notes }}
         run: |
           set -euo pipefail
           TAG="v${{ steps.version.outputs.current }}"
@@ -82,7 +83,7 @@ jobs:
           git push origin "$TAG"
           gh release create "$TAG" \
             --title "$TAG" \
-            --notes "${{ steps.notes.outputs.notes }}"
+            --notes "$NOTES"
 
       - name: Skip (no MAJOR.MINOR change)
         if: steps.version.outputs.is_new_line == 'false'
