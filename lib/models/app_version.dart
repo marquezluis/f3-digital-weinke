@@ -25,13 +25,35 @@ class AppVersion {
   // automatically, since release notes are hand-written prose. Update these
   // four constants and add a new AppRelease entry below whenever you want a
   // build's changes to actually show up in the in-app Release Log.
-  static const String current = '2.5.0';
-  static const String versionName = '2.5.0';
-  static const String buildNumber = '28';
-  static const String displayName = 'Digital Weinke v2.5.0';
-  static const String fullDisplayName = 'Digital Weinke v2.5.0+28';
+  static const String current = '2.6.0';
+  static const String versionName = '2.6.0';
+  static const String buildNumber = '29';
+  static const String displayName = 'Digital Weinke v2.6.0';
+  static const String fullDisplayName = 'Digital Weinke v2.6.0+29';
 
   static const List<AppRelease> releases = [
+    AppRelease(
+      version: '2.6.0',
+      title: 'The Stability Pass',
+      summary:
+          'At The Flag now recognizes your real HC/Q commitments for instant check-in, Founding Quest gets a celebration, and a batch of real crash fixes from a dedicated functionality/performance audit.',
+      newItems: [
+        'Founding Quest confetti — completing your first-week checklist now celebrates the moment it happens.',
+        'AO logos on Near Me Right Now, matching Browse AOs and Schedule.',
+        'At The Flag now recognizes real HC/Q commitments — if you already HC\'d or took Q for a real event today, check-in is instant and GPS-free. The real event now threads through to backblast publish, which skips re-asking "which event is this for?" when it\'s already unambiguous.',
+        'More manual-entry fields now offer real F3 Nation / session data: Achievements\' AO-name field, custom exercise duplicate warnings, Q Builder seeded from your saved preferences, Timer\'s HC autocomplete, the admin location editor\'s real GPS fix, and Brotherhood\'s Add AO location matches.',
+      ],
+      enhancements: [
+        'Location/notification permissions now prime on every app resume, not just after backgrounding once.',
+        'Switched F3 Nation sign-in to a public PKCE client with no embedded client secret.',
+      ],
+      bugFixes: [
+        'Several real crashes from an earlier controller-cleanup pass: Deck of Pain\'s custom-card dialog, all 4 of Brotherhood\'s add sheets, Achievements\' custom-achievement sheet, and Profile\'s edit sheet could crash to the error screen on Save.',
+        'Two sheet-close race conditions in Brotherhood\'s AO-name autocomplete and PAX F3-lookup.',
+        'Changing your region in Profile silently reset your display name and wiped your real F3 Nation user id, which would have silently broken HC/Q/backblast posting.',
+        'A handful of "setState() called after dispose()" crash risks across QSource, Schedule, History, and the login gate.',
+      ],
+    ),
     AppRelease(
       version: '2.5.0',
       title: 'The Big One',

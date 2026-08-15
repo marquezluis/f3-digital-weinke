@@ -11,6 +11,60 @@ whether or not that build shipped, so "how many builds have we done on
 
 ## [Unreleased]
 
+## [2.6.0] - 2026-08-15
+
+### Added
+- **Founding Quest confetti** — completing your first-week checklist
+  (home AO/region, first beatdown, first Brotherhood add) now
+  celebrates the moment it happens, not just passively in the badge
+  list.
+- **AO logos on Near Me Right Now** — the same real F3 Nation logo
+  data already shown on Browse AOs and Schedule now appears here too.
+- **At The Flag now recognizes real HC/Q commitments** — if you
+  already HC'd or took Q for a real event today via Schedule, checking
+  in is instant and GPS-free. Otherwise it falls back to a
+  best-effort GPS suggestion (nearest real AO, today's real scheduled
+  event). The real event is now threaded through the whole chain —
+  check-in, backblast auto-fill, and publish — so publishing skips
+  re-asking "which event is this for?" when it's already unambiguous.
+- More manual-entry fields now offer real F3 Nation / session data
+  instead of free text: Achievements' AO-name field, custom exercise
+  names (warns on a likely Exicon duplicate), Q Builder (seeds from
+  your saved Weinke preferences), Timer's HC autocomplete, the admin
+  location editor (real GPS fix), and Brotherhood's Add AO sheet (real
+  F3 Nation location matches as you type).
+- Location/notification permissions are now primed on every app
+  resume, not just after backgrounding once — a cold launch used to
+  skip this entirely, so a feature needing one later (At The Flag's
+  GPS suggestion, an event reminder) could still hit an unresolved
+  permission dialog.
+
+### Changed
+- Switched F3 Nation sign-in to a public PKCE client with no embedded
+  client secret, matching F3 Nation's own client registration — a
+  secret can't stay confidential once shipped in a compiled binary
+  anyway.
+
+### Fixed
+- Several real crashes from an earlier controller-cleanup pass:
+  Deck of Pain's custom-card dialog, all 4 of Brotherhood's add
+  sheets, Achievements' custom-achievement sheet, and Profile's edit
+  sheet could all throw "used after being disposed" and crash to the
+  error screen on Save, because the fix disposed the sheet's text
+  fields while they were still mid-close-animation.
+- Two sheet-close race conditions: Brotherhood's AO-name autocomplete
+  and PAX F3-lookup could throw if the sheet was closed while a
+  lookup was still in flight.
+- Changing your region in Profile silently reset your display name to
+  a generic "PAX" and wiped your real F3 Nation user id, which would
+  have silently broken HC/Q/backblast posting until your next sign-in.
+- A handful of "setState() called after dispose()" crash risks across
+  QSource, Schedule, History, and the login gate, from an async write
+  completing after the screen had already been left.
+- The CI auto-release workflow itself: a quoted phrase in release
+  notes could break out of its shell string and get executed as
+  commands.
+
 ## [2.5.0] - 2026-08-13
 
 The biggest release yet — a full pass on onboarding, Home, Brotherhood
