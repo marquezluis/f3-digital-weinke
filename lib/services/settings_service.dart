@@ -35,6 +35,7 @@ class SettingsService extends ChangeNotifier {
   static const _keyAtTheFlagAo     = 'at_the_flag_ao';
   static const _keyAtTheFlagSince  = 'at_the_flag_since';
   static const _keyAtTheFlagEventId = 'at_the_flag_event_instance_id';
+  static const _keyFoundingQuestCelebrated = 'founding_quest_celebrated';
 
   WorkoutSettings _settings = const WorkoutSettings();
   WorkoutSettings get settings => _settings;
@@ -93,6 +94,20 @@ class SettingsService extends ChangeNotifier {
 
   DateTime? _firstLaunchDate;
   DateTime? get firstLaunchDate => _firstLaunchDate;
+
+  // Whether FoundingQuestCard's completion confetti has already played —
+  // stamped the first time all 3 steps are seen done, so returning to Home
+  // afterward (already-earned state) doesn't replay it on every rebuild.
+  bool _foundingQuestCelebrated = false;
+  bool get foundingQuestCelebrated => _foundingQuestCelebrated;
+
+  Future<void> markFoundingQuestCelebrated() async {
+    if (_foundingQuestCelebrated) return;
+    _foundingQuestCelebrated = true;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyFoundingQuestCelebrated, true);
+  }
 
   // "I'm at the flag" — a personal check-in, not a broadcast. There's no
   // relay to other PAX's devices, so this only ever shows on this PAX's own
@@ -212,6 +227,8 @@ class SettingsService extends ChangeNotifier {
     } else {
       _firstLaunchDate = DateTime.tryParse(firstLaunchStr);
     }
+    _foundingQuestCelebrated =
+        prefs.getBool(_keyFoundingQuestCelebrated) ?? false;
 
     // Only ever valid for the day it was set — a stale "at the flag" from
     // yesterday would be actively misleading, not just outdated.
