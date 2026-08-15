@@ -510,17 +510,40 @@ class _BackblastScreenState extends State<BackblastScreen> {
 
     setState(() => _publishing = true);
     try {
-      // 1. Offer the user's unposted scheduled Qs, or "new unscheduled".
+      // 1. Offer the user's unposted scheduled Qs, or "new unscheduled" —
+      // unless this session already carries a real eventInstanceId (from an
+      // "I'm at the flag" check-in or an HC/Take-Q done via Schedule earlier
+      // the same day), in which case that's already unambiguous and there's
+      // nothing to ask.
       final events = await api.getPastQsWithoutBackblast(
         userId: profile.authUserId,
         regionOrgId: orgId,
         userAccessToken: token,
       );
       if (!mounted) return;
-      final chosen = await _chooseEvent(events);
+      final linkedId = entry.eventInstanceId;
+      F3EventInstance? autoMatch;
+      if (linkedId != null) {
+        for (final e in events) {
+          if (e.id == linkedId) {
+            autoMatch = e;
+            break;
+          }
+        }
+      }
+      final chosen = autoMatch != null
+          ? _EventChoice.existing(autoMatch)
+          : await _chooseEvent(events);
       if (chosen == _EventChoice.cancelled) {
         setState(() => _publishing = false);
         return;
+      }
+      if (autoMatch != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(
+              'Matched to today\'s ${autoMatch.orgName ?? autoMatch.locationName ?? 'beatdown'} — no need to pick.'),
+          duration: const Duration(seconds: 3),
+        ));
       }
 
       // 2. Write the backblast + counts onto the instance. When updating an

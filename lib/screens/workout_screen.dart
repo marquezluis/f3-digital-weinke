@@ -21,8 +21,10 @@ import '../models/exercise.dart';
 import '../models/workout_plan.dart';
 import 'package:uuid/uuid.dart';
 import '../models/workout_settings.dart';
+import '../services/app_profile_service.dart' hide AppRole;
 import '../services/current_workout_service.dart';
 import '../services/exercise_service.dart';
+import '../services/f3_api_service.dart';
 import '../services/history_service.dart';
 import 'timer_screen.dart';
 import 'weinke_card_preview_screen.dart';
@@ -305,8 +307,26 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
 
   void _shareWeinke(WorkoutPlan plan) async {
     final settings = context.read<SettingsService>();
-    final aoCtrl = TextEditingController();
-    final timeCtrl = TextEditingController(text: '0530');
+    final profile = context.read<AppProfileService>();
+    final api = context.read<F3ApiService>();
+    final qName =
+        settings.myF3Name.isNotEmpty ? settings.myF3Name : profile.displayName;
+    final aoCtrl = TextEditingController(text: settings.atTheFlagAo ?? '');
+    // If today's check-in is linked to a real scheduled event, that event's
+    // own start time beats the generic 0530 default.
+    var startTime = '0530';
+    final linkedId = settings.atTheFlagEventInstanceId;
+    if (linkedId != null) {
+      final id = int.tryParse(linkedId);
+      if (id != null) {
+        final event = await api.getEventInstanceById(id);
+        if (event?.startTime != null && event!.startTime!.isNotEmpty) {
+          startTime = event.startTime!;
+        }
+      }
+    }
+    if (!mounted) return;
+    final timeCtrl = TextEditingController(text: startTime);
 
     // 'text' | 'image' | null (cancelled) — was a plain bool before adding
     // the image-card option, which needs a third outcome, not just yes/no.
@@ -369,7 +389,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
             plan: plan,
             ao: aoCtrl.text.trim(),
             time: timeCtrl.text.trim(),
-            qName: settings.myF3Name,
+            qName: qName,
           ),
         ),
       );

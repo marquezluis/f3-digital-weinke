@@ -34,6 +34,7 @@ class SettingsService extends ChangeNotifier {
   static const _keyFirstLaunchDate = 'first_launch_date';
   static const _keyAtTheFlagAo     = 'at_the_flag_ao';
   static const _keyAtTheFlagSince  = 'at_the_flag_since';
+  static const _keyAtTheFlagEventId = 'at_the_flag_event_instance_id';
 
   WorkoutSettings _settings = const WorkoutSettings();
   WorkoutSettings get settings => _settings;
@@ -100,24 +101,37 @@ class SettingsService extends ChangeNotifier {
   String? get atTheFlagAo => _atTheFlagAo;
   DateTime? _atTheFlagSince;
   DateTime? get atTheFlagSince => _atTheFlagSince;
+  // Set only when the check-in was matched to a real event instance on
+  // today's real F3 Nation schedule (see AtTheFlagCard's GPS+calendar
+  // lookup) — null for a plain manual/typed check-in, same as before.
+  String? _atTheFlagEventInstanceId;
+  String? get atTheFlagEventInstanceId => _atTheFlagEventInstanceId;
 
-  Future<void> checkInAtTheFlag(String aoName) async {
+  Future<void> checkInAtTheFlag(String aoName, {String? eventInstanceId}) async {
     _atTheFlagAo = aoName;
     _atTheFlagSince = DateTime.now();
+    _atTheFlagEventInstanceId = eventInstanceId;
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_keyAtTheFlagAo, aoName);
     await prefs.setString(
         _keyAtTheFlagSince, _atTheFlagSince!.toIso8601String());
+    if (eventInstanceId != null) {
+      await prefs.setString(_keyAtTheFlagEventId, eventInstanceId);
+    } else {
+      await prefs.remove(_keyAtTheFlagEventId);
+    }
   }
 
   Future<void> clearAtTheFlag() async {
     _atTheFlagAo = null;
     _atTheFlagSince = null;
+    _atTheFlagEventInstanceId = null;
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_keyAtTheFlagAo);
     await prefs.remove(_keyAtTheFlagSince);
+    await prefs.remove(_keyAtTheFlagEventId);
   }
 
   /// Load persisted settings; call once at startup.
@@ -211,9 +225,11 @@ class SettingsService extends ChangeNotifier {
         atTheFlagSince.day == now.day) {
       _atTheFlagAo = prefs.getString(_keyAtTheFlagAo);
       _atTheFlagSince = atTheFlagSince;
+      _atTheFlagEventInstanceId = prefs.getString(_keyAtTheFlagEventId);
     } else if (atTheFlagSinceStr != null) {
       await prefs.remove(_keyAtTheFlagAo);
       await prefs.remove(_keyAtTheFlagSince);
+      await prefs.remove(_keyAtTheFlagEventId);
     }
 
     SpartanService.instance.init(_geminiApiKey);

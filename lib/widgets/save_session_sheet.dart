@@ -125,7 +125,11 @@ class _SaveSessionSheetState extends State<SaveSessionSheet> {
 
       final sessions = history.all.where((e) => !e.isTemplate).toList();
 
-      if (_aoCtrl.text.isEmpty && sessions.isNotEmpty) {
+      // "I'm at the flag" (today only, see SettingsService) is a stronger
+      // signal than the last session's AO — prefer it when set.
+      if (_aoCtrl.text.isEmpty && settings.atTheFlagAo != null) {
+        _aoCtrl.text = settings.atTheFlagAo!;
+      } else if (_aoCtrl.text.isEmpty && sessions.isNotEmpty) {
         final lastAo = sessions.first.ao;
         if (lastAo.isNotEmpty) _aoCtrl.text = lastAo;
       }
@@ -318,11 +322,23 @@ class _SaveSessionSheetState extends State<SaveSessionSheet> {
         ? <String>[]
         : paxRaw.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
 
+    final aoTrimmed = _aoCtrl.text.trim();
+    final settings = context.read<SettingsService>();
+    // Only carry the real eventInstanceId over if the AO field still matches
+    // what "I'm at the flag" (or an HC/Take-Q done via Schedule) actually
+    // checked in at — the field's freely editable, so a PAX who changed it
+    // to a different AO shouldn't have this session silently linked to the
+    // wrong real event.
+    final linkedEventId = (settings.atTheFlagAo != null &&
+            aoTrimmed.toLowerCase() == settings.atTheFlagAo!.trim().toLowerCase())
+        ? settings.atTheFlagEventInstanceId
+        : null;
+
     final entry = WorkoutHistory(
       id: const Uuid().v4(),
       title: _titleCtrl.text.trim(),
       date: DateTime.now(),
-      ao: _aoCtrl.text.trim(),
+      ao: aoTrimmed,
       q: _qCtrl.text.trim(),
       pax: paxList,
       fngCount: int.tryParse(_fngCtrl.text.trim()) ?? 0,
@@ -334,6 +350,7 @@ class _SaveSessionSheetState extends State<SaveSessionSheet> {
       beatdownType: _beatdownType,
       eventTag: _eventTag,
       actualDurationMinutes: widget.actualDurationMinutes,
+      eventInstanceId: linkedEventId,
     );
 
     final history = context.read<HistoryService>();

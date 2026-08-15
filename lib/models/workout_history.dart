@@ -177,6 +177,14 @@ class WorkoutHistory {
   /// was run live. Null for plans saved without running the timer. This is
   /// the true time invested, distinct from the planned block minutes.
   final int? actualDurationMinutes;
+  /// The real F3 Nation event instance this session corresponds to, if
+  /// known (from an "I'm at the flag" check-in or an HC/Take-Q done via
+  /// Schedule earlier the same day — see SettingsService.atTheFlagEventInstanceId).
+  /// Null for a session with no known real-calendar match, which is the
+  /// common case for a hand-built/off-schedule Weinke. Lets the backblast
+  /// publish flow skip re-asking "which event is this for?" when already
+  /// unambiguous.
+  final String? eventInstanceId;
 
   const WorkoutHistory({
     required this.id,
@@ -197,6 +205,7 @@ class WorkoutHistory {
     this.beatdownType = BeatdownType.bootCamp,
     this.eventTag,
     this.actualDurationMinutes,
+    this.eventInstanceId,
   });
 
   // ── Serialization ──────────────────────────────────────────────────────────
@@ -230,6 +239,7 @@ class WorkoutHistory {
         beatdownType: BeatdownType.fromString(json['beatdownType'] as String?),
         eventTag: EventTag.fromString(json['eventTag'] as String?),
         actualDurationMinutes: json['actualDurationMinutes'] as int?,
+        eventInstanceId: json['eventInstanceId'] as String?,
       );
 
   Map<String, dynamic> toJson() => {
@@ -252,6 +262,7 @@ class WorkoutHistory {
         if (eventTag != null) 'eventTag': eventTag!.displayName,
         if (actualDurationMinutes != null)
           'actualDurationMinutes': actualDurationMinutes,
+        if (eventInstanceId != null) 'eventInstanceId': eventInstanceId,
       };
 
   /// Encode to a JSON string (for storage).
@@ -298,6 +309,7 @@ class WorkoutHistory {
     BeatdownType? beatdownType,
     EventTag? eventTag,
     int? actualDurationMinutes,
+    String? eventInstanceId,
   }) =>
       WorkoutHistory(
         id: id ?? this.id,
@@ -318,5 +330,6 @@ class WorkoutHistory {
         eventTag: eventTag ?? this.eventTag,
         actualDurationMinutes:
             actualDurationMinutes ?? this.actualDurationMinutes,
+        eventInstanceId: eventInstanceId ?? this.eventInstanceId,
       );
 }

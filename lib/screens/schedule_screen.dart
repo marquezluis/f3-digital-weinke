@@ -1105,6 +1105,7 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
     if (ok) {
       _scheduleReminders();
       await _autoRepostPreblastIfNeeded();
+      _maybeCheckInAtTheFlag();
     } else if (mounted) {
       setState(() => _attending = wasAttending);
     }
@@ -1147,7 +1148,29 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
       });
       _scheduleReminders(isQ: true);
       await _autoRepostPreblastIfNeeded();
+      _maybeCheckInAtTheFlag();
     }
+  }
+
+  /// HC'ing/taking Q for a real event happening today is a stronger, more
+  /// certain signal than At The Flag's own GPS guess — feed it straight into
+  /// the same check-in state so the card on Home reflects it immediately,
+  /// and save_session_sheet's AO/eventInstanceId auto-fill picks it up too,
+  /// without the PAX ever having to separately tap "I'm at the flag."
+  /// Silently does nothing for a past/future-dated event.
+  void _maybeCheckInAtTheFlag() {
+    final event = _event;
+    final today = DateTime.now();
+    if (event.date.year != today.year ||
+        event.date.month != today.month ||
+        event.date.day != today.day) {
+      return;
+    }
+    final name = event.orgName ?? event.locationName;
+    if (name == null || name.isEmpty) return;
+    context
+        .read<SettingsService>()
+        .checkInAtTheFlag(name, eventInstanceId: event.id);
   }
 
   /// Steps down from Q only — stays HC'd. Distinct from [_unhc], which drops
