@@ -21,9 +21,12 @@ class NotificationService {
 
     const androidSettings =
         AndroidInitializationSettings('@mipmap/ic_launcher');
-    // Request nothing at init time (matches the Android side — permission is
-    // asked lazily, the first time a reminder actually needs to fire; see
-    // reconcileEventReminders).
+    // Request nothing at init time — the real ask happens on every app open
+    // via _AppEntryState._onAppResumed (main.dart), once onboarding is done,
+    // plus the lazy asks below (reconcileEventReminders/
+    // checkForDeltasAndNotify) as a safety net for whichever fires first.
+    // requestPermissions() only ever shows OS UI once, so layering these is
+    // harmless — every call after the first decision is a silent no-op.
     const iosSettings = DarwinInitializationSettings(
       requestAlertPermission: false,
       requestBadgePermission: false,
@@ -171,10 +174,9 @@ class NotificationService {
     List<({int id, DateTime dateTime, String title, bool isQ, bool hasPreblast})>
         events,
   ) async {
-    // Lazily ask here rather than at app startup with nothing to show for
-    // it yet — this is the natural first moment a reminder actually needs
-    // to fire. (requestNotificationsPermission() is a no-op if already
-    // granted/denied, so this is safe to call every time.)
+    // Safety net in case this fires before _onAppResumed's app-open prime
+    // has resolved — a no-op if permission's already been decided either
+    // way.
     if (events.isNotEmpty) await requestPermissions();
     final prefs = await SharedPreferences.getInstance();
     final previous = prefs.getStringList(_keyScheduledEventIds) ?? [];

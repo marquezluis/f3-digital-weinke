@@ -17,6 +17,7 @@ import 'services/custom_achievement_service.dart';
 import 'services/emergency_service.dart';
 import 'services/exercise_service.dart';
 import 'services/feed_reaction_service.dart';
+import 'services/geo_service.dart';
 import 'services/history_service.dart';
 import 'services/notification_service.dart';
 import 'services/f3_api_service.dart';
@@ -246,6 +247,13 @@ class _AppEntryState extends State<_AppEntry> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    // didChangeAppLifecycleState only fires on a *transition* into resumed
+    // (e.g. returning from the background) — a cold launch starts already
+    // resumed with no transition to report, so it never fires here on its
+    // own. Without this, permission priming and the delta-check both
+    // silently skipped every first-ever-open-today of the app, only
+    // actually running after the user backgrounded and reopened it once.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _onAppResumed());
   }
 
   @override
@@ -280,6 +288,18 @@ class _AppEntryState extends State<_AppEntry> with WidgetsBindingObserver {
     final auth = context.read<AuthService>();
     final api = context.read<F3ApiService>();
     final profile = context.read<AppProfileService>();
+
+    // Prime any not-yet-decided OS permissions (location, notifications) on
+    // every app open, once onboarding's actually done — so a feature that
+    // needs one later (At The Flag's GPS suggestion, an event reminder)
+    // finds it already resolved instead of racing the user's answer to a
+    // dialog that just popped up. Both calls are safe/idempotent: they only
+    // ever show OS UI once, and silently no-op on every call after that.
+    if (profile.introSeen) {
+      unawaited(GeoService.primePermissionIfUndetermined());
+      unawaited(NotificationService().requestPermissions());
+    }
+
     final hasF3 = auth.currentUser?.identities
             .any((i) => i.provider == AuthProvider.f3nation) ??
         false;

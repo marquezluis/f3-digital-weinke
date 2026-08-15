@@ -45,6 +45,25 @@ class GeoService {
     }
   }
 
+  /// Shows the OS location prompt now if permission has never been decided,
+  /// so it's already resolved by the time a feature (Browse AOs, F3 Near Me,
+  /// At The Flag) actually needs a position — avoids a race between the user
+  /// answering the OS dialog and this app's own request timing out first
+  /// (that race is exactly what made At The Flag's GPS suggestion silently
+  /// disappear the first time permission was ever asked). Called on every
+  /// app open (see _AppEntryState._onAppResumed in main.dart); safe to call
+  /// repeatedly — checkPermission()/requestPermission() only ever show OS UI
+  /// once, so this is a silent no-op once the user has actually decided.
+  static Future<void> primePermissionIfUndetermined() async {
+    try {
+      if (!await Geolocator.isLocationServiceEnabled()) return;
+      final permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        await Geolocator.requestPermission();
+      }
+    } catch (_) {}
+  }
+
   /// Distance in miles between two coordinates.
   static double distanceMiles({
     required double lat1,
