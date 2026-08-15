@@ -26,11 +26,13 @@ class _NearbyPick {
   final F3WeeklyWorkout workout;
   final int minutesUntilStart; // negative = already started
   final double? distanceMiles;
+  final String? logoUrl;
   const _NearbyPick({
     required this.location,
     required this.workout,
     required this.minutesUntilStart,
     required this.distanceMiles,
+    required this.logoUrl,
   });
 }
 
@@ -58,11 +60,13 @@ class _NearMeNowScreenState extends State<NearMeNowScreen> {
     final results = await Future.wait([
       api.getLocations(),
       api.getLocationSchedules(),
+      api.getAoLogos(),
     ]);
     final locations = results[0] as List<F3Location>;
     final schedules = results[1] as Map<
         String,
         ({List<F3WeeklyWorkout> schedule, String? aoName, String? aoOrgId})>;
+    final logos = results[2] as Map<String, String>;
 
     final position = await GeoService.getCurrentPosition();
     final now = DateTime.now();
@@ -99,6 +103,7 @@ class _NearMeNowScreenState extends State<NearMeNowScreen> {
           workout: workout,
           minutesUntilStart: delta,
           distanceMiles: distance,
+          logoUrl: logos[loc.aoOrgId],
         ));
       }
     }
@@ -206,6 +211,23 @@ class _NearbyCard extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 12),
+        // Real F3 Nation AO logo, when the region has uploaded one — most
+        // haven't, so this is additive to the status bar above, not a
+        // replacement for it (that color/width still carries the actual
+        // started/upcoming signal this card is built around).
+        if ((pick.logoUrl ?? '').isNotEmpty) ...[
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.network(
+              pick.logoUrl!,
+              width: 32,
+              height: 32,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => const SizedBox(width: 32, height: 32),
+            ),
+          ),
+          const SizedBox(width: 10),
+        ],
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
