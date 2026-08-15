@@ -838,10 +838,8 @@ class _MonthlyRecapCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final monthName = const [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
-    ][DateTime.now().month - 1];
+    final monthName = fullMonth(
+        DateTime.now(), Localizations.localeOf(context).languageCode);
 
     return Container(
       padding: const EdgeInsets.all(16),

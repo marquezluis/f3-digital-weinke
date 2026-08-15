@@ -3,10 +3,21 @@
 // Run with: flutter test
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:f3_nation_app/models/workout_history.dart';
 import 'package:f3_nation_app/services/backblast_formatter.dart';
 
 void main() {
+  // shortDate() uses intl's DateFormat, which needs locale data initialized
+  // before use. In the real app this happens implicitly once MaterialApp's
+  // localizationsDelegates load (shortDate's real call sites are all inside
+  // widget build methods, downstream of that) — a bare unit test has no
+  // widget tree to trigger it, so it needs an explicit call here.
+  setUpAll(() async {
+    await initializeDateFormatting();
+    await initializeDateFormatting('es');
+  });
+
   // ── HistoryBlock ───────────────────────────────────────────────────────────
   group('HistoryBlock JSON round-trip', () {
     test('serialises and deserialises correctly', () {
@@ -108,7 +119,12 @@ void main() {
 
     test('shortDate formats correctly', () {
       // 2025-01-04 is a Saturday
-      expect(sample.shortDate, 'Sat Jan 4 2025');
+      expect(sample.shortDate(), 'Sat Jan 4 2025');
+    });
+
+    test('shortDate respects the given locale', () {
+      // 2025-01-04 is a Saturday — Spanish weekday/month abbreviations.
+      expect(sample.shortDate('es'), 'sáb ene 4 2025');
     });
 
     test('copyWith changes only specified fields', () {

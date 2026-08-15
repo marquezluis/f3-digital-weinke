@@ -5,6 +5,7 @@
 
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import '../utils/date_format.dart';
 
 class MonthCalendar extends StatelessWidget {
   final DateTime month; // any date within the displayed month
@@ -27,10 +28,6 @@ class MonthCalendar extends StatelessWidget {
   static DateTime normalize(DateTime d) => DateTime(d.year, d.month, d.day);
 
   static const _weekdayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-  static const _monthNames = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December',
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -53,7 +50,7 @@ class MonthCalendar extends StatelessWidget {
                 color: context.f3textSecondary,
               ),
               Text(
-                '${_monthNames[month.month - 1]} ${month.year}',
+                '${fullMonth(month, Localizations.localeOf(context).languageCode)} ${month.year}',
                 style: TextStyle(
                     color: context.f3textPrimary,
                     fontSize: 16,

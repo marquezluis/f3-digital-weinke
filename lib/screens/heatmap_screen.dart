@@ -343,7 +343,7 @@ class _MonthlyBarChart extends StatelessWidget {
 
     final maxVal = months.values.fold(0, (a, b) => a > b ? a : b);
     final entries = months.entries.toList();
-    const monthNames = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    final locale = Localizations.localeOf(context).languageCode;
 
     return Container(
       height: 100,
@@ -387,7 +387,7 @@ class _MonthlyBarChart extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    monthNames[monthNum],
+                    monthAbbrev(DateTime(2000, monthNum), locale),
                     style: TextStyle(
                         color: context.f3textMuted, fontSize: 8),
                   ),

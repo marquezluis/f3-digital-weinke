@@ -16,6 +16,7 @@ import '../services/exercise_service.dart';
 import '../services/history_service.dart';
 import '../services/notification_service.dart';
 import '../services/region_service.dart';
+import '../utils/date_format.dart';
 import '../utils/greeting.dart';
 import '../utils/streak_calculator.dart';
 import '../services/settings_service.dart';
@@ -856,7 +857,7 @@ class _LastBeatdownCard extends StatelessWidget {
                   fontWeight: FontWeight.w700,
                   letterSpacing: 1.5)),
           const Spacer(),
-          Text(session.shortDate,
+          Text(session.shortDate(Localizations.localeOf(context).languageCode),
               style: TextStyle(
                   color: context.f3textSecondary, fontSize: 12)),
         ]),
@@ -1514,11 +1515,8 @@ class _TodayHeroState extends State<_TodayHero> {
     return d.year == tom.year && d.month == tom.month && d.day == tom.day;
   }
 
-  String _shortDate(DateTime d) {
-    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return '${days[d.weekday - 1]} ${months[d.month - 1]} ${d.day}';
-  }
+  String _shortDate(DateTime d) =>
+      weekdayMonthDay(d, Localizations.localeOf(context).languageCode);
 
   @override
   Widget build(BuildContext context) {

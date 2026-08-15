@@ -62,7 +62,7 @@ class BeatdownCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            entry.shortDate,
+            entry.shortDate(Localizations.localeOf(context).languageCode),
             style: const TextStyle(
               color: F3Colors.textSecondary,
               fontSize: 26,

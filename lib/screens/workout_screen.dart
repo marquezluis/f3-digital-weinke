@@ -401,6 +401,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
       ao: aoCtrl.text.trim(),
       time: timeCtrl.text.trim(),
       qName: settings.myF3Name,
+      locale: Localizations.localeOf(context).languageCode,
     );
     Share.share(text,
         subject:

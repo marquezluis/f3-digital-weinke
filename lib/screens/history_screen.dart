@@ -18,6 +18,7 @@ import '../services/history_service.dart';
 import '../services/backblast_formatter.dart';
 import '../services/f3_api_service.dart';
 import '../services/weinke_exporter.dart';
+import '../utils/date_format.dart';
 import '../utils/shared_plan_importer.dart';
 import '../theme/app_theme.dart';
 import 'beatdown_card_preview_screen.dart';
@@ -338,7 +339,8 @@ class _HistoryCard extends StatelessWidget {
                   child: Column(
                     children: [
                       Text(
-                        _month(entry.date),
+                        _month(entry.date,
+                            Localizations.localeOf(context).languageCode),
                         style: const TextStyle(
                             color: F3Colors.accent,
                             fontSize: 10,
@@ -450,13 +452,8 @@ class _HistoryCard extends StatelessWidget {
     );
   }
 
-  String _month(DateTime dt) {
-    const months = [
-      'JAN','FEB','MAR','APR','MAY','JUN',
-      'JUL','AUG','SEP','OCT','NOV','DEC',
-    ];
-    return months[dt.month - 1];
-  }
+  String _month(DateTime dt, String locale) =>
+      monthAbbrev(dt, locale).toUpperCase();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1102,7 +1099,8 @@ class _MetaCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _Row(Icons.calendar_today_rounded, 'Date', entry.shortDate),
+          _Row(Icons.calendar_today_rounded, 'Date',
+              entry.shortDate(Localizations.localeOf(context).languageCode)),
           _Row(Icons.category_rounded, 'Type', entry.beatdownType.displayName),
           if (entry.ao.isNotEmpty) _Row(Icons.place_rounded, 'AO', entry.ao),
           if (entry.q.isNotEmpty) _Row(Icons.person_rounded, 'Q', entry.q),

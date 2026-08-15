@@ -4,6 +4,8 @@
 
 import 'dart:convert';
 
+import '../utils/date_format.dart';
+
 /// Beatdown types shown in the app. [storageValue] is our own local JSON
 /// format (stable — do not change existing entries' strings, or previously
 /// saved history silently falls back to bootCamp on load). [f3EventType] is
@@ -280,15 +282,11 @@ class WorkoutHistory {
   /// Comma-joined PAX string (for display / backblast).
   String get paxDisplay => pax.isEmpty ? '—' : pax.join(', ');
 
-  /// Short date string: "Sat Jan 4 2025".
-  String get shortDate {
-    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-    ];
-    return '${days[date.weekday - 1]} ${months[date.month - 1]} ${date.day} ${date.year}';
-  }
+  /// Short date string: "Sat Jan 4 2025". [locale] defaults to English for
+  /// callers without a BuildContext handy; UI call sites should pass
+  /// Localizations.localeOf(context).languageCode.
+  String shortDate([String locale = 'en']) =>
+      weekdayMonthDayYear(date, locale);
 
   /// Copy-with for edits.
   WorkoutHistory copyWith({

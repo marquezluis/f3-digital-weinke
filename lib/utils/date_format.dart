@@ -15,6 +15,11 @@ import 'package:intl/intl.dart';
 String monthAbbrev(DateTime d, String localeCode) =>
     DateFormat('MMM', localeCode).format(d);
 
+/// "August" — the full, unabbreviated month name, e.g. for a calendar
+/// header or a monthly recap card.
+String fullMonth(DateTime d, String localeCode) =>
+    DateFormat('MMMM', localeCode).format(d);
+
 /// "Aug 12" — the most common short form used across cards/lists.
 String shortMonthDay(DateTime d, String localeCode) =>
     DateFormat('MMM d', localeCode).format(d);
@@ -26,3 +31,15 @@ String shortMonthDayYear(DateTime d, String localeCode) =>
 /// "Wed Aug 12 2026" — the full weekday+date form.
 String weekdayMonthDayYear(DateTime d, String localeCode) =>
     DateFormat('EEE MMM d y', localeCode).format(d);
+
+/// "Wed Aug 12" — same as [weekdayMonthDayYear] without the year, for
+/// contexts where the date is always understood to be this year (e.g. an
+/// upcoming-beatdown preview).
+String weekdayMonthDay(DateTime d, String localeCode) =>
+    DateFormat('EEE MMM d', localeCode).format(d);
+
+/// "Monday, Aug 02" — full weekday name, zero-padded day. Used for
+/// generated preblast/backblast text, where the original hand-rolled
+/// formatting always zero-padded the day.
+String fullWeekdayMonthDay(DateTime d, String localeCode) =>
+    DateFormat('EEEE, MMM dd', localeCode).format(d);

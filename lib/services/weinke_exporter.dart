@@ -15,6 +15,7 @@ import '../models/exercise.dart';
 import '../models/workout_history.dart';
 import '../models/workout_plan.dart';
 import '../models/workout_settings.dart';
+import '../utils/date_format.dart';
 import 'exercise_service.dart';
 
 class WeinkeExporter {
@@ -99,12 +100,11 @@ class WeinkeExporter {
     String ao = '',
     String time = '0530',
     String qName = '',
+    String locale = 'en',
   }) {
     final buf = StringBuffer();
     final dt = plan.generatedAt;
-    const days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
-    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    final dayStr = '${days[dt.weekday - 1]}, ${months[dt.month - 1]} ${dt.day.toString().padLeft(2, '0')}';
+    final dayStr = fullWeekdayMonthDay(dt, locale);
 
     final aoLabel = ao.isNotEmpty ? ao : 'TBD';
 
