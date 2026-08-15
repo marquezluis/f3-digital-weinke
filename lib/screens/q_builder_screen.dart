@@ -9,7 +9,9 @@ import '../services/exercise_service.dart';
 import '../services/current_workout_service.dart';
 import '../services/history_service.dart';
 import '../services/q_builder_service.dart';
-import '../models/workout_settings.dart' show OutdoorCondition;
+import '../services/settings_service.dart';
+import '../models/workout_settings.dart'
+    show OutdoorCondition, CouponMode, WorkoutFormat;
 
 class QBuilderScreen extends StatefulWidget {
   const QBuilderScreen({super.key});
@@ -26,6 +28,32 @@ class _QBuilderScreenState extends State<QBuilderScreen> {
   String _format = 'Circuit';
   bool _simpleQMode = false;
   String _condition = 'Normal';
+
+  @override
+  void initState() {
+    super.initState();
+    // Seed from the Weinke builder's own saved preferences instead of
+    // generic hardcoded defaults — same settings, just never read here
+    // before. Only the fields with a real equivalent are seeded; Focus and
+    // the single-value Intensity picker have no matching saved field
+    // (WorkoutSettings.intensities is a multi-select Set) and stay as-is.
+    final settings = context.read<SettingsService>().settings;
+    _duration = settings.durationMinutes.clamp(30, 60);
+    _simpleQMode = settings.simpleQMode;
+    _condition = settings.condition.displayName;
+    _format = switch (settings.format) {
+      WorkoutFormat.circuit => 'Circuit',
+      WorkoutFormat.amrap => 'AMRAP',
+      WorkoutFormat.tabata => 'Tabata',
+      WorkoutFormat.dora => 'Dora',
+      WorkoutFormat.qRescue => 'Q Rescue',
+    };
+    _equipment = switch (settings.couponMode) {
+      CouponMode.noCoupons => 'Bodyweight Only',
+      CouponMode.coupons => 'Coupons Required',
+      CouponMode.mixed || CouponMode.mixedInterleaved => 'Mixed (50/50)',
+    };
+  }
 
   @override
   Widget build(BuildContext context) {

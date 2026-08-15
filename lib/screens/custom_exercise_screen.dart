@@ -26,6 +26,10 @@ class _CustomExerciseScreenState extends State<CustomExerciseScreen> {
   Equipment _equipment = Equipment.none;
   Intensity _intensity = Intensity.intermediate;
   bool _saving = false;
+  // True when the typed name already matches a real entry in the live F3
+  // Nation Exicon (as of the last Settings > "Sync with Official Codex")
+  // — a heads-up before saving a duplicate, not a hard block.
+  bool _matchesLiveExicon = false;
 
   @override
   void dispose() {
@@ -106,7 +110,29 @@ class _CustomExerciseScreenState extends State<CustomExerciseScreen> {
               icon: Icons.fitness_center_rounded,
               validator: (v) =>
                   (v == null || v.trim().isEmpty) ? 'Name is required' : null,
+              onChanged: (v) {
+                final matches =
+                    context.read<ExerciseService>().isNameInLiveExicon(v);
+                if (matches != _matchesLiveExicon) {
+                  setState(() => _matchesLiveExicon = matches);
+                }
+              },
             ),
+            if (_matchesLiveExicon) ...[
+              const SizedBox(height: 6),
+              Row(children: [
+                Icon(Icons.info_outline_rounded,
+                    size: 16, color: context.f3textMuted),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'This is already in the official Exicon — saving anyway just adds a local duplicate.',
+                    style:
+                        TextStyle(color: context.f3textMuted, fontSize: 12),
+                  ),
+                ),
+              ]),
+            ],
             const SizedBox(height: 12),
             _field(
               controller: _descCtrl,
@@ -259,6 +285,7 @@ class _CustomExerciseScreenState extends State<CustomExerciseScreen> {
     int maxLines = 1,
     TextInputType? keyboardType,
     String? Function(String?)? validator,
+    ValueChanged<String>? onChanged,
   }) {
     return TextFormField(
       controller: controller,
@@ -273,6 +300,7 @@ class _CustomExerciseScreenState extends State<CustomExerciseScreen> {
         prefixIcon: Icon(icon, size: 20),
       ),
       validator: validator,
+      onChanged: onChanged,
     );
   }
 }

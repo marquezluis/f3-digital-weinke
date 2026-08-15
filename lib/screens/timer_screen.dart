@@ -18,6 +18,7 @@ import '../models/timer_state.dart';
 import '../models/workout_plan.dart';
 import '../services/current_workout_service.dart';
 import '../services/exercise_service.dart';
+import '../services/region_service.dart';
 import '../services/settings_service.dart';
 import '../services/timer_service.dart';
 import '../services/workout_generator.dart';
@@ -2330,8 +2331,31 @@ class _WorkoutSummarySheet extends StatefulWidget {
 class _WorkoutSummarySheetState extends State<_WorkoutSummarySheet> {
   String _rolledPax = '';
 
+  /// Today's real HC list for the checked-in AO, if any — beats retyping
+  /// names that were already committed via Brotherhood's Add HC sheet.
+  /// Never overwrites names already entered this session.
+  String _seededRollCall() {
+    if (_rolledPax.isNotEmpty) return _rolledPax;
+    final aoName = context.read<SettingsService>().atTheFlagAo;
+    if (aoName == null) return '';
+    final region = context.read<RegionService>();
+    final ao = region.aos
+        .where((a) => a.name.toLowerCase() == aoName.toLowerCase())
+        .firstOrNull;
+    if (ao == null) return '';
+    final today = DateTime.now();
+    final hc = region.hardCommits
+        .where((h) =>
+            h.aoId == ao.id &&
+            h.date.year == today.year &&
+            h.date.month == today.month &&
+            h.date.day == today.day)
+        .firstOrNull;
+    return hc?.paxNames.join(', ') ?? '';
+  }
+
   void _showRollCall() {
-    final ctrl = TextEditingController(text: _rolledPax);
+    final ctrl = TextEditingController(text: _seededRollCall());
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(

@@ -10,6 +10,7 @@ import 'package:provider/provider.dart';
 import '../models/f3_api_models.dart';
 import '../services/auth_service.dart';
 import '../services/f3_api_service.dart';
+import '../services/geo_service.dart';
 import '../theme/app_theme.dart';
 
 class AdminLocationsScreen extends StatefulWidget {
@@ -157,6 +158,7 @@ class _AdminEditLocationScreenState extends State<AdminEditLocationScreen> {
   late final Map<String, TextEditingController> _c;
   late bool _isActive;
   bool _saving = false;
+  bool _locating = false;
   String? _error;
 
   @override
@@ -185,6 +187,25 @@ class _AdminEditLocationScreenState extends State<AdminEditLocationScreen> {
       ctrl.dispose();
     }
     super.dispose();
+  }
+
+  /// An editor fixing missing/wrong coordinates is plausibly standing at
+  /// the AO right now — offer the device's real GPS fix instead of making
+  /// them look up and type raw decimal degrees by hand.
+  Future<void> _useCurrentLocation() async {
+    setState(() => _locating = true);
+    final position = await GeoService.getCurrentPosition();
+    if (!mounted) return;
+    setState(() => _locating = false);
+    if (position == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text("Couldn't get your current location — check location "
+            'permissions and try again, or enter it manually.'),
+      ));
+      return;
+    }
+    _c['latitude']!.text = position.latitude.toString();
+    _c['longitude']!.text = position.longitude.toString();
   }
 
   String? _orNull(String key) {
@@ -353,6 +374,20 @@ class _AdminEditLocationScreenState extends State<AdminEditLocationScreen> {
               kb: const TextInputType.numberWithOptions(signed: true, decimal: true)),
           _field('longitude', 'Longitude',
               kb: const TextInputType.numberWithOptions(signed: true, decimal: true)),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: _locating ? null : _useCurrentLocation,
+              icon: _locating
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Icon(Icons.my_location_rounded, size: 18),
+              label: Text(_locating ? 'Locating…' : 'Use my current location'),
+            ),
+          ),
+          const SizedBox(height: 8),
           _field('email', 'Contact email', kb: TextInputType.emailAddress),
           const SizedBox(height: 20),
         ],

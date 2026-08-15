@@ -128,6 +128,20 @@ void _showAddCustomSheet(BuildContext context) {
   final aoCtrl = TextEditingController();
   final valueCtrl = TextEditingController(text: '5');
   var thresholdType = CustomAchievementThreshold.totalSessions;
+  // Real AO names the PAX has actually logged — a free-text mismatch here
+  // (e.g. "Agoge" vs. "The Agoge") means the threshold silently never fires,
+  // with no error shown anywhere, so offer the known-good set instead of a
+  // blank field whenever there's history to draw from.
+  final knownAos = context
+      .read<HistoryService>()
+      .all
+      .map((h) => h.ao.trim())
+      .where((ao) => ao.isNotEmpty)
+      .toSet()
+      .toList()
+    ..sort();
+  var selectedAo = knownAos.isNotEmpty ? knownAos.first : null;
+  if (selectedAo != null) aoCtrl.text = selectedAo;
 
   showModalBottomSheet(
     context: context,
@@ -171,10 +185,26 @@ void _showAddCustomSheet(BuildContext context) {
             ),
             if (thresholdType == CustomAchievementThreshold.sessionsAtAo) ...[
               const SizedBox(height: 12),
-              TextField(
-                controller: aoCtrl,
-                decoration: const InputDecoration(labelText: 'AO name'),
-              ),
+              if (knownAos.isNotEmpty)
+                DropdownButtonFormField<String>(
+                  initialValue: selectedAo,
+                  decoration: const InputDecoration(labelText: 'AO name'),
+                  items: knownAos
+                      .map((ao) => DropdownMenuItem(value: ao, child: Text(ao)))
+                      .toList(),
+                  onChanged: (v) {
+                    if (v == null) return;
+                    setSheetState(() {
+                      selectedAo = v;
+                      aoCtrl.text = v;
+                    });
+                  },
+                )
+              else
+                TextField(
+                  controller: aoCtrl,
+                  decoration: const InputDecoration(labelText: 'AO name'),
+                ),
             ],
             const SizedBox(height: 12),
             TextField(

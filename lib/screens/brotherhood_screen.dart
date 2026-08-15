@@ -10,6 +10,7 @@ import '../models/f3_api_models.dart';
 import '../services/region_service.dart';
 import '../services/app_profile_service.dart';
 import '../services/f3_api_service.dart';
+import '../services/settings_service.dart' hide AppRole;
 import '../theme/app_theme.dart';
 import 'f3_moments_screen.dart';
 import 'heatmap_screen.dart';
@@ -347,32 +348,82 @@ class _BrotherhoodScreenState extends State<BrotherhoodScreen> {
     final name = TextEditingController();
     final location = TextEditingController();
     final terrain = TextEditingController();
+    final api = context.read<F3ApiService>();
+    List<F3Location> matches = [];
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: context.f3card,
-      builder: (_) => _SimpleFormSheet(
-        title: 'Add AO',
-        children: [
-          _Field(controller: name, label: 'AO Name', icon: Icons.flag_rounded),
-          _Field(
-              controller: location,
-              label: 'Location',
-              icon: Icons.place_rounded),
-          _Field(
-              controller: terrain,
-              label: 'Terrain',
-              hint: 'Track, hill, trail, parking lot',
-              icon: Icons.terrain_rounded),
-        ],
-        onSave: () async {
-          if (name.text.trim().isEmpty) return;
-          await context.read<RegionService>().upsertAo(
-                name: name.text,
-                location: location.text,
-                terrain: terrain.text,
-              );
-          if (context.mounted) Navigator.pop(context);
+      builder: (_) => StatefulBuilder(
+        builder: (sheetContext, setSheetState) {
+          // Real F3 Nation AO data (already fetched/cached for Browse AOs)
+          // beats retyping a name and address from memory — best-effort
+          // only, never blocks manual entry if the API's unavailable.
+          Future<void> onNameChanged(String value) async {
+            final q = value.trim().toLowerCase();
+            if (q.length < 2 || !api.isConfigured) {
+              if (matches.isNotEmpty) setSheetState(() => matches = []);
+              return;
+            }
+            final locations = await api.getLocations();
+            final found = locations
+                .where((l) => (l.aoName ?? l.name).toLowerCase().contains(q))
+                .take(4)
+                .toList();
+            setSheetState(() => matches = found);
+          }
+
+          return _SimpleFormSheet(
+            title: 'Add AO',
+            children: [
+              _Field(
+                  controller: name,
+                  label: 'AO Name',
+                  icon: Icons.flag_rounded,
+                  onChanged: onNameChanged),
+              if (matches.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: matches.map((loc) {
+                    final locName = loc.aoName ?? loc.name;
+                    return ActionChip(
+                      label: Text(locName),
+                      onPressed: () {
+                        name.text = locName;
+                        final parts = [loc.street, loc.city, loc.state]
+                            .where((p) => p != null && p.isNotEmpty)
+                            .join(', ');
+                        if (parts.isNotEmpty) location.text = parts;
+                        setSheetState(() => matches = []);
+                      },
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 4),
+              ],
+              _Field(
+                  controller: location,
+                  label: 'Location',
+                  icon: Icons.place_rounded),
+              _Field(
+                  controller: terrain,
+                  label: 'Terrain',
+                  hint: 'Track, hill, trail, parking lot',
+                  icon: Icons.terrain_rounded),
+            ],
+            onSave: () async {
+              if (name.text.trim().isEmpty) return;
+              await context.read<RegionService>().upsertAo(
+                    name: name.text,
+                    location: location.text,
+                    terrain: terrain.text,
+                  );
+              if (context.mounted) Navigator.pop(context);
+            },
+          );
         },
       ),
     );
@@ -448,6 +499,11 @@ class _BrotherhoodScreenState extends State<BrotherhoodScreen> {
                                   f3Searching = false;
                                   if (result != null && name.text.trim().isEmpty) {
                                     name.text = result.f3Name;
+                                  }
+                                  if (result?.phone != null &&
+                                      result!.phone!.isNotEmpty &&
+                                      contact.text.trim().isEmpty) {
+                                    contact.text = result.phone!;
                                   }
                                 });
                               },
@@ -615,9 +671,24 @@ class _BrotherhoodScreenState extends State<BrotherhoodScreen> {
 
   static void _showHcSheet(BuildContext context) {
     final region = context.read<RegionService>();
+    final settings = context.read<SettingsService>();
+    final profile = context.read<AppProfileService>();
+    final myName =
+        settings.myF3Name.isNotEmpty ? settings.myF3Name : profile.displayName;
     final pax = TextEditingController();
-    final q = TextEditingController();
-    var selectedAo = region.aos.first.id;
+    final q = TextEditingController(text: myName);
+    final selectedPax = <String>{};
+    // Default to wherever you actually are today, not whichever AO sorts
+    // first alphabetically — both sources are already in hand above.
+    final flagAo = settings.atTheFlagAo?.toLowerCase();
+    final homeAo = profile.homeAo.toLowerCase();
+    var selectedAo = region.aos
+        .where((ao) =>
+            ao.name.toLowerCase() == flagAo ||
+            (flagAo == null && ao.name.toLowerCase() == homeAo))
+        .firstOrNull
+        ?.id ??
+        region.aos.first.id;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -643,20 +714,47 @@ class _BrotherhoodScreenState extends State<BrotherhoodScreen> {
                 if (value != null) setSheetState(() => selectedAo = value);
               },
             ),
+            if (region.pax.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Text('HC Names',
+                  style: TextStyle(
+                      color: context.f3textSecondary, fontSize: 13)),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: region.pax.map((p) {
+                  final picked = selectedPax.contains(p.name);
+                  return FilterChip(
+                    label: Text(p.name),
+                    selected: picked,
+                    onSelected: (v) => setSheetState(() {
+                      if (v) {
+                        selectedPax.add(p.name);
+                      } else {
+                        selectedPax.remove(p.name);
+                      }
+                    }),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 8),
+            ],
             _Field(
               controller: pax,
-              label: 'HC Names',
+              label:
+                  region.pax.isEmpty ? 'HC Names' : 'Other HC Names',
               hint: 'Comma-separated',
               icon: Icons.group_add_rounded,
             ),
             _Field(controller: q, label: 'Q', icon: Icons.person_rounded),
           ],
           onSave: () async {
-            final names = pax.text
+            final typed = pax.text
                 .split(',')
                 .map((item) => item.trim())
-                .where((item) => item.isNotEmpty)
-                .toList();
+                .where((item) => item.isNotEmpty);
+            final names = {...selectedPax, ...typed}.toList();
             await context.read<RegionService>().addHardCommit(
                   aoId: selectedAo,
                   date: DateTime.now(),
@@ -1829,6 +1927,7 @@ class _Field extends StatelessWidget {
   final String? hint;
   final IconData icon;
   final int maxLines;
+  final ValueChanged<String>? onChanged;
 
   const _Field({
     required this.controller,
@@ -1836,6 +1935,7 @@ class _Field extends StatelessWidget {
     this.hint,
     required this.icon,
     this.maxLines = 1,
+    this.onChanged,
   });
 
   @override
@@ -1843,6 +1943,7 @@ class _Field extends StatelessWidget {
     return TextField(
       controller: controller,
       maxLines: maxLines,
+      onChanged: onChanged,
       style: TextStyle(color: context.f3textPrimary),
       decoration: InputDecoration(
         labelText: label,

@@ -121,6 +121,13 @@ class ExerciseService extends ChangeNotifier {
     return _liveExiconNames.contains(exercise.name.trim().toLowerCase());
   }
 
+  /// Whether [name] already matches a real F3 Nation Exicon entry as of the
+  /// last live sync — used to warn *before* saving a new custom exercise,
+  /// rather than only labeling it Official/Pending after the fact. Always
+  /// false if no sync has run yet this session (empty set, not a claim).
+  bool isNameInLiveExicon(String name) =>
+      _liveExiconNames.contains(name.trim().toLowerCase());
+
   Exercise? findById(String id) => all.where((e) => e.id == id).firstOrNull;
 
   Map<ExerciseCategory, int> get categoryCounts {
