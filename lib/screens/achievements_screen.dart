@@ -238,7 +238,11 @@ void _showAddCustomSheet(BuildContext context) {
         ),
       ),
     ),
-  );
+  ).then((_) {
+    titleCtrl.dispose();
+    aoCtrl.dispose();
+    valueCtrl.dispose();
+  });
 }
 
 class _CustomAchievementNudge extends StatelessWidget {

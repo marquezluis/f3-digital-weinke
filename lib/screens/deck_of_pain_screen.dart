@@ -128,6 +128,7 @@ class _DeckOfPainScreenState extends State<DeckOfPainScreen> {
         ],
       ),
     );
+    ctrl.dispose();
     if (result != null) setState(() => _targetCards = result);
   }
 

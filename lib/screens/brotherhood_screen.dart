@@ -426,7 +426,11 @@ class _BrotherhoodScreenState extends State<BrotherhoodScreen> {
           );
         },
       ),
-    );
+    ).then((_) {
+      name.dispose();
+      location.dispose();
+      terrain.dispose();
+    });
   }
 
   static void _showPaxSheet(BuildContext context) {
@@ -631,7 +635,12 @@ class _BrotherhoodScreenState extends State<BrotherhoodScreen> {
           );
         },
       ),
-    );
+    ).then((_) {
+      name.dispose();
+      contact.dispose();
+      sponsor.dispose();
+      notes.dispose();
+    });
   }
 
   static void _showEhProspectSheet(BuildContext context) {
@@ -666,7 +675,11 @@ class _BrotherhoodScreenState extends State<BrotherhoodScreen> {
           if (sheetContext.mounted) Navigator.pop(sheetContext);
         },
       ),
-    );
+    ).then((_) {
+      name.dispose();
+      contact.dispose();
+      notes.dispose();
+    });
   }
 
   static void _showHcSheet(BuildContext context) {
@@ -765,7 +778,10 @@ class _BrotherhoodScreenState extends State<BrotherhoodScreen> {
           },
         ),
       ),
-    );
+    ).then((_) {
+      pax.dispose();
+      q.dispose();
+    });
   }
 
 }

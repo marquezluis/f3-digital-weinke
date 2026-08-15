@@ -200,17 +200,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       ),
     );
+    final f3Name = f3NameCtrl.text.trim();
+    final firstName = firstNameCtrl.text.trim();
+    final lastName = lastNameCtrl.text.trim();
+    final email = emailCtrl.text.trim();
+    final phone = phoneCtrl.text.trim();
+    f3NameCtrl.dispose();
+    firstNameCtrl.dispose();
+    lastNameCtrl.dispose();
+    emailCtrl.dispose();
+    phoneCtrl.dispose();
     if (saved != true || !mounted) return;
 
     final api = context.read<F3ApiService>();
     setState(() => _loading = true);
     final err = await api.updateUserProfile(
       userId: userId,
-      f3Name: f3NameCtrl.text.trim(),
-      firstName: firstNameCtrl.text.trim(),
-      lastName: lastNameCtrl.text.trim(),
-      email: emailCtrl.text.trim(),
-      phone: phoneCtrl.text.trim(),
+      f3Name: f3Name,
+      firstName: firstName,
+      lastName: lastName,
+      email: email,
+      phone: phone,
     );
     if (!mounted) return;
     if (err != null) {
