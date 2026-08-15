@@ -238,11 +238,12 @@ void _showAddCustomSheet(BuildContext context) {
         ),
       ),
     ),
-  ).then((_) {
-    titleCtrl.dispose();
-    aoCtrl.dispose();
-    valueCtrl.dispose();
-  });
+  );
+  // Not disposed: the sheet's Future resolves on Navigator.pop, before the
+  // slide-down exit animation finishes, so an immediate dispose() here races
+  // the still-live TextFields ("used after being disposed" crash). These
+  // controllers have no listeners of our own and are torn down with the
+  // sheet's widget tree once the animation completes — nothing real leaks.
 }
 
 class _CustomAchievementNudge extends StatelessWidget {

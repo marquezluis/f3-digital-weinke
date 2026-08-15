@@ -128,7 +128,13 @@ class _DeckOfPainScreenState extends State<DeckOfPainScreen> {
         ],
       ),
     );
-    ctrl.dispose();
+    // Not disposed here: the AlertDialog's TextField (and ctrl) are still
+    // attached and mid-exit-animation for a beat after showDialog's Future
+    // resolves (Navigator.pop completes the Future before the route's pop
+    // transition finishes) — disposing immediately crashes with "used after
+    // being disposed". ctrl has no listeners of our own and dies with the
+    // dialog's widget tree once the transition completes, so there's
+    // nothing real to leak by skipping an explicit dispose here.
     if (result != null) setState(() => _targetCards = result);
   }
 

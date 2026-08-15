@@ -205,11 +205,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final lastName = lastNameCtrl.text.trim();
     final email = emailCtrl.text.trim();
     final phone = phoneCtrl.text.trim();
-    f3NameCtrl.dispose();
-    firstNameCtrl.dispose();
-    lastNameCtrl.dispose();
-    emailCtrl.dispose();
-    phoneCtrl.dispose();
+    // Not disposed: showModalBottomSheet's Future resolves on Navigator.pop,
+    // before the sheet's exit animation finishes, so disposing immediately
+    // here raced the still-live TextFields ("used after being disposed"
+    // crash). No real leak from skipping it — see deck_of_pain_screen.dart's
+    // _promptCustomCount for the same fix with fuller reasoning.
     if (saved != true || !mounted) return;
 
     final api = context.read<F3ApiService>();
@@ -239,10 +239,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (picked == null) return;
     api.userOrgId = picked.id;
     if (mounted) {
-      context.read<AppProfileService>().updateProfile(
-            role: AppRole.q,
-            region: picked.name,
-          );
+      // updateProfile() replaces every field with what's passed (defaulting
+      // to '' for anything omitted) rather than patching just the given
+      // ones — omitting displayName/homeAo/authUserId here wiped the user's
+      // name back to the generic 'PAX' fallback and, worse, wiped the real
+      // F3 Nation user id, silently breaking HC/Q/backblast posting until
+      // the next sign-in. Pass the current values through explicitly.
+      final profile = context.read<AppProfileService>();
+      profile.updateProfile(
+        role: AppRole.q,
+        displayName: profile.displayName,
+        homeAo: profile.homeAo,
+        region: picked.name,
+        authUserId: profile.authUserId,
+      );
     }
   }
 

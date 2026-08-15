@@ -371,7 +371,10 @@ class _BrotherhoodScreenState extends State<BrotherhoodScreen> {
                 .where((l) => (l.aoName ?? l.name).toLowerCase().contains(q))
                 .take(4)
                 .toList();
-            setSheetState(() => matches = found);
+            // The sheet can close (e.g. Save tapped) while this lookup is
+            // still in flight — setSheetState on a defunct StatefulBuilder
+            // throws "setState() called after dispose()".
+            if (sheetContext.mounted) setSheetState(() => matches = found);
           }
 
           return _SimpleFormSheet(
@@ -426,11 +429,14 @@ class _BrotherhoodScreenState extends State<BrotherhoodScreen> {
           );
         },
       ),
-    ).then((_) {
-      name.dispose();
-      location.dispose();
-      terrain.dispose();
-    });
+    );
+    // Not disposed: showModalBottomSheet's Future resolves on Navigator.pop,
+    // before the sheet's slide-down exit animation finishes, so an immediate
+    // dispose() here raced the still-live TextFields and crashed with "used
+    // after being disposed". These controllers have no listeners of our own
+    // and are torn down with the sheet's widget tree once the animation
+    // completes — nothing real leaks by skipping an explicit dispose. Same
+    // reasoning applies to the other three sheets below.
   }
 
   static void _showPaxSheet(BuildContext context) {
@@ -498,6 +504,11 @@ class _BrotherhoodScreenState extends State<BrotherhoodScreen> {
                                 if (q.isEmpty) return;
                                 setSheetState(() => f3Searching = true);
                                 final result = await api.findPaxByF3Name(q);
+                                // The sheet can close while this lookup is in
+                                // flight — setSheetState on a defunct
+                                // StatefulBuilder throws "setState() called
+                                // after dispose()".
+                                if (!ctx.mounted) return;
                                 setSheetState(() {
                                   f3Result = result;
                                   f3Searching = false;
@@ -635,12 +646,9 @@ class _BrotherhoodScreenState extends State<BrotherhoodScreen> {
           );
         },
       ),
-    ).then((_) {
-      name.dispose();
-      contact.dispose();
-      sponsor.dispose();
-      notes.dispose();
-    });
+    );
+    // Not disposed — see _showAoSheet above: disposing immediately after
+    // the sheet's Future resolves races its still-animating-out TextFields.
   }
 
   static void _showEhProspectSheet(BuildContext context) {
@@ -675,11 +683,9 @@ class _BrotherhoodScreenState extends State<BrotherhoodScreen> {
           if (sheetContext.mounted) Navigator.pop(sheetContext);
         },
       ),
-    ).then((_) {
-      name.dispose();
-      contact.dispose();
-      notes.dispose();
-    });
+    );
+    // Not disposed — see _showAoSheet above: disposing immediately after
+    // the sheet's Future resolves races its still-animating-out TextFields.
   }
 
   static void _showHcSheet(BuildContext context) {
@@ -778,10 +784,9 @@ class _BrotherhoodScreenState extends State<BrotherhoodScreen> {
           },
         ),
       ),
-    ).then((_) {
-      pax.dispose();
-      q.dispose();
-    });
+    );
+    // Not disposed — see _showAoSheet above: disposing immediately after
+    // the sheet's Future resolves races its still-animating-out TextFields.
   }
 
 }
