@@ -54,25 +54,32 @@ class _QSourceScreenState extends State<QSourceScreen> {
 
   Future<void> _toggleBookmark(String title) async {
     final prefs = await SharedPreferences.getInstance();
-    setState(() {
+    // The mutation and its persistence should happen regardless of whether
+    // the widget's still around to show it — only the rebuild itself needs
+    // gating, or setState() throws after the widget's disposed.
+    void mutate() {
       if (_bookmarks.contains(title)) {
         _bookmarks.remove(title);
       } else {
         _bookmarks.add(title);
       }
-    });
+    }
+
+    mounted ? setState(mutate) : mutate();
     await prefs.setStringList(_keyBookmarks, _bookmarks.toList());
   }
 
   Future<void> _recordRecentlyViewed(String title) async {
     final prefs = await SharedPreferences.getInstance();
-    setState(() {
+    void mutate() {
       _recent.remove(title);
       _recent.insert(0, title);
       if (_recent.length > _maxRecent) {
         _recent = _recent.sublist(0, _maxRecent);
       }
-    });
+    }
+
+    mounted ? setState(mutate) : mutate();
     await prefs.setStringList(_keyRecent, _recent);
   }
 

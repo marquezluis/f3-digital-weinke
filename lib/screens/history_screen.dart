@@ -532,7 +532,9 @@ class _BackblastScreenState extends State<BackblastScreen> {
           ? _EventChoice.existing(autoMatch)
           : await _chooseEvent(events);
       if (chosen == _EventChoice.cancelled) {
-        setState(() => _publishing = false);
+        // Explicit cancel — nothing to publish, so unlike the real publish
+        // below, nothing here needs to survive unmount.
+        if (mounted) setState(() => _publishing = false);
         return;
       }
       if (autoMatch != null && mounted) {

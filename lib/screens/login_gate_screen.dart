@@ -70,7 +70,11 @@ class _LoginGateScreenState extends State<LoginGateScreen> {
     try {
       final user = await auth.signInWithF3Nation();
       api.clearSessionInvalid(); // a fresh sign-in supersedes any prior dead-session flag
-      setState(() => _sessionExpired = false);
+      // Only the rebuild needs gating — everything below (completing the
+      // welcome flow, linking the F3 profile) must still run even if this
+      // screen isn't visible anymore by the time the OAuth round-trip
+      // finishes; it's real account-linking work, not just UI state.
+      if (mounted) setState(() => _sessionExpired = false);
       F3UserProfile? f3;
       final token = await auth.getF3AccessToken();
       if (token != null) {

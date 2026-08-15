@@ -1079,12 +1079,20 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
     try {
       final c = await _creds();
       if (c.token == null || c.uid == null) {
-        setState(
-            () => _flash = AppLocalizations.of(context)!.scheduleSignInFirst);
+        // No real op to run without credentials — nothing here needs to
+        // survive unmount the way the actual HC/Q call below does.
+        if (mounted) {
+          setState(() =>
+              _flash = AppLocalizations.of(context)!.scheduleSignInFirst);
+        }
         return false;
       }
+      // op() is the real HC/Take-Q/etc. write — it must still run even if
+      // this screen isn't visible anymore by the time credentials resolve;
+      // the user's tap already committed to the action. Only the resulting
+      // UI update needs gating.
       final err = await op(id, c.uid!, c.token!);
-      setState(() => _flash = err ?? okMsg);
+      if (mounted) setState(() => _flash = err ?? okMsg);
       return err == null;
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -1402,10 +1410,12 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
     final eventOrgId = e.orgId;
     final c = await _creds();
     if (id == null || eventOrgId == null || c.token == null) {
-      setState(() => _flash = l10n.scheduleSignInToPostPreblast);
+      // No real post to make without credentials — unlike postPreblast
+      // below, nothing here needs to survive unmount.
+      if (mounted) setState(() => _flash = l10n.scheduleSignInToPostPreblast);
       return;
     }
-    setState(() => _busy = true);
+    if (mounted) setState(() => _busy = true);
     final d = e.date;
     final startDate =
         '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
@@ -1415,6 +1425,10 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
       myF3Name: myName,
       draft: draft,
     );
+    // The actual post — the PAX already composed and submitted this via the
+    // sheet above, so it must still go out even if this screen isn't
+    // visible anymore by the time credentials resolve. Only the resulting
+    // UI update needs gating.
     final err = await api.postPreblast(
         eventInstanceId: id,
         orgId: '$eventOrgId',
