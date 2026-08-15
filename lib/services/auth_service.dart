@@ -53,10 +53,13 @@ class LocalAuthService extends AuthService {
   // the OLD standalone auth server — do not use it. auth2.f3nation.com is the
   // monorepo apps/auth deployment (the code this was implemented against);
   // its discovery doc confirms /api/oauth/authorize + /api/oauth/token with
-  // PKCE S256. The token endpoint currently requires a client secret in
-  // addition to PKCE — a public-client path for native apps is being
-  // discussed with the F3 Nation team (possibly as a PR from us). Redirect
-  // URI must match native config exactly (Android manifestPlaceholder / iOS
+  // PKCE S256. Digital Weinke's client (digital-weinke) is registered as a
+  // public client (F3-Nation/f3-nation#692, merged 2026-08-12) — PKCE-only,
+  // no client_secret, per RFC 8252 (a secret can't stay confidential once
+  // shipped in a compiled binary). Confirmed live end-to-end against
+  // staging.auth2.f3nation.com with no secret sent on either the
+  // authorization_code or refresh_token grant. Redirect URI must match
+  // native config exactly (Android manifestPlaceholder / iOS
   // CFBundleURLTypes) and the value registered with the auth server.
   // Override with --dart-define=F3_AUTH_ISSUER=https://staging.auth2.f3nation.com
   // while testing against the staging client Tackle registered there.
@@ -65,8 +68,6 @@ class LocalAuthService extends AuthService {
     defaultValue: 'https://auth2.f3nation.com',
   );
   static const _f3ClientId = String.fromEnvironment('F3_OAUTH_CLIENT_ID');
-  static const _f3ClientSecret =
-      String.fromEnvironment('F3_OAUTH_CLIENT_SECRET');
   static const _f3RedirectUri =
       'com.digitalweinke.f3nationapp:/oauth2redirect';
   static const _f3Scopes = ['openid', 'profile', 'email'];
@@ -131,8 +132,7 @@ class LocalAuthService extends AuthService {
     if (_f3ClientId.isEmpty) {
       throw const AuthUnavailableException(
         'F3 Nation sign-in is not configured. Set F3_OAUTH_CLIENT_ID '
-        '(and F3_OAUTH_CLIENT_SECRET, once a client is registered by the '
-        'F3 Nation team) via --dart-define.',
+        'via --dart-define.',
       );
     }
 
@@ -143,8 +143,6 @@ class LocalAuthService extends AuthService {
             AuthorizationTokenRequest(
               _f3ClientId,
               _f3RedirectUri,
-              clientSecret:
-                  _f3ClientSecret.isNotEmpty ? _f3ClientSecret : null,
               issuer: _f3Issuer,
               scopes: _f3Scopes,
               // Force the account chooser / credential prompt so a new sign-in
@@ -251,7 +249,6 @@ class LocalAuthService extends AuthService {
         TokenRequest(
           _f3ClientId,
           _f3RedirectUri,
-          clientSecret: _f3ClientSecret.isNotEmpty ? _f3ClientSecret : null,
           issuer: _f3Issuer,
           refreshToken: refreshToken,
           scopes: _f3Scopes,
