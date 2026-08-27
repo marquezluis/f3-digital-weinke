@@ -1,7 +1,16 @@
 // lib/services/emergency_service.dart
-// Local, encrypted store for emergency info. Deliberately NOT synced to any
-// server (sensitive PHI) — it lives only in the device's secure storage and is
-// readable from the login gate without signing in.
+// Local, encrypted store for emergency info, readable from the login gate
+// without signing in or a network connection (see EmergencyScreen). All of
+// it lives in the device's secure storage; most fields additionally
+// best-effort sync to F3 Nation when signed in (see
+// emergency_edit_screen.dart): contactName/contactPhone/syncNotes go to
+// real columns (emergencyContact/emergencyPhone/emergencyNotes), and
+// bloodType/allergies/conditions/medications/preferredHospital/organDonor
+// go into the freeform `meta` JSON field — per Tackle (2026-08-13),
+// F3 Nation only gives real columns to core/common fields and expects
+// everything else to live in meta instead, for any app to read. Only
+// AO-site fields (nearestEr, aedLocation, emsAccessNotes, ...) stay
+// local-only — they're per-location safety data, not user profile data.
 
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
@@ -13,6 +22,11 @@ class EmergencyInfo {
   final String contactName;
   final String contactRelationship;
   final String contactPhone;
+  // Freeform, synced to F3 Nation's emergencyNotes — kept separate from
+  // conditions/allergies/medications below (those stay local-only) so a
+  // field explicitly meant to leave the device never gets PHI typed into it
+  // by habit.
+  final String syncNotes;
   final String bloodType;
   final String allergies;
   final String conditions;
@@ -39,6 +53,7 @@ class EmergencyInfo {
     this.contactName = '',
     this.contactRelationship = '',
     this.contactPhone = '',
+    this.syncNotes = '',
     this.bloodType = '',
     this.allergies = '',
     this.conditions = '',
@@ -54,8 +69,16 @@ class EmergencyInfo {
   });
 
   bool get hasMedical =>
-      [contactName, contactPhone, bloodType, allergies, conditions, medications, preferredHospital]
-          .any((s) => s.trim().isNotEmpty) ||
+      [
+        contactName,
+        contactPhone,
+        syncNotes,
+        bloodType,
+        allergies,
+        conditions,
+        medications,
+        preferredHospital
+      ].any((s) => s.trim().isNotEmpty) ||
       organDonor;
 
   bool get hasAoSite =>
@@ -66,6 +89,7 @@ class EmergencyInfo {
         contactName: f['contactName'] ?? contactName,
         contactRelationship: f['contactRelationship'] ?? contactRelationship,
         contactPhone: f['contactPhone'] ?? contactPhone,
+        syncNotes: f['syncNotes'] ?? syncNotes,
         bloodType: f['bloodType'] ?? bloodType,
         allergies: f['allergies'] ?? allergies,
         conditions: f['conditions'] ?? conditions,
@@ -84,6 +108,7 @@ class EmergencyInfo {
         'contactName': contactName,
         'contactRelationship': contactRelationship,
         'contactPhone': contactPhone,
+        'syncNotes': syncNotes,
         'bloodType': bloodType,
         'allergies': allergies,
         'conditions': conditions,
@@ -102,6 +127,7 @@ class EmergencyInfo {
         contactName: j['contactName'] ?? '',
         contactRelationship: j['contactRelationship'] ?? '',
         contactPhone: j['contactPhone'] ?? '',
+        syncNotes: j['syncNotes'] ?? '',
         bloodType: j['bloodType'] ?? '',
         allergies: j['allergies'] ?? '',
         conditions: j['conditions'] ?? '',

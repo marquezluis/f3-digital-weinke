@@ -70,6 +70,24 @@ class F3UserProfile {
   // before parsing a key name that might just be wrong.
   final String? f3NameOrigin;
   final String? myF3Why;
+  // emergencyContact/Phone/Notes are the only emergency fields with real
+  // columns on F3 Nation's user record — confirmed against
+  // packages/api/src/router/me/index.ts on the F3 Nation monorepo. Per
+  // Tackle (2026-08-13): core/common fields get real columns, anything
+  // less common belongs in the freeform `meta` object instead, which is
+  // why the broader medical fields below are meta-sourced, not columns —
+  // same convention as f3NameOrigin/myF3Why above. Keys chosen to match
+  // that snake_case convention: blood_type, allergies, medical_conditions,
+  // medications, preferred_hospital, organ_donor.
+  final String? emergencyContact;
+  final String? emergencyPhone;
+  final String? emergencyNotes;
+  final String? bloodType;
+  final String? allergies;
+  final String? medicalConditions;
+  final String? medications;
+  final String? preferredHospital;
+  final bool? organDonor;
   final List<F3UserRole> roles;
   final List<F3UserPosition> positions;
 
@@ -85,6 +103,15 @@ class F3UserProfile {
     this.phone,
     this.f3NameOrigin,
     this.myF3Why,
+    this.emergencyContact,
+    this.emergencyPhone,
+    this.emergencyNotes,
+    this.bloodType,
+    this.allergies,
+    this.medicalConditions,
+    this.medications,
+    this.preferredHospital,
+    this.organDonor,
     this.roles = const [],
     this.positions = const [],
   });
@@ -149,6 +176,15 @@ class F3UserProfile {
       phone: str(data['phone']),
       f3NameOrigin: str(meta['f3_name_origin']),
       myF3Why: str(meta['my_f3_why']),
+      emergencyContact: str(data['emergencyContact']),
+      emergencyPhone: str(data['emergencyPhone']),
+      emergencyNotes: str(data['emergencyNotes']),
+      bloodType: str(meta['blood_type']),
+      allergies: str(meta['allergies']),
+      medicalConditions: str(meta['medical_conditions']),
+      medications: str(meta['medications']),
+      preferredHospital: str(meta['preferred_hospital']),
+      organDonor: meta['organ_donor'] is bool ? meta['organ_donor'] as bool : null,
       roles: roles,
       positions: positions,
     );
