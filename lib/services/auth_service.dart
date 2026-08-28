@@ -318,18 +318,20 @@ class LocalAuthService extends AuthService {
   /// Best-effort and silently skipped on any failure — this local sign-out
   /// always proceeds regardless, so a failure here just means the
   /// server-side session lingers until its own expiry, same as before this
-  /// method existed. It also no-ops entirely (by design, not a bug) until
-  /// the auth server returns a real `id_token` on sign-in: confirmed live
-  /// 2026-07-30 that `result.idToken` comes back null on a fresh
-  /// authorization-code exchange even though `openid` scope is requested,
-  /// which should guarantee one under OIDC. flutter_appauth's
-  /// EndSessionRequest correctly refuses to send postLogoutRedirectUrl
-  /// without a paired idTokenHint — allowing that would let any caller
-  /// trigger /api/oauth/logout?post_logout_redirect_uri=<anywhere> with no
-  /// proof of identity, an open-redirect off the auth server's own logout
-  /// endpoint. Flagged to Tackle as a server-side gap rather than worked
-  /// around client-side; this method will start actually running the
-  /// moment the server starts returning an id_token, no app change needed.
+  /// method existed. flutter_appauth's EndSessionRequest correctly refuses
+  /// to send postLogoutRedirectUrl without a paired idTokenHint — allowing
+  /// that would let any caller trigger
+  /// /api/oauth/logout?post_logout_redirect_uri= with no proof of
+  /// identity, an open-redirect off the auth server's own logout endpoint.
+  ///
+  /// The server previously returned a null id_token on the
+  /// authorization_code exchange (confirmed live 2026-07-30), which made
+  /// this method no-op silently. Fixed server-side by
+  /// F3-Nation/f3-nation#749 (2026-08-13) and #845 (2026-08-16), which added
+  /// id_token issuance and nonce/auth_time persistence respectively — an
+  /// apps/auth unit test now covers this exact case (public client,
+  /// openid scope) and passes. This method should run for real now;
+  /// re-verify live against a signed-in session before relying on it.
   Future<void> _endServerSession() async {
     if (_f3ClientId.isEmpty) return;
     final idToken = await _secureStorage.read(key: _keyF3IdToken);
