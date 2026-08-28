@@ -245,15 +245,21 @@ class LocalAuthService extends AuthService {
     if (_f3ClientId.isEmpty) return accessToken;
 
     try {
-      final result = await _appAuth.token(
-        TokenRequest(
-          _f3ClientId,
-          _f3RedirectUri,
-          issuer: _f3Issuer,
-          refreshToken: refreshToken,
-          scopes: _f3Scopes,
-        ),
-      );
+      final result = await _appAuth
+          .token(
+            TokenRequest(
+              _f3ClientId,
+              _f3RedirectUri,
+              issuer: _f3Issuer,
+              refreshToken: refreshToken,
+              scopes: _f3Scopes,
+            ),
+          )
+          // Without this, a stalled connection to the token endpoint hangs
+          // this await forever — nothing throws, so callers (e.g.
+          // ProfileScreen._fetch) sit in their loading state indefinitely
+          // instead of falling back to the stale token below.
+          .timeout(const Duration(seconds: 15));
       final refreshed = result.accessToken;
       if (refreshed == null) return accessToken;
       await _storeF3Tokens(

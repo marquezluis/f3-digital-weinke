@@ -380,6 +380,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const SizedBox(height: 24),
 
+                // Always reachable once linked, regardless of _loading — the
+                // F3 Nation profile fetch can hang on a bad connection, and a
+                // signed-in PAX must never be trapped on this screen with no
+                // way out while it's in flight.
+                if (linked) ...[
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: _signOut,
+                      icon: const Icon(Icons.logout_rounded),
+                      label: Text(l10n.profileSignOut),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                ],
+
                 if (_loading)
                   const Center(child: CircularProgressIndicator())
                 else if (!linked)
@@ -393,15 +409,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     icon: Icons.warning_rounded,
                     label: l10n.profileSessionExpired,
                     value: l10n.profileSessionExpiredDesc,
-                  ),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: _signOut,
-                      icon: const Icon(Icons.logout_rounded),
-                      label: Text(l10n.profileSignOut),
-                    ),
                   ),
                 ] else ...[
                   Row(children: [
@@ -554,15 +561,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               color: context.f3textMuted),
                         ]),
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: _signOut,
-                      icon: const Icon(Icons.logout_rounded),
-                      label: Text(l10n.profileSignOut),
                     ),
                   ),
                 ],
