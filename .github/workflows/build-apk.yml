@@ -1,0 +1,64 @@
+name: Build APK (manual)
+
+# On-demand sideload build for testing a branch on a real device — separate
+# from Flutter CI (analyze/test) and Auto Release (tags + GitHub Releases on
+# a MAJOR.MINOR bump), neither of which produce a downloadable APK. Trigger
+# manually from the Actions tab (or `gh workflow run`), pick the branch, grab
+# the artifact.
+#
+# Needs the same F3_* secrets the local Makefile reads from the gitignored
+# dart-defines.json — set them once under Settings → Secrets and variables →
+# Actions. F3_API_KEY and F3_OAUTH_CLIENT_ID are required for F3 Nation
+# sign-in/API to work in the build; the rest only matter if you're pointing
+# at staging.
+#
+# No release keystore is configured here (key.properties is gitignored and
+# never present in CI) — android/app/build.gradle.kts falls back to debug
+# signing in that case, which is fine for sideloading to a test device but
+# NOT for a Play Store upload.
+
+on:
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "Why this build (shows in the run list)"
+        required: false
+        default: "manual test build"
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Write dart-defines.json from repo secrets
+        run: |
+          cat > dart-defines.json <<EOF
+          {
+            "F3_API_KEY": "${{ secrets.F3_API_KEY }}",
+            "F3_OAUTH_CLIENT_ID": "${{ secrets.F3_OAUTH_CLIENT_ID }}",
+            "F3_API_ORG_ID": "${{ secrets.F3_API_ORG_ID }}",
+            "F3_AUTH_ISSUER": "${{ secrets.F3_AUTH_ISSUER }}",
+            "F3_API_BASE_URL": "${{ secrets.F3_API_BASE_URL }}"
+          }
+          EOF
+
+      - run: flutter pub get
+
+      - name: Build release APK
+        run: make build-apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: digital-weinke-apk
+          path: build/app/outputs/flutter-apk/digital-weinke.apk
+          retention-days: 14
