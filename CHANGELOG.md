@@ -54,6 +54,9 @@ whether or not that build shipped, so "how many builds have we done on
     before.
 
 ### Docs
+- Added `docs/wireframe-mapping.md`, `docs/learnings-for-official-app.md`,
+  and `docs/demo-script.md` for the Moneyball wireframe-comparison demo —
+  see those files for details.
 - Refreshed README.md — it still described the original offline-only MVP
   ("zero network calls", "no Slack OAuth, no webhooks, no cloud sync"),
   missing F3 Nation sign-in, the live map, Schedule/HC/Q, and backblast
