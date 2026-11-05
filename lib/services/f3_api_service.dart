@@ -129,22 +129,78 @@ class F3ApiService extends ChangeNotifier {
       if (res.statusCode == 200) {
         final body = json.decode(res.body);
         if (body is List) return body;
-        if (body is Map && body['data'] is List) return body['data'] as List;
-        if (body is Map && body['eventInstances'] is List) {
-          return body['eventInstances'] as List;
-        }
-        if (body is Map && body['events'] is List) {
-          return body['events'] as List;
-        }
-        if (body is Map && body['orgs'] is List) {
-          return body['orgs'] as List;
-        }
-        if (body is Map && body['locations'] is List) {
-          return body['locations'] as List;
-        }
+        if (body is Map) return _extractListKey(body as Map<String, dynamic>);
       }
     } catch (_) {}
     return null;
+  }
+
+  List<dynamic>? _extractListKey(Map<String, dynamic> body) {
+    if (body['data'] is List) return body['data'] as List;
+    if (body['eventInstances'] is List) return body['eventInstances'] as List;
+    if (body['events'] is List) return body['events'] as List;
+    if (body['orgs'] is List) return body['orgs'] as List;
+    if (body['locations'] is List) return body['locations'] as List;
+    return null;
+  }
+
+  int? _asInt(dynamic v) {
+    if (v is int) return v;
+    if (v is String) return int.tryParse(v);
+    return null;
+  }
+
+  /// Fetches every page of a paginated list endpoint and returns the
+  /// concatenated items, following whichever of a few common pagination
+  /// shapes the response actually carries:
+  ///   - a top-level `total`/`totalCount` alongside the page's own items
+  ///   - a `hasMore`/`hasNextPage` boolean
+  ///   - neither of those, in which case a short page just ends the walk
+  ///     (the old single-big-`pageSize` behavior, unchanged)
+  /// The F3 API added stable pagination for events/locations/orgs in
+  /// August 2026 — this replaces the old `pageSize=5000`/`10000` "ask for
+  /// everything in one page" trick, which a newly server-enforced page cap
+  /// would now silently truncate. NOT verified against a live response in
+  /// this environment (no network access here to the real API) — the field
+  /// names above are a best-effort guess from common REST pagination
+  /// conventions; confirm against a real payload and adjust if it differs.
+  /// Returns null if the very first page failed outright (a real failure —
+  /// callers should fall back to cache/empty the same way a null [_get]
+  /// result always has, not treat it as "confirmed zero"). A later page
+  /// failing mid-walk instead stops and returns the good partial result.
+  Future<List<dynamic>?> _getAllPages(
+    String basePath, {
+    String? bearerOverride,
+    int pageSize = 500,
+    int maxPages = 40,
+  }) async {
+    final sep = basePath.contains('?') ? '&' : '?';
+    final items = <dynamic>[];
+    var page = 1;
+    while (page <= maxPages) {
+      final data = await _get('$basePath${sep}page=$page&pageSize=$pageSize',
+          bearerOverride: bearerOverride);
+      if (data == null) {
+        if (page == 1) return null;
+        return items;
+      }
+      final pageItems = _extractListKey(data);
+      if (pageItems == null) return page == 1 ? null : items;
+      items.addAll(pageItems);
+
+      final total = _asInt(data['total']) ?? _asInt(data['totalCount']);
+      final hasMoreFlag = data['hasMore'] == true || data['hasNextPage'] == true;
+      final hadPaginationFields = data.containsKey('hasMore') ||
+          data.containsKey('hasNextPage') ||
+          total != null;
+      final gotFullPage = pageItems.length >= pageSize;
+      final shouldContinue = hasMoreFlag ||
+          (total != null && items.length < total) ||
+          (!hadPaginationFields && gotFullPage);
+      if (!shouldContinue) break;
+      page++;
+    }
+    return items;
   }
 
   /// Generic authenticated DELETE. Returns (statusCode, decodedBodyOrNull).
@@ -264,9 +320,8 @@ class F3ApiService extends ChangeNotifier {
 
   Future<List<F3Location>> getLocations({bool forceRefresh = false}) async {
     if (_cachedLocations != null && !forceRefresh) return _cachedLocations!;
-    final data = await _get('/v1/location?pageSize=5000');
-    if (data == null) return _cachedLocations ?? [];
-    final list = data['locations'] as List<dynamic>? ?? [];
+    final list = await _getAllPages('/v1/location');
+    if (list == null) return _cachedLocations ?? [];
     final locations = list
         .map((e) => F3Location.fromJson(e as Map<String, dynamic>))
         .toList();
@@ -275,6 +330,21 @@ class F3ApiService extends ChangeNotifier {
   }
 
   Map<int, F3Location>? _cachedAoLocations;
+  List<dynamic>? _cachedRecurringEvents;
+
+  /// The recurring-series feed (`GET /v1/event`), shared by [getAoLocations]
+  /// and [getLocationSchedules] — both used to independently fetch the same
+  /// endpoint, which would have doubled the request count once the old
+  /// single `pageSize=10000` call became a real paginated walk.
+  Future<List<dynamic>> _getRecurringEvents({bool forceRefresh = false}) async {
+    if (_cachedRecurringEvents != null && !forceRefresh) {
+      return _cachedRecurringEvents!;
+    }
+    final events = await _getAllPages('/v1/event');
+    if (events == null) return _cachedRecurringEvents ?? [];
+    _cachedRecurringEvents = events;
+    return events;
+  }
 
   /// Maps each AO's org id to its physical location (lat/lon + address).
   /// Neither `/v1/event-instance` nor `/v1/location` alone carries this —
@@ -287,12 +357,11 @@ class F3ApiService extends ChangeNotifier {
     if (_cachedAoLocations != null && !forceRefresh) return _cachedAoLocations!;
     final results = await Future.wait([
       getLocations(forceRefresh: forceRefresh),
-      _get('/v1/event?pageSize=10000'),
+      _getRecurringEvents(forceRefresh: forceRefresh),
     ]);
     final locations = results[0] as List<F3Location>;
     final locById = {for (final l in locations) l.id: l};
-    final eventData = results[1] as Map<String, dynamic>?;
-    final events = eventData?['events'] as List<dynamic>? ?? [];
+    final events = results[1];
     final map = <int, F3Location>{};
     for (final e in events) {
       if (e is! Map) continue;
@@ -324,10 +393,8 @@ class F3ApiService extends ChangeNotifier {
             List<F3WeeklyWorkout> schedule,
             String? aoName,
             String? aoOrgId
-          })>> getLocationSchedules() async {
-    final data = await _get('/v1/event?pageSize=10000');
-    if (data == null) return {};
-    final events = data['events'] as List<dynamic>? ?? [];
+          })>> getLocationSchedules({bool forceRefresh = false}) async {
+    final events = await _getRecurringEvents(forceRefresh: forceRefresh);
     final result = <String,
         ({
           List<F3WeeklyWorkout> schedule,
@@ -532,14 +599,17 @@ class F3ApiService extends ChangeNotifier {
 
   /// All regions nationwide (492 as of 2026-07 — small enough to load in one
   /// call and search client-side; the endpoint defaults to `pageSize=10`
-  /// without this override). `/v1/org` has no server-side name/search filter
+  /// without an override). `/v1/org` has no server-side name/search filter
   /// (confirmed: `name`/`search`/`q` params are silently ignored, `total`
   /// stays 492 regardless) so there's no cheaper query to make per-keystroke
-  /// — caching the one full fetch is what actually avoids the repeat ~220KB
-  /// pull every time the region picker sheet is reopened.
+  /// — caching the one full walk is what actually avoids the repeat ~220KB
+  /// pull every time the region picker sheet is reopened. Was a single
+  /// `pageSize=5000` call (492 < 5000, so one page covered everything); now
+  /// walked via [_getAllPages] since stable pagination may cap `pageSize`
+  /// server-side regardless of what's requested.
   Future<List<F3Org>> getOrgs({bool forceRefresh = false}) async {
     if (_cachedOrgs != null && !forceRefresh) return _cachedOrgs!;
-    final data = await _getList('/v1/org?pageSize=5000');
+    final data = await _getAllPages('/v1/org');
     if (data == null) return _cachedOrgs ?? [];
     try {
       final orgs =
@@ -595,9 +665,17 @@ class F3ApiService extends ChangeNotifier {
     required int fngCount,
     String? eventTypeId,
   }) async {
+    // The API now does strict region/org-ID parsing — a non-numeric string
+    // that used to get silently coerced (or worked by luck) now fails the
+    // request outright. Fail clearly client-side instead of sending a
+    // malformed payload and surfacing a confusing server error.
+    final orgIdInt = int.tryParse(orgId);
+    if (orgIdInt == null) {
+      return 'Invalid orgId "$orgId" — expected a numeric org id';
+    }
     final payload = <String, dynamic>{
       if (eventInstanceId != null) 'id': eventInstanceId,
-      'orgId': int.tryParse(orgId) ?? orgId,
+      'orgId': orgIdInt,
       'startDate': startDate,
       'backblast': backblast,
       'backblastTs': DateTime.now().millisecondsSinceEpoch,
@@ -709,9 +787,15 @@ class F3ApiService extends ChangeNotifier {
     required String startDate,
     required String preblast,
   }) async {
+    // See publishBackblast's matching check — strict region/org-ID parsing
+    // means a non-numeric orgId must fail here, not get sent as-is.
+    final orgIdInt = int.tryParse(orgId);
+    if (orgIdInt == null) {
+      return 'Invalid orgId "$orgId" — expected a numeric org id';
+    }
     final res = await _post('/v1/event-instance', {
       'id': eventInstanceId,
-      'orgId': int.tryParse(orgId) ?? orgId,
+      'orgId': orgIdInt,
       'startDate': startDate,
       'preblast': preblast,
       'preblastRich': {

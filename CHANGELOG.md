@@ -11,6 +11,15 @@ whether or not that build shipped, so "how many builds have we done on
 
 ## [Unreleased]
 
+### Fixed
+- Locations/events/orgs now walk every page of the F3 API's stable
+  pagination instead of asking for everything in one oversized
+  `pageSize`, which a server-enforced page cap could now silently
+  truncate.
+- `publishBackblast`/`postPreblast` fail with a clear client-side error
+  on a non-numeric org id instead of sending one the API's now-strict
+  region-ID parsing would reject anyway.
+
 ## [2.6.0] - 2026-08-15
 
 ### Added
