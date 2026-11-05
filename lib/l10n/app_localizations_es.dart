@@ -142,16 +142,16 @@ class AppLocalizationsEs extends AppLocalizations {
   String get navHome => 'Inicio';
 
   @override
-  String get navPlan => 'Plan';
+  String get navMapCal => 'Mapa/Cal';
 
   @override
-  String get navSchedule => 'Horario';
+  String get navCommz => 'Commz';
 
   @override
-  String get navCommunity => 'Hermandad';
+  String get navResources => 'Recursos';
 
   @override
-  String get navYou => 'Tú';
+  String get navProfile => 'Perfil';
 
   @override
   String get navSpartanCoQ => 'Spartan Co-Q';

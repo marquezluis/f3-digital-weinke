@@ -42,10 +42,10 @@
   "welcomeSetupManually": "O CONFIGURA MANUALMENTE",
 
   "navHome": "Inicio",
-  "navPlan": "Plan",
-  "navSchedule": "Horario",
-  "navCommunity": "Hermandad",
-  "navYou": "Tú",
+  "navMapCal": "Mapa/Cal",
+  "navCommz": "Commz",
+  "navResources": "Recursos",
+  "navProfile": "Perfil",
   "navSpartanCoQ": "Spartan Co-Q",
 
   "loginGateForF3Nation": "PARA F3 NATION",

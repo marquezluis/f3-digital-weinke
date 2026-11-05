@@ -212,6 +212,13 @@ class DigitalWeinke extends StatelessWidget {
         ChangeNotifierProvider<ValueNotifier<MineFilter?>>(
           create: (_) => ValueNotifier<MineFilter?>(null),
         ),
+        // Same jump also needs to force Map/Cal's own toggle to Calendar —
+        // that tab's remembered view (Settings) might be Map, and this is a
+        // "show me my schedule" action, not a "respect whatever I had open
+        // last" one.
+        ChangeNotifierProvider<ValueNotifier<MapCalView?>>(
+          create: (_) => ValueNotifier<MapCalView?>(null),
+        ),
       ],
       child: Consumer<SettingsService>(
         builder: (context, settings, child) => MaterialApp(

@@ -1660,7 +1660,9 @@ class _TodayHeroState extends State<_TodayHero> {
                       context, MaterialPageRoute(builder: (_) => const WorkoutScreen()));
                 } else {
                   context.read<ValueNotifier<MineFilter?>>().value = MineFilter.hcOrQ;
-                  context.read<ValueNotifier<int>>().value = 2; // Schedule tab
+                  context.read<ValueNotifier<MapCalView?>>().value =
+                      MapCalView.calendar;
+                  context.read<ValueNotifier<int>>().value = 1; // Map/Cal tab
                 }
               },
               // Scoped out of translation for now, same as the empty-state

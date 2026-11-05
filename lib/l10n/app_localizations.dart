@@ -346,29 +346,29 @@ abstract class AppLocalizations {
   /// **'Home'**
   String get navHome;
 
-  /// No description provided for @navPlan.
+  /// No description provided for @navMapCal.
   ///
   /// In en, this message translates to:
-  /// **'Plan'**
-  String get navPlan;
+  /// **'Map/Cal'**
+  String get navMapCal;
 
-  /// No description provided for @navSchedule.
+  /// No description provided for @navCommz.
   ///
   /// In en, this message translates to:
-  /// **'Schedule'**
-  String get navSchedule;
+  /// **'Commz'**
+  String get navCommz;
 
-  /// No description provided for @navCommunity.
+  /// No description provided for @navResources.
   ///
   /// In en, this message translates to:
-  /// **'Fellowship'**
-  String get navCommunity;
+  /// **'Resources'**
+  String get navResources;
 
-  /// No description provided for @navYou.
+  /// No description provided for @navProfile.
   ///
   /// In en, this message translates to:
-  /// **'You'**
-  String get navYou;
+  /// **'Profile'**
+  String get navProfile;
 
   /// No description provided for @navSpartanCoQ.
   ///

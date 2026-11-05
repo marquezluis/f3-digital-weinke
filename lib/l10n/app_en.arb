@@ -156,10 +156,10 @@
   },
 
   "navHome": "Home",
-  "navPlan": "Plan",
-  "navSchedule": "Schedule",
-  "navCommunity": "Fellowship",
-  "navYou": "You",
+  "navMapCal": "Map/Cal",
+  "navCommz": "Commz",
+  "navResources": "Resources",
+  "navProfile": "Profile",
   "navSpartanCoQ": "Spartan Co-Q",
 
   "loginGateForF3Nation": "FOR F3 NATION",

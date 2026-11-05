@@ -11,6 +11,25 @@ whether or not that build shipped, so "how many builds have we done on
 
 ## [Unreleased]
 
+### Changed (wireframe alignment)
+- Reorganized the bottom-nav shell to match the official F3 Nation app's
+  wireframe tab structure: Home / Map-Cal / Commz / Resources / Profile
+  (was Home / Plan / Schedule / Fellowship / You).
+  - **Map/Cal** merges the former standalone Browse-AOs entry point and
+    the Schedule tab behind a top toggle that remembers the last view
+    (also settable as a default in Settings — PROF-06).
+  - **Commz** (Region Chat) is now gated behind sign-in — a lock screen
+    for a signed-out PAX instead of an empty/broken chat view (FNG-01).
+  - **Resources** replaces "Plan": the same Q toolkit (Q Mode, Weinke,
+    Deck of Pain, Exicon), now grouped under the wireframe's own
+    structure (Q Tools / The Codex / QSource / App Help), plus a new
+    Lexicon entry and a lightweight Help & About screen. Also makes
+    **Q Builder reachable for the first time** — it existed in the
+    codebase but nothing linked to it before this.
+  - Brotherhood (PAX roster) no longer has its own tab — it wasn't one of
+    the official app's 5 either; still reachable from Home, same as
+    before.
+
 ### Docs
 - Refreshed README.md — it still described the original offline-only MVP
   ("zero network calls", "no Slack OAuth, no webhooks, no cloud sync"),
