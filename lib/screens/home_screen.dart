@@ -213,16 +213,7 @@ class HomeScreen extends StatelessWidget {
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(16, 18, 16, 0),
               sliver: SliverToBoxAdapter(
-                child: Consumer<F3ApiService>(
-                  builder: (context, api, _) => api.isConfigured
-                      ? const _TodayHero()
-                      // Only reachable on a dev/debug build missing its API
-                      // key — every real user is already F3-Nation-signed-in
-                      // by the time they reach Home — but a silent blank
-                      // space here used to look like a bug rather than a
-                      // build config gap.
-                      : const _ApiNotConfiguredNotice(),
-                ),
+                child: const _TodayHero(),
               ),
             ),
 
@@ -697,32 +688,6 @@ class _QuickCard extends StatelessWidget {
 }
 
 // ─── Last beatdown card ───────────────────────────────────────────────────────
-
-class _ApiNotConfiguredNotice extends StatelessWidget {
-  const _ApiNotConfiguredNotice();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: context.f3elevated,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: context.f3divider),
-      ),
-      child: Row(children: [
-        Icon(Icons.wifi_off_rounded, color: context.f3textMuted, size: 16),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            "F3 API key isn't set for this build — schedule features are unavailable.",
-            style: TextStyle(color: context.f3textMuted, fontSize: 11.5),
-          ),
-        ),
-      ]),
-    );
-  }
-}
 
 class _GreatestHitNudge extends StatelessWidget {
   final String title;

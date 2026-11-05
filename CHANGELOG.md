@@ -11,6 +11,16 @@ whether or not that build shipped, so "how many builds have we done on
 
 ## [Unreleased]
 
+### Changed
+- No API key is compiled into the app anymore. Signed-out reads (map/AO
+  browse) go through the F3 API's public read tier with no Authorization
+  header; every write and per-user read now goes through the signed-in
+  PAX's own OAuth access token instead. `updateUserProfile` moved from the
+  app-key `POST /v1/user` to the self-service `PATCH /v1/me/profile`, using
+  that token. There was never a literal `F3_API_KEY` dart-define in any
+  tracked build script or CI workflow to remove — it only ever lived in the
+  gitignored `dart-defines.json` — so this is purely an app-code change.
+
 ### Fixed
 - Locations/events/orgs now walk every page of the F3 API's stable
   pagination instead of asking for everything in one oversized

@@ -290,7 +290,6 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final api = context.watch<F3ApiService>();
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: context.f3bg,
@@ -305,17 +304,11 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           ),
         ],
       ),
-      body: !api.isConfigured
-          ? _Empty(
-              icon: Icons.cloud_off_rounded,
-              title: l10n.scheduleApiNotConfiguredTitle,
-              subtitle: l10n.scheduleApiNotConfiguredSub)
-          : OrientationBuilder(
-              builder: (context, orientation) => orientation ==
-                      Orientation.landscape
-                  ? _buildLandscapeBody(context)
-                  : _buildPortraitBody(context),
-            ),
+      body: OrientationBuilder(
+        builder: (context, orientation) => orientation == Orientation.landscape
+            ? _buildLandscapeBody(context)
+            : _buildPortraitBody(context),
+      ),
     );
   }
 
@@ -981,7 +974,11 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
       return;
     }
     setState(() => _loadingPreblast = true);
-    final fresh = await context.read<F3ApiService>().getEventInstanceById(id);
+    final token = await context.read<AuthService>().getF3AccessToken();
+    if (!mounted) return;
+    final fresh = await context
+        .read<F3ApiService>()
+        .getEventInstanceById(id, userAccessToken: token);
     if (!mounted) return;
     setState(() {
       _loadingPreblast = false;
@@ -997,8 +994,11 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
   Future<void> _loadAttendance() async {
     final id = widget.event.numericId;
     if (id == null) return;
-    final records =
-        await context.read<F3ApiService>().getAttendanceForEvent(id);
+    final token = await context.read<AuthService>().getF3AccessToken();
+    if (!mounted) return;
+    final records = await context
+        .read<F3ApiService>()
+        .getAttendanceForEvent(id, userAccessToken: token);
     if (mounted) setState(() => _attendance = records);
   }
 
@@ -1105,9 +1105,8 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
     // than waiting on a network round-trip; revert if the write fails.
     setState(() => _attending = true);
     final ok = await _run(
-      (id, uid, token) => context
-          .read<F3ApiService>()
-          .signUpForEvent(eventInstanceId: id, userId: uid),
+      (id, uid, token) => context.read<F3ApiService>().signUpForEvent(
+          userAccessToken: token, eventInstanceId: id, userId: uid),
       AppLocalizations.of(context)!.scheduleHcSuccess,
     );
     if (ok) {
@@ -1123,9 +1122,8 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
     final wasAttending = _attending;
     setState(() => _attending = false);
     final ok = await _run(
-      (id, uid, token) => context
-          .read<F3ApiService>()
-          .withdrawFromEvent(eventInstanceId: id, userId: uid),
+      (id, uid, token) => context.read<F3ApiService>().withdrawFromEvent(
+          userAccessToken: token, eventInstanceId: id, userId: uid),
       AppLocalizations.of(context)!.scheduleUnhcSuccess,
     );
     if (ok) {
@@ -1139,8 +1137,8 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
 
   Future<void> _takeQ() async {
     final ok = await _run(
-      (id, uid, token) =>
-          context.read<F3ApiService>().takeQ(eventInstanceId: id, userId: uid),
+      (id, uid, token) => context.read<F3ApiService>().takeQ(
+          userAccessToken: token, eventInstanceId: id, userId: uid),
       AppLocalizations.of(context)!.scheduleTakeQSuccess,
     );
     if (ok && mounted) {
@@ -1186,9 +1184,8 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
   /// whole attendance record).
   Future<void> _dropQ() async {
     final ok = await _run(
-      (id, uid, token) => context
-          .read<F3ApiService>()
-          .removeQ(eventInstanceId: id, userId: uid),
+      (id, uid, token) => context.read<F3ApiService>().removeQ(
+          userAccessToken: token, eventInstanceId: id, userId: uid),
       AppLocalizations.of(context)!.scheduleDropQSuccess,
     );
     if (ok) {
@@ -1309,6 +1306,7 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
     final startDate =
         '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
     final err = await context.read<F3ApiService>().postPreblast(
+          userAccessToken: c.token!,
           eventInstanceId: id,
           orgId: '$eventOrgId',
           startDate: startDate,
@@ -1430,6 +1428,7 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
     // visible anymore by the time credentials resolve. Only the resulting
     // UI update needs gating.
     final err = await api.postPreblast(
+        userAccessToken: c.token!,
         eventInstanceId: id,
         orgId: '$eventOrgId',
         startDate: startDate,
@@ -1462,8 +1461,10 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
   Future<void> _confirmSlackDestination(int eventInstanceId,
       {required bool isPreblast}) async {
     final api = context.read<F3ApiService>();
+    final token = await context.read<AuthService>().getF3AccessToken();
+    if (!mounted) return;
     final withChannel = await api.getEventInstanceById(eventInstanceId,
-        includeSlackChannelId: true);
+        includeSlackChannelId: true, userAccessToken: token);
     if (!mounted || withChannel == null) return;
     final channelId = isPreblast
         ? withChannel.preblastSlackChannelId
@@ -1997,33 +1998,3 @@ class _PreblastComposerSheetState extends State<_PreblastComposerSheet> {
   }
 }
 
-class _Empty extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  const _Empty(
-      {required this.icon, required this.title, required this.subtitle});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Icon(icon, color: context.f3textMuted, size: 48),
-          const SizedBox(height: 16),
-          Text(title,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                  color: context.f3textPrimary,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 16)),
-          const SizedBox(height: 6),
-          Text(subtitle,
-              textAlign: TextAlign.center,
-              style: TextStyle(color: context.f3textSecondary, fontSize: 13)),
-        ]),
-      ),
-    );
-  }
-}

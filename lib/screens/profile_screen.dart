@@ -124,15 +124,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return null;
   }
 
-  /// Edits the signed-in PAX's own F3 Nation record — writes through the
-  /// app's trusted key (`F3ApiService.updateUserProfile`), identified by the
-  /// numeric F3 user id (`AppProfileService.authUserId`), per Tackle's
-  /// guidance to use `POST /v1/user` rather than the user-token `/me/profile`.
+  /// Edits the signed-in PAX's own F3 Nation record via
+  /// `F3ApiService.updateUserProfile` (self-service `PATCH /v1/me/profile`,
+  /// the signed-in PAX's own access token — the app has no trusted key of
+  /// its own to write through anymore).
   Future<void> _editProfile() async {
     final l10n = AppLocalizations.of(context)!;
-    final profile = context.read<AppProfileService>();
-    final userId = int.tryParse(profile.authUserId);
-    if (userId == null) {
+    final auth = context.read<AuthService>();
+    final token = await auth.getF3AccessToken();
+    if (!mounted) return;
+    if (token == null) {
       ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(l10n.profileSignInFirstToast)));
       return;
@@ -215,7 +216,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final api = context.read<F3ApiService>();
     setState(() => _loading = true);
     final err = await api.updateUserProfile(
-      userId: userId,
+      userAccessToken: token,
       f3Name: f3Name,
       firstName: firstName,
       lastName: lastName,

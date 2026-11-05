@@ -347,7 +347,6 @@ class _BrowseAosScreenState extends State<BrowseAosScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final api = context.watch<F3ApiService>();
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
@@ -377,13 +376,7 @@ class _BrowseAosScreenState extends State<BrowseAosScreen> {
           ),
         ],
       ),
-      body: !api.isConfigured
-          ? _EmptyState(
-              icon: Icons.cloud_off_rounded,
-              title: l10n.browseAosApiNotConfiguredTitle,
-              subtitle: l10n.browseAosApiNotConfiguredSub,
-            )
-          : RefreshIndicator(
+      body: RefreshIndicator(
               onRefresh: _load,
               child: Column(
                 children: [

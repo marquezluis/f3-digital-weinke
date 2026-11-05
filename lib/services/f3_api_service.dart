@@ -2,8 +2,14 @@
 // F3 Nation REST API client. All methods return null/empty on failure so
 // callers can fall back to local data without crashing.
 //
-// The API key is baked in at build time via --dart-define=F3_API_KEY=...
-// It is never stored on-device or exposed through any UI.
+// No API key is compiled into this build. Reads that must work before
+// sign-in (map/AO browse) go through the API's public read tier with no
+// Authorization header at all; every write, and any read the API doesn't
+// serve anonymously, goes through the signed-in PAX's own OAuth access
+// token (AuthService.getF3AccessToken) instead. There is no app-wide
+// trusted credential left to fall back to — a secret couldn't stay
+// confidential once shipped in a compiled binary anyway, same reasoning
+// that moved sign-in to a public PKCE client (see auth_service.dart).
 
 import 'dart:convert';
 
@@ -23,8 +29,9 @@ class F3ApiService extends ChangeNotifier {
   );
   static const _client = 'f3-digital-weinke';
 
-  // Compile-time constants injected via --dart-define
-  static const _apiKey = String.fromEnvironment('F3_API_KEY');
+  // Not a secret — a build-time default region for the national read views
+  // before a user has signed in and set their own. Compile-time constant
+  // injected via --dart-define.
   static const _orgIdEnv = String.fromEnvironment('F3_API_ORG_ID');
 
   // Set at runtime from the signed-in user's home region (via applyF3Profile).
@@ -39,8 +46,6 @@ class F3ApiService extends ChangeNotifier {
   }
 
   String? get orgId => _userOrgId ?? (_orgIdEnv.isNotEmpty ? _orgIdEnv : null);
-
-  bool get isConfigured => _apiKey.isNotEmpty;
 
   // Set when a call authenticated with the signed-in PAX's own F3 Nation
   // token (bearerOverride, not the app's shared key) comes back 401 — a
@@ -89,20 +94,22 @@ class F3ApiService extends ChangeNotifier {
   // No-op — kept so main.dart callers don't need to change
   Future<void> load() async {}
 
+  // No Authorization header at all when there's no signed-in user's token —
+  // relies on the API's public read tier for an anonymous GET. There is no
+  // shared app credential to fall back to.
   Map<String, String> _headers([String? bearerOverride]) => {
-        'Authorization': 'Bearer ${bearerOverride ?? _apiKey}',
+        if (bearerOverride != null && bearerOverride.isNotEmpty)
+          'Authorization': 'Bearer $bearerOverride',
         'Client': _client,
         'Content-Type': 'application/json',
       };
 
-  /// [bearerOverride] lets a caller authenticate as a specific signed-in user
-  /// (their F3 Nation OAuth access token) instead of the app's shared API
-  /// key. This matters for endpoints like /v1/me/profile: the API key
-  /// resolves to whoever *owns* the key, not whichever PAX is using the app,
-  /// so per-user endpoints need the user's own bearer token.
+  /// [bearerOverride] is the signed-in PAX's own F3 Nation OAuth access
+  /// token. Pass it for anything per-user (e.g. /v1/me/profile) or for any
+  /// read the public tier doesn't serve anonymously; omit it for a public,
+  /// signed-out read (map/AO browse).
   Future<Map<String, dynamic>?> _get(String path,
       {String? bearerOverride}) async {
-    if (bearerOverride == null && !isConfigured) return null;
     try {
       final res = await http
           .get(Uri.parse('$_base$path'), headers: _headers(bearerOverride))
@@ -118,7 +125,6 @@ class F3ApiService extends ChangeNotifier {
   }
 
   Future<List<dynamic>?> _getList(String path, {String? bearerOverride}) async {
-    if (bearerOverride == null && !isConfigured) return null;
     try {
       final res = await http
           .get(Uri.parse('$_base$path'), headers: _headers(bearerOverride))
@@ -264,12 +270,42 @@ class F3ApiService extends ChangeNotifier {
     }
   }
 
+  /// Generic authenticated PATCH. Returns (statusCode, decodedBodyOrNull).
+  /// Used for self-service writes to the signed-in PAX's own record
+  /// (/v1/me/profile) — unlike POST, which this app no longer has a
+  /// trusted app-level credential to send without a specific user's token.
+  Future<({int status, dynamic body})> _patch(
+    String path,
+    Map<String, dynamic> payload, {
+    String? bearerOverride,
+  }) async {
+    try {
+      final res = await http
+          .patch(
+            Uri.parse('$_base$path'),
+            headers: _headers(bearerOverride),
+            body: json.encode(payload),
+          )
+          .timeout(const Duration(seconds: 15));
+      if (res.statusCode == 401 && bearerOverride != null) {
+        _markSessionInvalid();
+      }
+      dynamic decoded;
+      try {
+        decoded = res.body.isNotEmpty ? json.decode(res.body) : null;
+      } catch (_) {}
+      return (status: res.statusCode, body: decoded);
+    } catch (e) {
+      return (status: -1, body: e.toString());
+    }
+  }
+
   // ── Profile ───────────────────────────────────────────────────────────────
 
-  /// Fetches the signed-in user's own profile. Pass [userAccessToken] (the
-  /// F3 Nation OAuth access token from [AuthService.getF3AccessToken]) to get
-  /// the actual signed-in PAX's profile — without it, this authenticates
-  /// with the shared app API key and returns that key's owner instead.
+  /// Fetches the signed-in user's own profile. Requires [userAccessToken]
+  /// (the F3 Nation OAuth access token from [AuthService.getF3AccessToken])
+  /// — there's no shared app credential to fall back to, so this returns
+  /// null for a signed-out caller.
   Future<F3UserProfile?> getMyProfile({String? userAccessToken}) async {
     final data = await _get('/v1/me/profile', bearerOverride: userAccessToken);
     if (data == null) return null;
@@ -278,14 +314,18 @@ class F3ApiService extends ChangeNotifier {
     return _myProfile;
   }
 
-  /// Updates the signed-in PAX's own F3 Nation user record. Uses the app's
-  /// trusted API key (`POST /v1/user`), not the user's own token — Tackle's
-  /// guidance: `/v1/me/profile` (PATCH) is user-token self-service, but a
-  /// third-party app should write through its own trusted key instead. Only
-  /// non-null fields are sent, so callers can update just what changed.
-  /// Returns null on success, else an error string.
+  /// Updates the signed-in PAX's own F3 Nation user record via the
+  /// self-service `PATCH /v1/me/profile`, using their own access token.
+  /// Previously wrote through the app's own trusted key (`POST /v1/user`,
+  /// per Tackle's earlier guidance to keep self-service off the shared
+  /// credential) — that credential no longer exists, so this is now the
+  /// only write path, same endpoint already confirmed working for
+  /// self-service `meta`-field writes (see emergency-info sync). Identity
+  /// comes from the bearer token itself, so no separate id field is sent.
+  /// Only non-null fields are sent, so callers can update just what
+  /// changed. Returns null on success, else an error string.
   Future<String?> updateUserProfile({
-    required int userId,
+    required String userAccessToken,
     String? f3Name,
     String? firstName,
     String? lastName,
@@ -293,20 +333,25 @@ class F3ApiService extends ChangeNotifier {
     String? phone,
   }) async {
     final payload = <String, dynamic>{
-      'id': userId,
       if (f3Name != null) 'f3Name': f3Name,
       if (firstName != null) 'firstName': firstName,
       if (lastName != null) 'lastName': lastName,
       if (email != null) 'email': email,
       if (phone != null) 'phone': phone,
     };
-    final res = await _post('/v1/user', payload);
+    final res = await _patch('/v1/me/profile', payload,
+        bearerOverride: userAccessToken);
     if (res.status == 200 || res.status == 201) return null;
     return 'Profile update failed (${res.status}): ${res.body}';
   }
 
-  Future<F3UserProfile?> findPaxByF3Name(String f3Name) async {
-    final data = await _get('/v1/user/f3name/${Uri.encodeComponent(f3Name)}');
+  /// [userAccessToken] is optional — pass it when the caller already has
+  /// one so this works for a signed-in PAX now that there's no app-level
+  /// credential; omit it to try the public read tier anonymously.
+  Future<F3UserProfile?> findPaxByF3Name(String f3Name,
+      {String? userAccessToken}) async {
+    final data = await _get('/v1/user/f3name/${Uri.encodeComponent(f3Name)}',
+        bearerOverride: userAccessToken);
     if (data == null) return null;
     return F3UserProfile.fromJson(data);
   }
@@ -569,12 +614,15 @@ class F3ApiService extends ChangeNotifier {
 
   /// Who's HC'd (planned attendance) for one event instance — names + role
   /// (PAX/Q/Co-Q). The API deliberately allows any authenticated caller to
-  /// read this ("for preblast visibility"), so the app's own key works here
-  /// same as the other read endpoints.
+  /// read this ("for preblast visibility") — "any authenticated" still
+  /// means *some* token, though, so pass [userAccessToken] when the caller
+  /// has one. There's no app-level credential to fall back to if not.
   Future<List<F3AttendanceRecord>> getAttendanceForEvent(
-      int eventInstanceId) async {
+      int eventInstanceId,
+      {String? userAccessToken}) async {
     final data = await _get(
-        '/v1/attendance/event-instance/$eventInstanceId?isPlanned=true');
+        '/v1/attendance/event-instance/$eventInstanceId?isPlanned=true',
+        bearerOverride: userAccessToken);
     final list = data?['attendance'] as List?;
     if (list == null) return [];
     return list
@@ -654,9 +702,11 @@ class F3ApiService extends ChangeNotifier {
   /// the write reassigns the event to the region). Leave [eventInstanceId]
   /// null to create a brand-new unscheduled event, in which case [orgId] is
   /// the AO to create it under. [startDate] (`YYYY-MM-DD`) is required by the
-  /// API in both cases. Uses the app API key (the trusted-app write model).
+  /// API in both cases. Uses the signed-in PAX's own access token — there's
+  /// no app-level credential to write through anymore.
   /// Returns null on success, else an error string.
   Future<String?> publishBackblast({
+    required String userAccessToken,
     int? eventInstanceId,
     required String orgId,
     required String startDate,
@@ -684,22 +734,27 @@ class F3ApiService extends ChangeNotifier {
       if (eventTypeId != null) 'eventTypeId': int.tryParse(eventTypeId),
       'isActive': true,
     };
-    final res = await _post('/v1/event-instance', payload);
+    final res = await _post('/v1/event-instance', payload,
+        bearerOverride: userAccessToken);
     if (res.status == 200 || res.status == 201) return null;
     return 'Event write failed (${res.status}): ${res.body}';
   }
 
   /// Records actual attendance for one PAX on an event instance.
   Future<String?> recordAttendance({
+    required String userAccessToken,
     required int eventInstanceId,
     required int userId,
     required int attendanceTypeId,
   }) async {
-    final res = await _post('/v1/attendance/actual', {
-      'eventInstanceId': eventInstanceId,
-      'userId': userId,
-      'attendanceTypeIds': [attendanceTypeId],
-    });
+    final res = await _post(
+        '/v1/attendance/actual',
+        {
+          'eventInstanceId': eventInstanceId,
+          'userId': userId,
+          'attendanceTypeIds': [attendanceTypeId],
+        },
+        bearerOverride: userAccessToken);
     if (res.status == 200 || res.status == 201) return null;
     return 'Attendance write failed (${res.status}): ${res.body}';
   }
@@ -710,6 +765,7 @@ class F3ApiService extends ChangeNotifier {
   /// attendance). Self-signup is allowed with the user's own token — no editor
   /// role needed. Returns null on success, else an error string.
   Future<String?> signUpForEvent({
+    required String userAccessToken,
     required int eventInstanceId,
     required int userId,
   }) async {
@@ -720,6 +776,7 @@ class F3ApiService extends ChangeNotifier {
         'userId': userId,
         'attendanceTypeIds': [attendanceTypePax],
       },
+      bearerOverride: userAccessToken,
     );
     if (res.status == 200 || res.status == 201) return null;
     return 'Sign-up failed (${res.status}): ${res.body}';
@@ -730,11 +787,13 @@ class F3ApiService extends ChangeNotifier {
   /// the real F3 Nation route (`DELETE /attendance/event-instance/{id}/user/{id}`).
   /// Use [removeQ] instead to step down from Q while staying HC'd.
   Future<String?> withdrawFromEvent({
+    required String userAccessToken,
     required int eventInstanceId,
     required int userId,
   }) async {
     final res = await _delete(
       '/v1/attendance/event-instance/$eventInstanceId/user/$userId',
+      bearerOverride: userAccessToken,
     );
     if (res.status == 200 || res.status == 201) return null;
     return 'Withdraw failed (${res.status}): ${res.body}';
@@ -742,12 +801,14 @@ class F3ApiService extends ChangeNotifier {
 
   /// Take the Q for an open event.
   Future<String?> takeQ({
+    required String userAccessToken,
     required int eventInstanceId,
     required int userId,
   }) async {
     final res = await _post(
       '/v1/attendance/take-q',
       {'eventInstanceId': eventInstanceId, 'userId': userId},
+      bearerOverride: userAccessToken,
     );
     if (res.status == 200 || res.status == 201) return null;
     return 'Take-Q failed (${res.status}): ${res.body}';
@@ -755,12 +816,14 @@ class F3ApiService extends ChangeNotifier {
 
   /// Steps down from Q for an event, keeping the PAX's HC/attendance intact.
   Future<String?> removeQ({
+    required String userAccessToken,
     required int eventInstanceId,
     required int userId,
   }) async {
     final res = await _delete(
       '/v1/attendance/remove-q',
       payload: {'eventInstanceId': eventInstanceId, 'userId': userId},
+      bearerOverride: userAccessToken,
     );
     if (res.status == 200 || res.status == 201) return null;
     return 'Remove-Q failed (${res.status}): ${res.body}';
@@ -782,6 +845,7 @@ class F3ApiService extends ChangeNotifier {
   /// slackbot itself populates) — best-effort pending confirmation from
   /// Moneyball that this exact shape is what downstream consumers expect.
   Future<String?> postPreblast({
+    required String userAccessToken,
     required int eventInstanceId,
     required String orgId,
     required String startDate,
@@ -793,25 +857,28 @@ class F3ApiService extends ChangeNotifier {
     if (orgIdInt == null) {
       return 'Invalid orgId "$orgId" — expected a numeric org id';
     }
-    final res = await _post('/v1/event-instance', {
-      'id': eventInstanceId,
-      'orgId': orgIdInt,
-      'startDate': startDate,
-      'preblast': preblast,
-      'preblastRich': {
-        'type': 'rich_text',
-        'elements': [
-          {
-            'type': 'rich_text_section',
+    final res = await _post(
+        '/v1/event-instance',
+        {
+          'id': eventInstanceId,
+          'orgId': orgIdInt,
+          'startDate': startDate,
+          'preblast': preblast,
+          'preblastRich': {
+            'type': 'rich_text',
             'elements': [
-              {'type': 'text', 'text': preblast},
+              {
+                'type': 'rich_text_section',
+                'elements': [
+                  {'type': 'text', 'text': preblast},
+                ],
+              },
             ],
           },
-        ],
-      },
-      'preblastTs': DateTime.now().millisecondsSinceEpoch,
-      'isActive': true,
-    });
+          'preblastTs': DateTime.now().millisecondsSinceEpoch,
+          'isActive': true,
+        },
+        bearerOverride: userAccessToken);
     if (res.status == 200 || res.status == 201) return null;
     return 'Preblast failed (${res.status}): ${res.body}';
   }
@@ -825,11 +892,11 @@ class F3ApiService extends ChangeNotifier {
   /// AO org meta, first match wins. Off by default since it costs the API
   /// extra lookups this call doesn't otherwise need.
   Future<F3EventInstance?> getEventInstanceById(int id,
-      {bool includeSlackChannelId = false}) async {
+      {bool includeSlackChannelId = false, String? userAccessToken}) async {
     final path = includeSlackChannelId
         ? '/v1/event-instance/id/$id?includeSlackChannelId=true'
         : '/v1/event-instance/id/$id';
-    final data = await _get(path);
+    final data = await _get(path, bearerOverride: userAccessToken);
     if (data == null) return null;
     return F3EventInstance.fromJson(data);
   }
