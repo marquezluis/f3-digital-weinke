@@ -11,6 +11,16 @@ whether or not that build shipped, so "how many builds have we done on
 
 ## [Unreleased]
 
+### Docs
+- Refreshed README.md — it still described the original offline-only MVP
+  ("zero network calls", "no Slack OAuth, no webhooks, no cloud sync"),
+  missing F3 Nation sign-in, the live map, Schedule/HC/Q, and backblast
+  publish entirely. Rewrote the intro, feature table, and privacy note;
+  trimmed the Roadmap to drop items already shipped (AO map, scheduling,
+  Exicon demo videos, custom Weinke builder, interval timing, light/dark
+  mode); documented the previously-undocumented `dart-defines.json` build
+  config (and that there's no API key to set anymore).
+
 ### Changed
 - F3 Nation sign-in now requests `offline_access` explicitly — auth3's
   strict OIDC cutover only issues a refresh token when the client asks for

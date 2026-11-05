@@ -2,9 +2,12 @@
 
 > The Q's cheat sheet — digitized.
 
-A local-first Flutter app for F3 Nation that generates a balanced 50-minute
-beatdown plan, runs a phase-aware countdown timer, and gives you instant
-access to the full F3 Exicon — all without a network connection.
+A Flutter app for F3 Nation that generates a balanced 50-minute beatdown
+plan, runs a phase-aware countdown timer, and signs in with your real F3
+Nation account to pull live AO/schedule data and publish HC, Q, preblasts,
+and backblasts back to the F3 Nation API. The Exicon, timer, and Q Field
+Guide work fully offline; anything involving your F3 Nation identity or
+region data needs a connection.
 
 ---
 
@@ -12,17 +15,20 @@ access to the full F3 Exicon — all without a network connection.
 
 | Feature | Description |
 |---|---|
+| **F3 Nation sign-in** | OAuth 2.0 / OIDC (Authorization Code + PKCE, public client, no secret shipped) against `auth2.f3nation.com`. Links your real F3 Nation identity — name, home region, roles/positions — to the app. Browsing AOs/the map works before signing in; HC, Q, and publishing need it. |
+| **Browse AOs / Map** | Live, nationwide AO data from the F3 Nation API — search, filter, "Near Me Right Now," real AO logos, get-directions. Works signed out (public read tier). |
+| **Schedule (HC / Take Q)** | Real calendar of upcoming beatdowns for your home region, synced from F3 Nation. HC (sign up), take or drop Q, write a preblast, filter and browse by AO. |
 | **Workout Generator** | Randomly builds a 50-min beatdown from the full Exicon (907 exercises). Respects your coupon mode and intensity preferences. Every exercise can be swapped with one tap. |
 | **Live Phase Timer** | Five-phase countdown that auto-advances: Disclaimer → Warm-O-Rama → The Thang → Mary → COT. Big glanceable digits for 5:30 AM. |
 | **Emergency Mary** | One tap skips straight to Mary from any phase. Confirmation dialog prevents accidental taps with sweaty/gloved hands. |
 | **Disclaimer & COT screens** | Phase-specific cards: the standard F3 disclaimer text and a step-by-step COT guide (Count-O-Rama, Name-O-Rama, FNG naming, announcements, closing word). |
 | **Q Field Guide** | Offline reference tab covering all aspects of Q prep and QSource: Five F3 Workout Principles, standard disclaimer, sample workout structure, Q prep checklist, cadence call sequence, COT checklist, backblast template, QSource best practices, QSource agenda, QSource follow-up checklist, and QSource session formats. |
-
-| **Exicon Library** | All 907 exercises, searchable by name/description/alias. Filter by category tab and intensity level. |
-| **Workout History** | Saves completed beatdowns locally. Records title, date, AO, Q name, PAX list, FNG count, plan summary, and notes. Sorted newest-first. All data stays on device. |
-| **Backblast Draft** | Auto-generates a Slack-ready backblast from any saved session. One tap copies the full text to clipboard for pasting into Slack or email. |
+| **Exicon Library** | All 907 exercises, searchable by name/description/alias. Filter by category tab and intensity level. Live-synced against the real F3 Nation Codex for official/pending tags and demo videos. |
+| **Workout History** | Saves completed beatdowns locally — title, date, AO, Q name, PAX list, FNG count, plan summary, notes — plus a heatmap and streak tracking. |
+| **Backblast publish** | Publishes the backblast, attendance, and FNG count straight to the F3 Nation API for a real HC'd/Q'd event — not just a local draft. A Slack-ready text copy is still one tap away for pasting anywhere else. |
+| **Brotherhood** | Your local roster — add PAX (with real F3 Nation lookup), track HCs, sponsors, first-post dates. |
+| **Profile** | Your real F3 Nation profile (name, roles, home region), achievements, and an on-device-only emergency contact card. |
 | **Settings** | Coupon mode (No Coupons / Mixed 50-50 / Coupons Only), intensity filter (Beginner / Intermediate / Advanced). Settings are persisted between launches. |
-| **Offline-first** | Zero network calls. All data is bundled as a JSON asset or stored in `shared_preferences`. |
 
 ---
 
@@ -146,7 +152,36 @@ This downloads all packages declared in `pubspec.yaml`:
 | `uuid` | Unique IDs for generated plans |
 | `wakelock_plus` | Keep screen on during the session |
 
-### 7 — Connect a device or start a simulator
+### 7 — Configure F3 Nation API access
+
+F3 Nation sign-in and live data (map, schedule, publish) need a few
+compile-time values, passed via `--dart-define-from-file` so they're never
+hardcoded or committed. Create `dart-defines.json` at the project root
+(already gitignored):
+
+```json
+{
+  "F3_OAUTH_CLIENT_ID": "digital-weinke"
+}
+```
+
+| Key | Required? | Purpose |
+|---|---|---|
+| `F3_OAUTH_CLIENT_ID` | Yes, for sign-in | The app's registered public OAuth client id. Without it, `LocalAuthService.f3LoginAvailable` is false and the sign-in CTA is hidden — the app still runs, just local-only. |
+| `F3_AUTH_ISSUER` | No (defaults to `https://auth2.f3nation.com`) | Override to point sign-in at staging, e.g. `https://staging.auth2.f3nation.com`. |
+| `F3_API_BASE_URL` | No (defaults to `https://api.f3nation.com`) | Override to point API reads/writes at staging. Pair with a staging `F3_AUTH_ISSUER` — staging-issued tokens only verify against staging's own JWKS. |
+| `F3_API_ORG_ID` | No | A build-time default region, used for national read views before a user has signed in and set their own. |
+
+There is **no API key to configure** — the app has never shipped one. Reads
+that must work before sign-in (map/AO browse) go through the F3 API's
+public read tier; everything else uses the signed-in PAX's own OAuth
+access token.
+
+`make run`/`make build-apk`/`make build-appbundle` already read this file
+via `--dart-define-from-file=dart-defines.json`; `flutter run`/`flutter
+build` need the flag passed explicitly (see step 8).
+
+### 8 — Connect a device or start a simulator
 
 **iOS Simulator:**
 ```bash
@@ -165,17 +200,17 @@ flutter devices
 - iOS: trust the computer on the device prompt; set your Apple Team in
   Xcode (`ios/Runner.xcworkspace` → Signing & Capabilities).
 
-### 8 — Run the app
+### 9 — Run the app
 
 ```bash
-flutter run                         # runs on the first available device
-flutter run -d "iPhone 15"         # specific simulator
-flutter run -d <device-id>         # specific physical device
+make run                                          # reads dart-defines.json, defaults to -d iphone
+flutter run --dart-define-from-file=dart-defines.json -d <device-id>
 ```
 
 The app launches with the home screen showing the 50-minute timeline and
-Exicon stats. All 907 exercises are available immediately — no internet
-required.
+Exicon stats — all 907 exercises are available immediately, no internet
+required. F3 Nation sign-in, the live map, schedule, and publish need a
+connection and (for sign-in) `F3_OAUTH_CLIENT_ID` configured per step 7.
 
 ---
 
@@ -196,9 +231,17 @@ Before your first real 5:30 AM beatdown, do one dry run:
 
 ## Building Release Artefacts
 
+Prefer `make build-apk` / `make build-appbundle` over calling `flutter
+build` directly — they read `dart-defines.json` (step 7 above, needed for
+F3 Nation sign-in to work in the build) and bump the version automatically.
+The raw `flutter build` commands below need the same
+`--dart-define-from-file=dart-defines.json` flag added, or the resulting
+build ships with sign-in disabled.
+
 ### Android APK (sideload / Firebase App Distribution)
 ```bash
-flutter build apk --release --split-per-abi
+make build-apk
+# or: flutter build apk --release --dart-define-from-file=dart-defines.json --split-per-abi
 # Output: build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
 ```
 
@@ -206,7 +249,8 @@ Share the `arm64-v8a` APK for modern Android phones.
 
 ### Android App Bundle (Google Play)
 ```bash
-flutter build appbundle --release
+make build-appbundle
+# or: flutter build appbundle --release --dart-define-from-file=dart-defines.json
 ```
 
 ### iOS (TestFlight — requires Apple Developer Account, $99/year)
@@ -287,6 +331,15 @@ flutter run
 ---
 
 ## Project Architecture
+
+> This tree is from the original offline-only MVP and only shows a
+> fraction of what's in `lib/` today (35 screens, 29 services as of this
+> writing) — notably missing `services/f3_api_service.dart` (F3 Nation API
+> client), `services/auth_service.dart` (OAuth/OIDC sign-in), and every
+> screen added since (Browse AOs, Schedule, Profile, Brotherhood,
+> Achievements, Emergency, and more). Treat `lib/screens/` and
+> `lib/services/` themselves as the source of truth; this diagram is kept
+> here for the original MVP pieces it still describes correctly.
 
 ```
 f3_nation_app/
@@ -406,7 +459,9 @@ flutter analyze
 ### Android — Firebase App Distribution (free, easiest)
 1. Create a Firebase project at https://console.firebase.google.com
 2. Install the Firebase CLI: `npm install -g firebase-tools`
-3. Build: `flutter build apk --release`
+3. Build: `make build-apk` (reads `dart-defines.json` — see step 7 of the
+   setup walkthrough; a plain `flutter build apk --release` ships with F3
+   Nation sign-in disabled)
 4. Upload:
    ```bash
    firebase appdistribution:distribute build/app/outputs/flutter-apk/app-release.apk \
@@ -432,13 +487,14 @@ flutter analyze
 2. Tap the **save icon** (top-right of the AppBar) to open the "Save Beatdown" sheet.
 3. Fill in Title, AO, Q Name, PAX names (comma-separated), FNG count, and optional notes. Tap **Save Session**.
 4. The session appears in **Beatdown History** — accessible from the Home quick-actions card or directly via the History screen.
-5. Tap any session to open its **Backblast** view. Tap **Copy to Clipboard** and paste directly into Slack, email, or any messaging app.
+5. Tap any session to open its **Backblast** view. Either **Publish** it to F3 Nation (writes the real backblast, attendance, and FNG count to the event, if signed in and it's linked to one) or **Copy to Clipboard** for Slack/email/anywhere else.
 
-### Privacy note — local-only storage (MVP)
+### Privacy note — what's synced vs. local-only
 
-- All history data (PAX names, AO, notes, and any future photo paths) is stored **only on the device** using `shared_preferences`.
-- Nothing is uploaded to any server, Slack workspace, or third-party service.
-- No Slack OAuth, no webhooks, no cloud sync in this version.
+- Signed in, a published backblast, attendance, HC, Q, and preblast all go to F3 Nation's real API, using your own OAuth access token — never a key shared across every install.
+- Your saved session's own notes, plan summary, and local history list stay **only on the device** (`shared_preferences`), whether or not you ever publish.
+- Emergency contact info is **always local-only, never synced** — it's PHI-sensitive and deliberately works with zero network/login from the login gate.
+- No Slack OAuth, no webhooks — a backblast reaches Slack only indirectly, via F3 Nation's own existing Slack integration once published, or by pasting the clipboard copy yourself.
 - To delete data: swipe open a session in History and delete it, or use the trash icon to wipe all sessions at once.
 - Clearing the app's local storage (or uninstalling) permanently removes all history.
 
@@ -473,24 +529,34 @@ The `*bold*` and `_italic_` markers render in Slack. Paste as-is.
 
 ## Roadmap
 
-The MVP is intentionally micro-first.  Future versions could add:
+Several items from the original MVP roadmap have since shipped — AO
+map/geolocation, scheduling (HC/Q/calendar), Exicon demo videos (via live
+Codex sync), a custom Weinke builder (Q Builder), per-exercise interval
+timing, and light/dark mode are all in the app today, not listed below.
+Still open:
 
-1. **PAX attendance + photo capture** — check off who posted, optionally attach a group photo, and reuse that data for the backblast.
-2. **Exercise images/videos** — short demo clips for each Exicon entry. Start with optional URL fields in the local JSON, then add embedded/streamed demos later.
-3. **Cadence assistant** — haptic vibration or audio cue every rep. (Q Field Guide cadence section is the text-based v1.)
-4. **Custom Weinke builder** — manually pick exercises per block before the session.
-5. **AAR / feedback checklist** — structured After Action Review screen to capture what worked and what to improve after each beatdown or QSource session.
-6. **Light / dark mode** — keep dark mode as the 5:30 AM default, then add a high-contrast light theme for daytime planning.
-7. **Official logo / brand assets** — add only after confirming F3 logo and branding usage permissions. Until then, use text branding and F3-inspired colors.
-8. **QSource scheduling / reminders** — plan and receive local push notifications for upcoming QSource sessions.
-9. **Per-exercise interval timer** — countdown inside each exercise slot.
-10. **Slack webhook posting** — opt-in: PAX connects their Slack workspace and the app posts the backblast automatically. Requires Slack OAuth + a backend (or Slack's incoming webhook URL stored locally).
-11. **AO map / geolocation** — show nearby AOs and their schedules.
-12. **Scheduling** — plan beatdowns in advance with calendar integration.
-13. **Firebase/Supabase sync** — optional cloud backup so Q plans, attendance, photos, and Slack settings survive a phone swap.
-14. **Apple Watch companion** — mirror the phase timer on watchOS.
-15. **Voluntary donation / tip jar** — support infrastructure while keeping F3 workouts free.
-16. **Nationwide Q-sharing** — publish and discover beatdowns from other regions.
+1. **PAX photo capture** — attendance recording is real (HC/Q/actual
+   attendance write to F3 Nation); attaching a group photo to a backblast
+   isn't built yet.
+2. **Cadence assistant** — haptic vibration or audio cue every rep. (Q Field
+   Guide cadence section is the text-based v1.)
+3. **AAR / feedback checklist** — structured After Action Review screen to
+   capture what worked and what to improve after each beatdown or QSource
+   session.
+4. **Official logo / brand assets** — add only after confirming F3 logo and
+   branding usage permissions. Until then, use text branding and
+   F3-inspired colors.
+5. **QSource scheduling / reminders** — plan and receive local push
+   notifications for upcoming QSource sessions.
+6. **Region Chat / Commz** — the F3 Nation API has no chat/messaging layer
+   yet; the in-app Region Chat UI is a local-only preview pending a
+   Slack-bridge or native backend on F3 Nation's side.
+7. **Apple Watch companion** — mirror the phase timer on watchOS.
+8. **Voluntary donation / tip jar** — support infrastructure while keeping
+   F3 workouts free.
+9. **Nationwide Q-sharing** — publish and discover beatdowns from other
+   regions (a single shared-plan import/export already exists; this would
+   make it a public, searchable feed).
 
 ---
 
