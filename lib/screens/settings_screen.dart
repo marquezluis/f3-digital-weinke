@@ -114,6 +114,35 @@ class SettingsScreen extends StatelessWidget {
                 current: service.locale.languageCode,
                 onSelect: (code) => service.setLocale(Locale(code)),
               ),
+              const SizedBox(height: 12),
+              // PROF-06 in the official-app wireframes: default Map vs
+              // Calendar view for the Map/Cal tab (map_cal_screen.dart
+              // reads/writes this same setting).
+              Row(
+                children: [
+                  Expanded(
+                    child: Text('Map/Cal opens to',
+                        style: TextStyle(
+                            color: context.f3textPrimary, fontSize: 13.5)),
+                  ),
+                  SegmentedButton<MapCalView>(
+                    segments: const [
+                      ButtonSegment(
+                          value: MapCalView.map,
+                          icon: Icon(Icons.map_rounded, size: 16)),
+                      ButtonSegment(
+                          value: MapCalView.calendar,
+                          icon: Icon(Icons.calendar_month_rounded, size: 16)),
+                    ],
+                    selected: {service.mapCalDefaultView},
+                    onSelectionChanged: (s) =>
+                        service.setMapCalDefaultView(s.first),
+                    style: const ButtonStyle(
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ),
+                ],
+              ),
               const SizedBox(height: 28),
 
               // ── Voice & Accessibility ───────────────────────────────────────

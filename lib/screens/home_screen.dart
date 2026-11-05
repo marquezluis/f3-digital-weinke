@@ -223,6 +223,12 @@ class HomeScreen extends StatelessWidget {
               sliver: SliverToBoxAdapter(child: const AtTheFlagCard()),
             ),
 
+            // ── Region info (HOME-01/02 in the official-app wireframes) ──
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+              sliver: SliverToBoxAdapter(child: const _RegionInfoCard()),
+            ),
+
             // Home is a launchpad: the 50-min timeline preview and the Exicon
             // exercise-count stats moved off here — that content belongs on
             // the Plan/Exicon surfaces, not the daily home screen.
@@ -1405,6 +1411,87 @@ class _F extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// HOME-01/02 in the official-app wireframes: a region info section on
+/// Home, alongside the personal "Today" focus. Shows the region name and
+/// how many AOs it has — not a leadership/SLT directory, since /v1/org
+/// (F3Org) carries no position/role data at the region level (only a
+/// signed-in user's OWN roles/positions come back from /v1/me/profile);
+/// listing a region's leadership would need an endpoint this API doesn't
+/// have. Announcements are a placeholder (HOME-01's SLT broadcast feed has
+/// no API backing at all) rather than built here.
+class _RegionInfoCard extends StatefulWidget {
+  const _RegionInfoCard();
+
+  @override
+  State<_RegionInfoCard> createState() => _RegionInfoCardState();
+}
+
+class _RegionInfoCardState extends State<_RegionInfoCard> {
+  int? _aoCount;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _loadAoCount();
+  }
+
+  Future<void> _loadAoCount() async {
+    final api = context.read<F3ApiService>();
+    final regionId = api.orgId;
+    if (regionId == null) return;
+    final orgs = await api.getOrgs();
+    if (!mounted) return;
+    final count = orgs
+        .where((o) => o.parentId == regionId && o.type.toLowerCase() == 'ao')
+        .length;
+    setState(() => _aoCount = count);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final region = context.watch<AppProfileService>().region;
+    if (region.isEmpty) return const SizedBox.shrink();
+    return Material(
+      color: context.f3card,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: () => context.read<ValueNotifier<int>>().value = 1, // Map/Cal
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: context.f3divider),
+          ),
+          child: Row(children: [
+            Icon(Icons.flag_rounded, color: F3Colors.accent, size: 22),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(region,
+                      style: TextStyle(
+                          color: context.f3textPrimary,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 15)),
+                  Text(
+                      _aoCount == null
+                          ? 'Loading region info…'
+                          : '$_aoCount AO${_aoCount == 1 ? '' : 's'} · tap to browse the map',
+                      style: TextStyle(
+                          color: context.f3textSecondary, fontSize: 12.5)),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded, color: context.f3textMuted),
+          ]),
+        ),
+      ),
     );
   }
 }

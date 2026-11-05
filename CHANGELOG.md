@@ -11,6 +11,16 @@ whether or not that build shipped, so "how many builds have we done on
 
 ## [Unreleased]
 
+### Added (wireframe alignment, continued)
+- Home gained a Region Info card (HOME-01/02) showing the PAX's home
+  region and its AO count, tapping through to Map/Cal — no SLT/leadership
+  directory, since `/v1/org` carries no position/role data at the region
+  level (only a signed-in user's own roles/positions come back from
+  `/v1/me/profile`). Announcements stay a placeholder; the API has no
+  backing for a broadcast feed at all.
+- Settings gained a "Map/Cal opens to" toggle (PROF-06), writing the same
+  `SettingsService.mapCalDefaultView` the Map/Cal tab itself reads.
+
 ### Added (wireframe alignment)
 - A new-vs-returning welcome fork (FNG-01 in the official-app
   wireframes) is now the first thing a signed-out visitor sees:
