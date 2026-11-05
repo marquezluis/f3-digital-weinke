@@ -87,6 +87,22 @@ not an afterthought.
   strict OIDC.** A looser server may always include a refresh token; a
   strict one only issues one when the client scope says so — losing that
   scope silently breaks "stay signed in."
+- **The auth3/Better Auth cutover (confirmed with Tackle, 2026-11-05;
+  prod host and date still undecided, staging is
+  `staging.auth3.f3nation.com`) is a clean example of discovery paying
+  for itself.** auth3 is a separate Cloud Run service; existing public
+  clients migrate server-side (same redirect URI, `token_endpoint_auth_method:
+  "none"`, no re-registration needed) and discovery
+  (`<issuer>/.well-known/openid-configuration`) returns a genuinely mixed
+  set of endpoints — `authorization_endpoint` under Better Auth's own
+  `/api/auth2/oauth2/...` route, while `token_endpoint` and
+  `end_session_endpoint` stay at the legacy `/api/oauth/token` and
+  `/api/oauth/logout` paths (kept as adapters forwarding into Better
+  Auth). A client built on discovery needs zero code changes for this;
+  one hardcoding any of those paths needs to track the split by hand.
+  One real trap: **never send `prompt=consent`** — auth3 has no consent
+  page, and that 404s with no authorization code at all. `prompt=login`
+  is fine and is what forces the account chooser on a fresh sign-in.
 - **A token-refresh call needs its own timeout, independent of the rest
   of your HTTP client's defaults.** A stalled connection to the token
   endpoint with no timeout hangs that await forever with nothing to

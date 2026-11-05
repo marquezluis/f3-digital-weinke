@@ -63,6 +63,19 @@ class LocalAuthService extends AuthService {
   // CFBundleURLTypes) and the value registered with the auth server.
   // Override with --dart-define=F3_AUTH_ISSUER=https://staging.auth2.f3nation.com
   // while testing against the staging client Tackle registered there.
+  //
+  // auth3/Better Auth cutover (confirmed with Tackle 2026-11-05, prod host
+  // and date still undecided — staging is https://staging.auth3.f3nation.com):
+  // this should need ONLY this default flipped, nothing else. DW's public
+  // client migrates server-side (token_endpoint_auth_method "none",
+  // existing redirect URI carried over, no re-registration). Discovery
+  // (issuer: below, already used for sign-in and refresh) picks up
+  // Better Auth's own authorization_endpoint automatically; the hardcoded
+  // fallback in _endServerSession stays valid too since the legacy
+  // /api/oauth/* paths are kept as adapters forwarding to Better Auth.
+  // One real trap confirmed: never send prompt=consent — auth3 has no
+  // consent page and that 404s with no code. signInWithF3Nation below
+  // already only ever sends prompt=login.
   static const _f3Issuer = String.fromEnvironment(
     'F3_AUTH_ISSUER',
     defaultValue: 'https://auth2.f3nation.com',
