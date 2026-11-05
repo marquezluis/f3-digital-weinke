@@ -288,8 +288,8 @@ class _LoginGateScreenState extends State<LoginGateScreen> {
                     : AppLocalizations.of(context)!.loginGateSignIn),
               ),
               const SizedBox(height: 10),
-              // Not gated on auth — BrowseAosScreen fetches with the app's
-              // own API key, same as the AO count above. Lets someone see
+              // Not gated on auth — BrowseAosScreen reads through the API's
+              // public tier, same as the AO count above. Lets someone see
               // real, live AOs before deciding to link an F3 Nation account.
               TextButton.icon(
                 onPressed: () => Navigator.push(

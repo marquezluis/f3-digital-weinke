@@ -11,6 +11,19 @@ whether or not that build shipped, so "how many builds have we done on
 
 ## [Unreleased]
 
+### Added (wireframe alignment)
+- A new-vs-returning welcome fork (FNG-01 in the official-app
+  wireframes) is now the first thing a signed-out visitor sees:
+  "I already post with F3" leads to the existing sign-in screen
+  unchanged; "I'm new to F3" leads into a new browse-map → lingo-card →
+  notification-prefs flow, ending in an honest placeholder about account
+  creation and region approval (the F3 Nation API has no endpoint for
+  either yet) rather than a dead end.
+- Onboarding (shown once after first sign-in) gained a PAX-03 "confirm
+  profile and home region" page between the intro and the optional-setup
+  page — surfaces what sign-in already resolved from the real F3 Nation
+  profile, with a "Change region" fix-it button for when it's wrong.
+
 ### Changed (wireframe alignment)
 - Reorganized the bottom-nav shell to match the official F3 Nation app's
   wireframe tab structure: Home / Map-Cal / Commz / Resources / Profile
