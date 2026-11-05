@@ -12,6 +12,14 @@ whether or not that build shipped, so "how many builds have we done on
 ## [Unreleased]
 
 ### Changed
+- F3 Nation sign-in now requests `offline_access` explicitly — auth3's
+  strict OIDC cutover only issues a refresh token when the client asks for
+  it, unlike the old server. Sign-out's server-session-end call now takes
+  its endpoints from OIDC discovery first (same as sign-in and refresh),
+  falling back to the hardcoded `/api/oauth/*` paths only if discovery
+  itself fails. **Not tested live against prod auth from this environment
+  — no device/browser access here; verify sign-in, refresh, and sign-out
+  against prod before relying on this.**
 - No API key is compiled into the app anymore. Signed-out reads (map/AO
   browse) go through the F3 API's public read tier with no Authorization
   header; every write and per-user read now goes through the signed-in

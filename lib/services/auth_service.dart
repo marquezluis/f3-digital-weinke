@@ -70,7 +70,12 @@ class LocalAuthService extends AuthService {
   static const _f3ClientId = String.fromEnvironment('F3_OAUTH_CLIENT_ID');
   static const _f3RedirectUri =
       'com.digitalweinke.f3nationapp:/oauth2redirect';
-  static const _f3Scopes = ['openid', 'profile', 'email'];
+  // 'offline_access' explicitly requested per auth3's cutover to strict
+  // OIDC — unlike the old server, auth3 only issues a refresh token when
+  // the client asks for this scope, rather than always including one.
+  // Without it, getF3AccessToken()'s refresh path would have nothing to
+  // refresh with once a user's access token naturally expires.
+  static const _f3Scopes = ['openid', 'profile', 'email', 'offline_access'];
 
   static const _keyF3AccessToken = 'f3_oauth_access_token';
   static const _keyF3RefreshToken = 'f3_oauth_refresh_token';
@@ -338,6 +343,13 @@ class LocalAuthService extends AuthService {
   /// apps/auth unit test now covers this exact case (public client,
   /// openid scope) and passes. This method should run for real now;
   /// re-verify live against a signed-in session before relying on it.
+  ///
+  /// Takes its endpoints from OIDC discovery (`issuer:`) first, same as
+  /// [signInWithF3Nation] and [getF3AccessToken]'s refresh — the discovery
+  /// document is the source of truth and can change without an app update
+  /// (e.g. the auth3 cutover). The hardcoded `/api/oauth/*` paths only run
+  /// as a last-resort fallback if discovery itself fails (e.g. the
+  /// `.well-known` document is briefly unreachable), not the primary path.
   Future<void> _endServerSession() async {
     if (_f3ClientId.isEmpty) return;
     final idToken = await _secureStorage.read(key: _keyF3IdToken);
@@ -346,6 +358,21 @@ class LocalAuthService extends AuthService {
     // pass a redirect target either, so there'd be no way back into the
     // app; skip rather than strand the browser on the auth server's page.
     if (idToken == null) return;
+    try {
+      await _appAuth
+          .endSession(
+            EndSessionRequest(
+              idTokenHint: idToken,
+              postLogoutRedirectUrl: _f3RedirectUri,
+              issuer: _f3Issuer,
+            ),
+          )
+          .timeout(const Duration(seconds: 15));
+      return;
+    } catch (_) {
+      // Discovery failed — fall through to the hardcoded last resort below
+      // rather than giving up immediately.
+    }
     try {
       await _appAuth
           .endSession(
