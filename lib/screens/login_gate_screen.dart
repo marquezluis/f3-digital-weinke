@@ -43,14 +43,12 @@ class _LoginGateScreenState extends State<LoginGateScreen> {
     _loadSocialProof();
   }
 
-  /// A real AO count, not a guessed/placeholder number — the app's own
-  /// baked-in API key already works pre-sign-in (it's independent of the
-  /// user's own F3 Nation login), so this is honest social proof, not
-  /// fabricated. Best-effort: silently skipped if it fails or the app has
-  /// no API key configured (a dev/debug build).
+  /// A real AO count, not a guessed/placeholder number — reads through the
+  /// API's public tier, which works pre-sign-in (independent of the user's
+  /// own F3 Nation login), so this is honest social proof, not fabricated.
+  /// Best-effort: silently skipped if the read fails.
   Future<void> _loadSocialProof() async {
     final api = context.read<F3ApiService>();
-    if (!api.isConfigured) return;
     final orgs = await api.getOrgs();
     if (!mounted) return;
     final aoCount = orgs.where((o) => o.type.toLowerCase() == 'ao').length;
@@ -290,8 +288,8 @@ class _LoginGateScreenState extends State<LoginGateScreen> {
                     : AppLocalizations.of(context)!.loginGateSignIn),
               ),
               const SizedBox(height: 10),
-              // Not gated on auth — BrowseAosScreen fetches with the app's
-              // own API key, same as the AO count above. Lets someone see
+              // Not gated on auth — BrowseAosScreen reads through the API's
+              // public tier, same as the AO count above. Lets someone see
               // real, live AOs before deciding to link an F3 Nation account.
               TextButton.icon(
                 onPressed: () => Navigator.push(

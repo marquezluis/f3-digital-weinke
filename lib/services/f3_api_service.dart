@@ -2,8 +2,14 @@
 // F3 Nation REST API client. All methods return null/empty on failure so
 // callers can fall back to local data without crashing.
 //
-// The API key is baked in at build time via --dart-define=F3_API_KEY=...
-// It is never stored on-device or exposed through any UI.
+// No API key is compiled into this build. Reads that must work before
+// sign-in (map/AO browse) go through the API's public read tier with no
+// Authorization header at all; every write, and any read the API doesn't
+// serve anonymously, goes through the signed-in PAX's own OAuth access
+// token (AuthService.getF3AccessToken) instead. There is no app-wide
+// trusted credential left to fall back to — a secret couldn't stay
+// confidential once shipped in a compiled binary anyway, same reasoning
+// that moved sign-in to a public PKCE client (see auth_service.dart).
 
 import 'dart:convert';
 
@@ -23,8 +29,9 @@ class F3ApiService extends ChangeNotifier {
   );
   static const _client = 'f3-digital-weinke';
 
-  // Compile-time constants injected via --dart-define
-  static const _apiKey = String.fromEnvironment('F3_API_KEY');
+  // Not a secret — a build-time default region for the national read views
+  // before a user has signed in and set their own. Compile-time constant
+  // injected via --dart-define.
   static const _orgIdEnv = String.fromEnvironment('F3_API_ORG_ID');
 
   // Set at runtime from the signed-in user's home region (via applyF3Profile).
@@ -39,8 +46,6 @@ class F3ApiService extends ChangeNotifier {
   }
 
   String? get orgId => _userOrgId ?? (_orgIdEnv.isNotEmpty ? _orgIdEnv : null);
-
-  bool get isConfigured => _apiKey.isNotEmpty;
 
   // Set when a call authenticated with the signed-in PAX's own F3 Nation
   // token (bearerOverride, not the app's shared key) comes back 401 — a
@@ -89,20 +94,22 @@ class F3ApiService extends ChangeNotifier {
   // No-op — kept so main.dart callers don't need to change
   Future<void> load() async {}
 
+  // No Authorization header at all when there's no signed-in user's token —
+  // relies on the API's public read tier for an anonymous GET. There is no
+  // shared app credential to fall back to.
   Map<String, String> _headers([String? bearerOverride]) => {
-        'Authorization': 'Bearer ${bearerOverride ?? _apiKey}',
+        if (bearerOverride != null && bearerOverride.isNotEmpty)
+          'Authorization': 'Bearer $bearerOverride',
         'Client': _client,
         'Content-Type': 'application/json',
       };
 
-  /// [bearerOverride] lets a caller authenticate as a specific signed-in user
-  /// (their F3 Nation OAuth access token) instead of the app's shared API
-  /// key. This matters for endpoints like /v1/me/profile: the API key
-  /// resolves to whoever *owns* the key, not whichever PAX is using the app,
-  /// so per-user endpoints need the user's own bearer token.
+  /// [bearerOverride] is the signed-in PAX's own F3 Nation OAuth access
+  /// token. Pass it for anything per-user (e.g. /v1/me/profile) or for any
+  /// read the public tier doesn't serve anonymously; omit it for a public,
+  /// signed-out read (map/AO browse).
   Future<Map<String, dynamic>?> _get(String path,
       {String? bearerOverride}) async {
-    if (bearerOverride == null && !isConfigured) return null;
     try {
       final res = await http
           .get(Uri.parse('$_base$path'), headers: _headers(bearerOverride))
@@ -118,7 +125,6 @@ class F3ApiService extends ChangeNotifier {
   }
 
   Future<List<dynamic>?> _getList(String path, {String? bearerOverride}) async {
-    if (bearerOverride == null && !isConfigured) return null;
     try {
       final res = await http
           .get(Uri.parse('$_base$path'), headers: _headers(bearerOverride))
@@ -129,22 +135,78 @@ class F3ApiService extends ChangeNotifier {
       if (res.statusCode == 200) {
         final body = json.decode(res.body);
         if (body is List) return body;
-        if (body is Map && body['data'] is List) return body['data'] as List;
-        if (body is Map && body['eventInstances'] is List) {
-          return body['eventInstances'] as List;
-        }
-        if (body is Map && body['events'] is List) {
-          return body['events'] as List;
-        }
-        if (body is Map && body['orgs'] is List) {
-          return body['orgs'] as List;
-        }
-        if (body is Map && body['locations'] is List) {
-          return body['locations'] as List;
-        }
+        if (body is Map) return _extractListKey(body as Map<String, dynamic>);
       }
     } catch (_) {}
     return null;
+  }
+
+  List<dynamic>? _extractListKey(Map<String, dynamic> body) {
+    if (body['data'] is List) return body['data'] as List;
+    if (body['eventInstances'] is List) return body['eventInstances'] as List;
+    if (body['events'] is List) return body['events'] as List;
+    if (body['orgs'] is List) return body['orgs'] as List;
+    if (body['locations'] is List) return body['locations'] as List;
+    return null;
+  }
+
+  int? _asInt(dynamic v) {
+    if (v is int) return v;
+    if (v is String) return int.tryParse(v);
+    return null;
+  }
+
+  /// Fetches every page of a paginated list endpoint and returns the
+  /// concatenated items, following whichever of a few common pagination
+  /// shapes the response actually carries:
+  ///   - a top-level `total`/`totalCount` alongside the page's own items
+  ///   - a `hasMore`/`hasNextPage` boolean
+  ///   - neither of those, in which case a short page just ends the walk
+  ///     (the old single-big-`pageSize` behavior, unchanged)
+  /// The F3 API added stable pagination for events/locations/orgs in
+  /// August 2026 — this replaces the old `pageSize=5000`/`10000` "ask for
+  /// everything in one page" trick, which a newly server-enforced page cap
+  /// would now silently truncate. NOT verified against a live response in
+  /// this environment (no network access here to the real API) — the field
+  /// names above are a best-effort guess from common REST pagination
+  /// conventions; confirm against a real payload and adjust if it differs.
+  /// Returns null if the very first page failed outright (a real failure —
+  /// callers should fall back to cache/empty the same way a null [_get]
+  /// result always has, not treat it as "confirmed zero"). A later page
+  /// failing mid-walk instead stops and returns the good partial result.
+  Future<List<dynamic>?> _getAllPages(
+    String basePath, {
+    String? bearerOverride,
+    int pageSize = 500,
+    int maxPages = 40,
+  }) async {
+    final sep = basePath.contains('?') ? '&' : '?';
+    final items = <dynamic>[];
+    var page = 1;
+    while (page <= maxPages) {
+      final data = await _get('$basePath${sep}page=$page&pageSize=$pageSize',
+          bearerOverride: bearerOverride);
+      if (data == null) {
+        if (page == 1) return null;
+        return items;
+      }
+      final pageItems = _extractListKey(data);
+      if (pageItems == null) return page == 1 ? null : items;
+      items.addAll(pageItems);
+
+      final total = _asInt(data['total']) ?? _asInt(data['totalCount']);
+      final hasMoreFlag = data['hasMore'] == true || data['hasNextPage'] == true;
+      final hadPaginationFields = data.containsKey('hasMore') ||
+          data.containsKey('hasNextPage') ||
+          total != null;
+      final gotFullPage = pageItems.length >= pageSize;
+      final shouldContinue = hasMoreFlag ||
+          (total != null && items.length < total) ||
+          (!hadPaginationFields && gotFullPage);
+      if (!shouldContinue) break;
+      page++;
+    }
+    return items;
   }
 
   /// Generic authenticated DELETE. Returns (statusCode, decodedBodyOrNull).
@@ -211,8 +273,8 @@ class F3ApiService extends ChangeNotifier {
   /// Generic authenticated PATCH. Returns (statusCode, decodedBodyOrNull).
   /// Used for the self-service /v1/me/profile update — unlike the other
   /// write helpers, this one always needs [bearerOverride]: it's a
-  /// protectedProcedure keyed off the caller's own session, so the app's
-  /// shared API key (which resolves to the key's own owner) can't use it.
+  /// protectedProcedure keyed off the caller's own session, so there's no
+  /// anonymous or app-level-credential path that could call it instead.
   Future<({int status, dynamic body})> _patch(
     String path,
     Map<String, dynamic> payload, {
@@ -241,10 +303,10 @@ class F3ApiService extends ChangeNotifier {
 
   // ── Profile ───────────────────────────────────────────────────────────────
 
-  /// Fetches the signed-in user's own profile. Pass [userAccessToken] (the
-  /// F3 Nation OAuth access token from [AuthService.getF3AccessToken]) to get
-  /// the actual signed-in PAX's profile — without it, this authenticates
-  /// with the shared app API key and returns that key's owner instead.
+  /// Fetches the signed-in user's own profile. Requires [userAccessToken]
+  /// (the F3 Nation OAuth access token from [AuthService.getF3AccessToken])
+  /// — there's no shared app credential to fall back to, so this returns
+  /// null for a signed-out caller.
   Future<F3UserProfile?> getMyProfile({String? userAccessToken}) async {
     final data = await _get('/v1/me/profile', bearerOverride: userAccessToken);
     if (data == null) return null;
@@ -253,14 +315,18 @@ class F3ApiService extends ChangeNotifier {
     return _myProfile;
   }
 
-  /// Updates the signed-in PAX's own F3 Nation user record. Uses the app's
-  /// trusted API key (`POST /v1/user`), not the user's own token — Tackle's
-  /// guidance: `/v1/me/profile` (PATCH) is user-token self-service, but a
-  /// third-party app should write through its own trusted key instead. Only
-  /// non-null fields are sent, so callers can update just what changed.
-  /// Returns null on success, else an error string.
+  /// Updates the signed-in PAX's own F3 Nation user record via the
+  /// self-service `PATCH /v1/me/profile`, using their own access token.
+  /// Previously wrote through the app's own trusted key (`POST /v1/user`,
+  /// per Tackle's earlier guidance to keep self-service off the shared
+  /// credential) — that credential no longer exists, so this is now the
+  /// only write path, same endpoint already confirmed working for
+  /// self-service `meta`-field writes (see emergency-info sync). Identity
+  /// comes from the bearer token itself, so no separate id field is sent.
+  /// Only non-null fields are sent, so callers can update just what
+  /// changed. Returns null on success, else an error string.
   Future<String?> updateUserProfile({
-    required int userId,
+    required String userAccessToken,
     String? f3Name,
     String? firstName,
     String? lastName,
@@ -271,7 +337,6 @@ class F3ApiService extends ChangeNotifier {
     String? emergencyNotes,
   }) async {
     final payload = <String, dynamic>{
-      'id': userId,
       if (f3Name != null) 'f3Name': f3Name,
       if (firstName != null) 'firstName': firstName,
       if (lastName != null) 'lastName': lastName,
@@ -281,7 +346,8 @@ class F3ApiService extends ChangeNotifier {
       if (emergencyPhone != null) 'emergencyPhone': emergencyPhone,
       if (emergencyNotes != null) 'emergencyNotes': emergencyNotes,
     };
-    final res = await _post('/v1/user', payload);
+    final res = await _patch('/v1/me/profile', payload,
+        bearerOverride: userAccessToken);
     if (res.status == 200 || res.status == 201) return null;
     return 'Profile update failed (${res.status}): ${res.body}';
   }
@@ -310,8 +376,13 @@ class F3ApiService extends ChangeNotifier {
     return 'Meta update failed (${res.status}): ${res.body}';
   }
 
-  Future<F3UserProfile?> findPaxByF3Name(String f3Name) async {
-    final data = await _get('/v1/user/f3name/${Uri.encodeComponent(f3Name)}');
+  /// [userAccessToken] is optional — pass it when the caller already has
+  /// one so this works for a signed-in PAX now that there's no app-level
+  /// credential; omit it to try the public read tier anonymously.
+  Future<F3UserProfile?> findPaxByF3Name(String f3Name,
+      {String? userAccessToken}) async {
+    final data = await _get('/v1/user/f3name/${Uri.encodeComponent(f3Name)}',
+        bearerOverride: userAccessToken);
     if (data == null) return null;
     return F3UserProfile.fromJson(data);
   }
@@ -325,9 +396,8 @@ class F3ApiService extends ChangeNotifier {
 
   Future<List<F3Location>> getLocations({bool forceRefresh = false}) async {
     if (_cachedLocations != null && !forceRefresh) return _cachedLocations!;
-    final data = await _get('/v1/location?pageSize=5000');
-    if (data == null) return _cachedLocations ?? [];
-    final list = data['locations'] as List<dynamic>? ?? [];
+    final list = await _getAllPages('/v1/location');
+    if (list == null) return _cachedLocations ?? [];
     final locations = list
         .map((e) => F3Location.fromJson(e as Map<String, dynamic>))
         .toList();
@@ -336,6 +406,21 @@ class F3ApiService extends ChangeNotifier {
   }
 
   Map<int, F3Location>? _cachedAoLocations;
+  List<dynamic>? _cachedRecurringEvents;
+
+  /// The recurring-series feed (`GET /v1/event`), shared by [getAoLocations]
+  /// and [getLocationSchedules] — both used to independently fetch the same
+  /// endpoint, which would have doubled the request count once the old
+  /// single `pageSize=10000` call became a real paginated walk.
+  Future<List<dynamic>> _getRecurringEvents({bool forceRefresh = false}) async {
+    if (_cachedRecurringEvents != null && !forceRefresh) {
+      return _cachedRecurringEvents!;
+    }
+    final events = await _getAllPages('/v1/event');
+    if (events == null) return _cachedRecurringEvents ?? [];
+    _cachedRecurringEvents = events;
+    return events;
+  }
 
   /// Maps each AO's org id to its physical location (lat/lon + address).
   /// Neither `/v1/event-instance` nor `/v1/location` alone carries this —
@@ -348,12 +433,11 @@ class F3ApiService extends ChangeNotifier {
     if (_cachedAoLocations != null && !forceRefresh) return _cachedAoLocations!;
     final results = await Future.wait([
       getLocations(forceRefresh: forceRefresh),
-      _get('/v1/event?pageSize=10000'),
+      _getRecurringEvents(forceRefresh: forceRefresh),
     ]);
     final locations = results[0] as List<F3Location>;
     final locById = {for (final l in locations) l.id: l};
-    final eventData = results[1] as Map<String, dynamic>?;
-    final events = eventData?['events'] as List<dynamic>? ?? [];
+    final events = results[1];
     final map = <int, F3Location>{};
     for (final e in events) {
       if (e is! Map) continue;
@@ -385,10 +469,8 @@ class F3ApiService extends ChangeNotifier {
             List<F3WeeklyWorkout> schedule,
             String? aoName,
             String? aoOrgId
-          })>> getLocationSchedules() async {
-    final data = await _get('/v1/event?pageSize=10000');
-    if (data == null) return {};
-    final events = data['events'] as List<dynamic>? ?? [];
+          })>> getLocationSchedules({bool forceRefresh = false}) async {
+    final events = await _getRecurringEvents(forceRefresh: forceRefresh);
     final result = <String,
         ({
           List<F3WeeklyWorkout> schedule,
@@ -563,12 +645,15 @@ class F3ApiService extends ChangeNotifier {
 
   /// Who's HC'd (planned attendance) for one event instance — names + role
   /// (PAX/Q/Co-Q). The API deliberately allows any authenticated caller to
-  /// read this ("for preblast visibility"), so the app's own key works here
-  /// same as the other read endpoints.
+  /// read this ("for preblast visibility") — "any authenticated" still
+  /// means *some* token, though, so pass [userAccessToken] when the caller
+  /// has one. There's no app-level credential to fall back to if not.
   Future<List<F3AttendanceRecord>> getAttendanceForEvent(
-      int eventInstanceId) async {
+      int eventInstanceId,
+      {String? userAccessToken}) async {
     final data = await _get(
-        '/v1/attendance/event-instance/$eventInstanceId?isPlanned=true');
+        '/v1/attendance/event-instance/$eventInstanceId?isPlanned=true',
+        bearerOverride: userAccessToken);
     final list = data?['attendance'] as List?;
     if (list == null) return [];
     return list
@@ -593,14 +678,17 @@ class F3ApiService extends ChangeNotifier {
 
   /// All regions nationwide (492 as of 2026-07 — small enough to load in one
   /// call and search client-side; the endpoint defaults to `pageSize=10`
-  /// without this override). `/v1/org` has no server-side name/search filter
+  /// without an override). `/v1/org` has no server-side name/search filter
   /// (confirmed: `name`/`search`/`q` params are silently ignored, `total`
   /// stays 492 regardless) so there's no cheaper query to make per-keystroke
-  /// — caching the one full fetch is what actually avoids the repeat ~220KB
-  /// pull every time the region picker sheet is reopened.
+  /// — caching the one full walk is what actually avoids the repeat ~220KB
+  /// pull every time the region picker sheet is reopened. Was a single
+  /// `pageSize=5000` call (492 < 5000, so one page covered everything); now
+  /// walked via [_getAllPages] since stable pagination may cap `pageSize`
+  /// server-side regardless of what's requested.
   Future<List<F3Org>> getOrgs({bool forceRefresh = false}) async {
     if (_cachedOrgs != null && !forceRefresh) return _cachedOrgs!;
-    final data = await _getList('/v1/org?pageSize=5000');
+    final data = await _getAllPages('/v1/org');
     if (data == null) return _cachedOrgs ?? [];
     try {
       final orgs =
@@ -645,9 +733,11 @@ class F3ApiService extends ChangeNotifier {
   /// the write reassigns the event to the region). Leave [eventInstanceId]
   /// null to create a brand-new unscheduled event, in which case [orgId] is
   /// the AO to create it under. [startDate] (`YYYY-MM-DD`) is required by the
-  /// API in both cases. Uses the app API key (the trusted-app write model).
+  /// API in both cases. Uses the signed-in PAX's own access token — there's
+  /// no app-level credential to write through anymore.
   /// Returns null on success, else an error string.
   Future<String?> publishBackblast({
+    required String userAccessToken,
     int? eventInstanceId,
     required String orgId,
     required String startDate,
@@ -656,9 +746,17 @@ class F3ApiService extends ChangeNotifier {
     required int fngCount,
     String? eventTypeId,
   }) async {
+    // The API now does strict region/org-ID parsing — a non-numeric string
+    // that used to get silently coerced (or worked by luck) now fails the
+    // request outright. Fail clearly client-side instead of sending a
+    // malformed payload and surfacing a confusing server error.
+    final orgIdInt = int.tryParse(orgId);
+    if (orgIdInt == null) {
+      return 'Invalid orgId "$orgId" — expected a numeric org id';
+    }
     final payload = <String, dynamic>{
       if (eventInstanceId != null) 'id': eventInstanceId,
-      'orgId': int.tryParse(orgId) ?? orgId,
+      'orgId': orgIdInt,
       'startDate': startDate,
       'backblast': backblast,
       'backblastTs': DateTime.now().millisecondsSinceEpoch,
@@ -667,22 +765,27 @@ class F3ApiService extends ChangeNotifier {
       if (eventTypeId != null) 'eventTypeId': int.tryParse(eventTypeId),
       'isActive': true,
     };
-    final res = await _post('/v1/event-instance', payload);
+    final res = await _post('/v1/event-instance', payload,
+        bearerOverride: userAccessToken);
     if (res.status == 200 || res.status == 201) return null;
     return 'Event write failed (${res.status}): ${res.body}';
   }
 
   /// Records actual attendance for one PAX on an event instance.
   Future<String?> recordAttendance({
+    required String userAccessToken,
     required int eventInstanceId,
     required int userId,
     required int attendanceTypeId,
   }) async {
-    final res = await _post('/v1/attendance/actual', {
-      'eventInstanceId': eventInstanceId,
-      'userId': userId,
-      'attendanceTypeIds': [attendanceTypeId],
-    });
+    final res = await _post(
+        '/v1/attendance/actual',
+        {
+          'eventInstanceId': eventInstanceId,
+          'userId': userId,
+          'attendanceTypeIds': [attendanceTypeId],
+        },
+        bearerOverride: userAccessToken);
     if (res.status == 200 || res.status == 201) return null;
     return 'Attendance write failed (${res.status}): ${res.body}';
   }
@@ -693,6 +796,7 @@ class F3ApiService extends ChangeNotifier {
   /// attendance). Self-signup is allowed with the user's own token — no editor
   /// role needed. Returns null on success, else an error string.
   Future<String?> signUpForEvent({
+    required String userAccessToken,
     required int eventInstanceId,
     required int userId,
   }) async {
@@ -703,6 +807,7 @@ class F3ApiService extends ChangeNotifier {
         'userId': userId,
         'attendanceTypeIds': [attendanceTypePax],
       },
+      bearerOverride: userAccessToken,
     );
     if (res.status == 200 || res.status == 201) return null;
     return 'Sign-up failed (${res.status}): ${res.body}';
@@ -713,11 +818,13 @@ class F3ApiService extends ChangeNotifier {
   /// the real F3 Nation route (`DELETE /attendance/event-instance/{id}/user/{id}`).
   /// Use [removeQ] instead to step down from Q while staying HC'd.
   Future<String?> withdrawFromEvent({
+    required String userAccessToken,
     required int eventInstanceId,
     required int userId,
   }) async {
     final res = await _delete(
       '/v1/attendance/event-instance/$eventInstanceId/user/$userId',
+      bearerOverride: userAccessToken,
     );
     if (res.status == 200 || res.status == 201) return null;
     return 'Withdraw failed (${res.status}): ${res.body}';
@@ -725,12 +832,14 @@ class F3ApiService extends ChangeNotifier {
 
   /// Take the Q for an open event.
   Future<String?> takeQ({
+    required String userAccessToken,
     required int eventInstanceId,
     required int userId,
   }) async {
     final res = await _post(
       '/v1/attendance/take-q',
       {'eventInstanceId': eventInstanceId, 'userId': userId},
+      bearerOverride: userAccessToken,
     );
     if (res.status == 200 || res.status == 201) return null;
     return 'Take-Q failed (${res.status}): ${res.body}';
@@ -738,12 +847,14 @@ class F3ApiService extends ChangeNotifier {
 
   /// Steps down from Q for an event, keeping the PAX's HC/attendance intact.
   Future<String?> removeQ({
+    required String userAccessToken,
     required int eventInstanceId,
     required int userId,
   }) async {
     final res = await _delete(
       '/v1/attendance/remove-q',
       payload: {'eventInstanceId': eventInstanceId, 'userId': userId},
+      bearerOverride: userAccessToken,
     );
     if (res.status == 200 || res.status == 201) return null;
     return 'Remove-Q failed (${res.status}): ${res.body}';
@@ -765,30 +876,40 @@ class F3ApiService extends ChangeNotifier {
   /// slackbot itself populates) — best-effort pending confirmation from
   /// Moneyball that this exact shape is what downstream consumers expect.
   Future<String?> postPreblast({
+    required String userAccessToken,
     required int eventInstanceId,
     required String orgId,
     required String startDate,
     required String preblast,
   }) async {
-    final res = await _post('/v1/event-instance', {
-      'id': eventInstanceId,
-      'orgId': int.tryParse(orgId) ?? orgId,
-      'startDate': startDate,
-      'preblast': preblast,
-      'preblastRich': {
-        'type': 'rich_text',
-        'elements': [
-          {
-            'type': 'rich_text_section',
+    // See publishBackblast's matching check — strict region/org-ID parsing
+    // means a non-numeric orgId must fail here, not get sent as-is.
+    final orgIdInt = int.tryParse(orgId);
+    if (orgIdInt == null) {
+      return 'Invalid orgId "$orgId" — expected a numeric org id';
+    }
+    final res = await _post(
+        '/v1/event-instance',
+        {
+          'id': eventInstanceId,
+          'orgId': orgIdInt,
+          'startDate': startDate,
+          'preblast': preblast,
+          'preblastRich': {
+            'type': 'rich_text',
             'elements': [
-              {'type': 'text', 'text': preblast},
+              {
+                'type': 'rich_text_section',
+                'elements': [
+                  {'type': 'text', 'text': preblast},
+                ],
+              },
             ],
           },
-        ],
-      },
-      'preblastTs': DateTime.now().millisecondsSinceEpoch,
-      'isActive': true,
-    });
+          'preblastTs': DateTime.now().millisecondsSinceEpoch,
+          'isActive': true,
+        },
+        bearerOverride: userAccessToken);
     if (res.status == 200 || res.status == 201) return null;
     return 'Preblast failed (${res.status}): ${res.body}';
   }
@@ -802,11 +923,11 @@ class F3ApiService extends ChangeNotifier {
   /// AO org meta, first match wins. Off by default since it costs the API
   /// extra lookups this call doesn't otherwise need.
   Future<F3EventInstance?> getEventInstanceById(int id,
-      {bool includeSlackChannelId = false}) async {
+      {bool includeSlackChannelId = false, String? userAccessToken}) async {
     final path = includeSlackChannelId
         ? '/v1/event-instance/id/$id?includeSlackChannelId=true'
         : '/v1/event-instance/id/$id';
-    final data = await _get(path);
+    final data = await _get(path, bearerOverride: userAccessToken);
     if (data == null) return null;
     return F3EventInstance.fromJson(data);
   }

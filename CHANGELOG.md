@@ -11,6 +11,116 @@ whether or not that build shipped, so "how many builds have we done on
 
 ## [Unreleased]
 
+### Added (wireframe alignment, continued further still)
+- Browse AOs' map/list (MAP-01) gained a workout-type filter pill alongside
+  the existing state/region/day ones, filtering by the same `eventTypeName`
+  field already shown per-workout in each AO's schedule.
+- The preblast composer (EVT-02) now explicitly tells the Q that only the
+  shown plan text is sent — the Weinke draft itself stays on-device, same
+  as it always has, just not said out loud before.
+
+### Fixed
+- Merged `main`'s emergency-info F3 Nation sync (PR #1) and network-disclosure
+  README update (PR #4) into this branch. The emergency-info sync landed
+  after this branch's own API-key removal changed `F3ApiService.
+  updateUserProfile` from an app-key `userId:` call to a self-service
+  `userAccessToken:` call — `emergency_edit_screen.dart`'s sync push now
+  fetches the PAX's own access token once and uses it for both the
+  `updateUserProfile` and `updateMyMeta` calls, instead of the stale
+  `userId:` argument that no longer exists on that method.
+
+### Added (wireframe alignment, continued further)
+- Schedule's plain agenda (CAL-01) is now navigable week by week — prev/
+  next buttons shift the 8-day window instead of it always being locked
+  to "today through +7 days." "Jump to today" resets it back.
+- Q Mode's Name-O-Rama roll call (EVT-03/BB-01) now prefills from the
+  real F3 Nation HC list for today's checked-in event when "I'm at the
+  flag" linked one, instead of only DW's own local hard-commit tracking.
+  Still fully editable — the Q adds walk-ups or removes no-shows by
+  editing the text, same as before.
+
+### Added (wireframe alignment, continued)
+- Home gained a Region Info card (HOME-01/02) showing the PAX's home
+  region and its AO count, tapping through to Map/Cal — no SLT/leadership
+  directory, since `/v1/org` carries no position/role data at the region
+  level (only a signed-in user's own roles/positions come back from
+  `/v1/me/profile`). Announcements stay a placeholder; the API has no
+  backing for a broadcast feed at all.
+- Settings gained a "Map/Cal opens to" toggle (PROF-06), writing the same
+  `SettingsService.mapCalDefaultView` the Map/Cal tab itself reads.
+
+### Added (wireframe alignment)
+- A new-vs-returning welcome fork (FNG-01 in the official-app
+  wireframes) is now the first thing a signed-out visitor sees:
+  "I already post with F3" leads to the existing sign-in screen
+  unchanged; "I'm new to F3" leads into a new browse-map → lingo-card →
+  notification-prefs flow, ending in an honest placeholder about account
+  creation and region approval (the F3 Nation API has no endpoint for
+  either yet) rather than a dead end.
+- Onboarding (shown once after first sign-in) gained a PAX-03 "confirm
+  profile and home region" page between the intro and the optional-setup
+  page — surfaces what sign-in already resolved from the real F3 Nation
+  profile, with a "Change region" fix-it button for when it's wrong.
+
+### Changed (wireframe alignment)
+- Reorganized the bottom-nav shell to match the official F3 Nation app's
+  wireframe tab structure: Home / Map-Cal / Commz / Resources / Profile
+  (was Home / Plan / Schedule / Fellowship / You).
+  - **Map/Cal** merges the former standalone Browse-AOs entry point and
+    the Schedule tab behind a top toggle that remembers the last view
+    (also settable as a default in Settings — PROF-06).
+  - **Commz** (Region Chat) is now gated behind sign-in — a lock screen
+    for a signed-out PAX instead of an empty/broken chat view (FNG-01).
+  - **Resources** replaces "Plan": the same Q toolkit (Q Mode, Weinke,
+    Deck of Pain, Exicon), now grouped under the wireframe's own
+    structure (Q Tools / The Codex / QSource / App Help), plus a new
+    Lexicon entry and a lightweight Help & About screen. Also makes
+    **Q Builder reachable for the first time** — it existed in the
+    codebase but nothing linked to it before this.
+  - Brotherhood (PAX roster) no longer has its own tab — it wasn't one of
+    the official app's 5 either; still reachable from Home, same as
+    before.
+
+### Docs
+- Added `docs/wireframe-mapping.md`, `docs/learnings-for-official-app.md`,
+  and `docs/demo-script.md` for the Moneyball wireframe-comparison demo —
+  see those files for details.
+- Refreshed README.md — it still described the original offline-only MVP
+  ("zero network calls", "no Slack OAuth, no webhooks, no cloud sync"),
+  missing F3 Nation sign-in, the live map, Schedule/HC/Q, and backblast
+  publish entirely. Rewrote the intro, feature table, and privacy note;
+  trimmed the Roadmap to drop items already shipped (AO map, scheduling,
+  Exicon demo videos, custom Weinke builder, interval timing, light/dark
+  mode); documented the previously-undocumented `dart-defines.json` build
+  config (and that there's no API key to set anymore).
+
+### Changed
+- F3 Nation sign-in now requests `offline_access` explicitly — auth3's
+  strict OIDC cutover only issues a refresh token when the client asks for
+  it, unlike the old server. Sign-out's server-session-end call now takes
+  its endpoints from OIDC discovery first (same as sign-in and refresh),
+  falling back to the hardcoded `/api/oauth/*` paths only if discovery
+  itself fails. **Not tested live against prod auth from this environment
+  — no device/browser access here; verify sign-in, refresh, and sign-out
+  against prod before relying on this.**
+- No API key is compiled into the app anymore. Signed-out reads (map/AO
+  browse) go through the F3 API's public read tier with no Authorization
+  header; every write and per-user read now goes through the signed-in
+  PAX's own OAuth access token instead. `updateUserProfile` moved from the
+  app-key `POST /v1/user` to the self-service `PATCH /v1/me/profile`, using
+  that token. There was never a literal `F3_API_KEY` dart-define in any
+  tracked build script or CI workflow to remove — it only ever lived in the
+  gitignored `dart-defines.json` — so this is purely an app-code change.
+
+### Fixed
+- Locations/events/orgs now walk every page of the F3 API's stable
+  pagination instead of asking for everything in one oversized
+  `pageSize`, which a server-enforced page cap could now silently
+  truncate.
+- `publishBackblast`/`postPreblast` fail with a clear client-side error
+  on a non-numeric org id instead of sending one the API's now-strict
+  region-ID parsing would reject anyway.
+
 ## [2.6.0] - 2026-08-15
 
 ### Added

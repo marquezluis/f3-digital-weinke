@@ -7,11 +7,15 @@ import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../l10n/app_localizations.dart';
+import '../models/auth_models.dart';
 import '../services/app_profile_service.dart';
+import '../services/auth_service.dart';
+import '../services/f3_api_service.dart';
 import '../services/settings_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/f3_glossary_sheet.dart';
 import '../widgets/onboarding_scene.dart';
+import '../widgets/org_picker.dart';
 import 'emergency_edit_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -67,7 +71,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     final intro = _intro(context);
-    final isLast = _page == intro.length; // last page = the setup page
+    // Page order: intro pages, then confirm-profile (PAX-03 in the
+    // official-app wireframes), then the existing setup page (last).
+    final isLast = _page == intro.length + 1;
     return Scaffold(
       backgroundColor: context.f3bg,
       body: SafeArea(
@@ -92,6 +98,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         body: p.body,
                         showGlossaryLink: p.showGlossaryLink,
                       )),
+                  const _ConfirmProfilePage(),
                   _SetupPage(onDone: _finish),
                 ],
               ),
@@ -99,7 +106,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             // Dots
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(intro.length + 1, (i) {
+              children: List.generate(intro.length + 2, (i) {
                 final active = i == _page;
                 return AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
@@ -193,6 +200,134 @@ class _IntroPage extends StatelessWidget {
           ],
         ],
       ),
+    );
+  }
+}
+
+/// PAX-03 in the official-app wireframes: confirm the profile and home
+/// region the real F3 Nation sign-in already resolved
+/// (LoginGateScreen._signIn). Nothing here re-fetches anything — it
+/// surfaces what sign-in already populated and lets a PAX fix the region
+/// right away if it came back wrong, via the same org picker Profile's own
+/// "Change region" uses.
+class _ConfirmProfilePage extends StatefulWidget {
+  const _ConfirmProfilePage();
+
+  @override
+  State<_ConfirmProfilePage> createState() => _ConfirmProfilePageState();
+}
+
+class _ConfirmProfilePageState extends State<_ConfirmProfilePage> {
+  Future<void> _changeRegion() async {
+    final api = context.read<F3ApiService>();
+    final picked = await showOrgPickerSheet(context, fetchOrgs: api.getOrgs);
+    if (picked == null || !mounted) return;
+    api.userOrgId = picked.id;
+    final profile = context.read<AppProfileService>();
+    // Pass every field through explicitly — updateProfile replaces the
+    // whole record, and omitting displayName/authUserId here would wipe
+    // them back to the guest fallback (same bug ProfileScreen._changeRegion
+    // already guards against).
+    await profile.updateProfile(
+      role: profile.role,
+      displayName: profile.displayName,
+      homeAo: profile.homeAo,
+      region: picked.name,
+      authUserId: profile.authUserId,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final profile = context.watch<AppProfileService>();
+    final linked = context.watch<AuthService>().currentUser?.identities.any(
+              (i) => i.provider == AuthProvider.f3nation,
+            ) ??
+        false;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 28),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.badge_rounded, color: F3Colors.accent, size: 56),
+          const SizedBox(height: 20),
+          Text("You're in",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                  color: context.f3textPrimary,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900)),
+          const SizedBox(height: 8),
+          Text(
+              linked
+                  ? "Here's what F3 Nation has on file. Not right? Fix your region now — your name comes from your F3 Nation profile."
+                  : "Here's your local profile.",
+              textAlign: TextAlign.center,
+              style: TextStyle(color: context.f3textSecondary, fontSize: 14.5)),
+          const SizedBox(height: 24),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: context.f3card,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: context.f3divider),
+            ),
+            child: Column(
+              children: [
+                _ConfirmRow(
+                    icon: Icons.person_rounded,
+                    label: 'Name',
+                    value: profile.displayName.isEmpty
+                        ? '—'
+                        : profile.displayName),
+                const SizedBox(height: 10),
+                _ConfirmRow(
+                    icon: Icons.map_rounded,
+                    label: 'Home region',
+                    value:
+                        profile.region.isEmpty ? 'Not set' : profile.region),
+              ],
+            ),
+          ),
+          if (linked) ...[
+            const SizedBox(height: 14),
+            TextButton.icon(
+              onPressed: _changeRegion,
+              icon: const Icon(Icons.edit_rounded, size: 16),
+              label: const Text('Change region'),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ConfirmRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  const _ConfirmRow(
+      {required this.icon, required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, color: context.f3textMuted, size: 18),
+        const SizedBox(width: 10),
+        Text(label,
+            style: TextStyle(color: context.f3textMuted, fontSize: 13)),
+        const Spacer(),
+        Flexible(
+          child: Text(value,
+              textAlign: TextAlign.right,
+              style: TextStyle(
+                  color: context.f3textPrimary,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13.5)),
+        ),
+      ],
     );
   }
 }

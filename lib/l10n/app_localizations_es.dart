@@ -142,16 +142,16 @@ class AppLocalizationsEs extends AppLocalizations {
   String get navHome => 'Inicio';
 
   @override
-  String get navPlan => 'Plan';
+  String get navMapCal => 'Mapa/Cal';
 
   @override
-  String get navSchedule => 'Horario';
+  String get navCommz => 'Commz';
 
   @override
-  String get navCommunity => 'Hermandad';
+  String get navResources => 'Recursos';
 
   @override
-  String get navYou => 'Tú';
+  String get navProfile => 'Perfil';
 
   @override
   String get navSpartanCoQ => 'Spartan Co-Q';
@@ -450,6 +450,12 @@ class AppLocalizationsEs extends AppLocalizations {
   String get scheduleNext7Days => 'PRÓXIMOS 7 DÍAS';
 
   @override
+  String get scheduleWeekPrevious => 'Semana anterior';
+
+  @override
+  String get scheduleWeekNext => 'Semana siguiente';
+
+  @override
   String get scheduleUpcomingFiltered => 'PRÓXIMOS';
 
   @override
@@ -646,6 +652,10 @@ class AppLocalizationsEs extends AppLocalizations {
       'Primero construye un Weinke — la rutina aparecerá aquí automáticamente.';
 
   @override
+  String get schedulePreblastPlanLocalNote =>
+      'Solo se envía este texto del plan en el preblast — tu borrador de Weinke permanece en este dispositivo.';
+
+  @override
   String get scheduleBuildWeinke => 'Construir mi Weinke';
 
   @override
@@ -702,6 +712,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get browseAosDayFilter => 'Día';
 
   @override
+  String get browseAosTypeFilter => 'Tipo';
+
+  @override
   String get browseAosClearAll => 'Borrar todo';
 
   @override
@@ -756,6 +769,9 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get browseAosFilterByDay => 'Filtrar por día de entrenamiento';
+
+  @override
+  String get browseAosFilterByType => 'Filtrar por tipo de entrenamiento';
 
   @override
   String browseAosShowOnMap(String name) {

@@ -346,29 +346,29 @@ abstract class AppLocalizations {
   /// **'Home'**
   String get navHome;
 
-  /// No description provided for @navPlan.
+  /// No description provided for @navMapCal.
   ///
   /// In en, this message translates to:
-  /// **'Plan'**
-  String get navPlan;
+  /// **'Map/Cal'**
+  String get navMapCal;
 
-  /// No description provided for @navSchedule.
+  /// No description provided for @navCommz.
   ///
   /// In en, this message translates to:
-  /// **'Schedule'**
-  String get navSchedule;
+  /// **'Commz'**
+  String get navCommz;
 
-  /// No description provided for @navCommunity.
+  /// No description provided for @navResources.
   ///
   /// In en, this message translates to:
-  /// **'Fellowship'**
-  String get navCommunity;
+  /// **'Resources'**
+  String get navResources;
 
-  /// No description provided for @navYou.
+  /// No description provided for @navProfile.
   ///
   /// In en, this message translates to:
-  /// **'You'**
-  String get navYou;
+  /// **'Profile'**
+  String get navProfile;
 
   /// No description provided for @navSpartanCoQ.
   ///
@@ -856,6 +856,18 @@ abstract class AppLocalizations {
   /// **'NEXT 7 DAYS'**
   String get scheduleNext7Days;
 
+  /// No description provided for @scheduleWeekPrevious.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous week'**
+  String get scheduleWeekPrevious;
+
+  /// No description provided for @scheduleWeekNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Next week'**
+  String get scheduleWeekNext;
+
   /// No description provided for @scheduleUpcomingFiltered.
   ///
   /// In en, this message translates to:
@@ -1198,6 +1210,12 @@ abstract class AppLocalizations {
   /// **'Build a Weinke first — the routine shows up here automatically.'**
   String get schedulePreblastPlanEmpty;
 
+  /// No description provided for @schedulePreblastPlanLocalNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Only this plan text is sent in the preblast — your Weinke draft itself stays on this device.'**
+  String get schedulePreblastPlanLocalNote;
+
   /// No description provided for @scheduleBuildWeinke.
   ///
   /// In en, this message translates to:
@@ -1300,6 +1318,12 @@ abstract class AppLocalizations {
   /// **'Day'**
   String get browseAosDayFilter;
 
+  /// No description provided for @browseAosTypeFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'Type'**
+  String get browseAosTypeFilter;
+
   /// No description provided for @browseAosClearAll.
   ///
   /// In en, this message translates to:
@@ -1401,6 +1425,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Filter by workout day'**
   String get browseAosFilterByDay;
+
+  /// No description provided for @browseAosFilterByType.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter by workout type'**
+  String get browseAosFilterByType;
 
   /// No description provided for @browseAosShowOnMap.
   ///

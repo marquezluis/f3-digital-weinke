@@ -10,8 +10,10 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../models/auth_models.dart';
 import '../models/chat_message.dart';
 import '../services/app_profile_service.dart';
+import '../services/auth_service.dart';
 import '../services/chat_service.dart';
 import '../services/region_service.dart';
 import '../theme/app_theme.dart';
@@ -59,8 +61,16 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
+  bool _isLinked(AuthService auth) =>
+      auth.currentUser?.identities
+          .any((i) => i.provider == AuthProvider.f3nation) ??
+      false;
+
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthService>();
+    if (!_isLinked(auth)) return const _CommzLockScreen();
+
     final profile = context.watch<AppProfileService>();
     final region = context.watch<RegionService>();
     final chat = context.watch<ChatService>();
@@ -174,6 +184,52 @@ class _ChannelSwitcher extends StatelessWidget {
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+/// Shown instead of Commz for a signed-out PAX (FNG-01 in the official-app
+/// wireframes shows the same idea: a lock screen rather than an empty or
+/// broken chat view). Points at Profile rather than re-running the sign-in
+/// flow here — that flow (completing welcome, linking the F3 profile) is
+/// real account-linking work that belongs in one place, not duplicated.
+class _CommzLockScreen extends StatelessWidget {
+  const _CommzLockScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: context.f3bg,
+      appBar: AppBar(
+        title: const Text('REGION CHAT',
+            style: TextStyle(
+                fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: 1.2)),
+        backgroundColor: context.f3bg,
+      ),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.lock_rounded, color: context.f3textMuted, size: 48),
+              const SizedBox(height: 16),
+              Text('Sign in to see Commz',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      color: context.f3textPrimary,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 16)),
+              const SizedBox(height: 6),
+              Text(
+                  'Region Chat is tied to your F3 Nation region. Sign in '
+                  'from the Profile tab to unlock it.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: context.f3textSecondary, fontSize: 13)),
+            ],
+          ),
+        ),
       ),
     );
   }

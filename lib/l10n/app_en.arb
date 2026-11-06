@@ -156,10 +156,10 @@
   },
 
   "navHome": "Home",
-  "navPlan": "Plan",
-  "navSchedule": "Schedule",
-  "navCommunity": "Fellowship",
-  "navYou": "You",
+  "navMapCal": "Map/Cal",
+  "navCommz": "Commz",
+  "navResources": "Resources",
+  "navProfile": "Profile",
   "navSpartanCoQ": "Spartan Co-Q",
 
   "loginGateForF3Nation": "FOR F3 NATION",
@@ -270,6 +270,8 @@
   "scheduleTitle": "Schedule",
   "scheduleJumpToday": "Jump to today",
   "scheduleNext7Days": "NEXT 7 DAYS",
+  "scheduleWeekPrevious": "Previous week",
+  "scheduleWeekNext": "Next week",
   "scheduleUpcomingFiltered": "UPCOMING",
   "scheduleTapDateHint": "Tap a date on the calendar above to see just that day.",
   "scheduleNoMatches": "No matches",
@@ -336,6 +338,7 @@
   "schedulePreblastNotesLabel": "Notes (optional)",
   "schedulePreblastNotesHint": "Weather, gear reminders, anything else worth flagging up top",
   "schedulePreblastPlanEmpty": "Build a Weinke first — the routine shows up here automatically.",
+  "schedulePreblastPlanLocalNote": "Only this plan text is sent in the preblast — your Weinke draft itself stays on this device.",
   "scheduleBuildWeinke": "Build my Weinke",
   "scheduleEditWeinke": "Edit Weinke",
   "scheduleCancel": "Cancel",
@@ -354,6 +357,7 @@
   "browseAosStateFilter": "State",
   "browseAosRegionFilter": "Region",
   "browseAosDayFilter": "Day",
+  "browseAosTypeFilter": "Type",
   "browseAosClearAll": "Clear all",
   "browseAosNoAosFound": "No AOs out here",
   "browseAosCouldntLoad": "Couldn't load AOs — pull to refresh.",
@@ -371,6 +375,7 @@
   "browseAosFilterByState": "Filter by state",
   "browseAosFilterByRegion": "Filter by region",
   "browseAosFilterByDay": "Filter by workout day",
+  "browseAosFilterByType": "Filter by workout type",
   "browseAosShowOnMap": "Show {name} on the map",
   "@browseAosShowOnMap": {
     "placeholders": { "name": { "type": "String" } }

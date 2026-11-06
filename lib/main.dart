@@ -30,6 +30,7 @@ import 'config/app_config.dart';
 import 'screens/shell_screen.dart';
 import 'screens/local_login_screen.dart';
 import 'screens/login_gate_screen.dart';
+import 'screens/welcome_fork_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/schedule_screen.dart' show MineFilter;
 import 'models/auth_models.dart';
@@ -212,6 +213,13 @@ class DigitalWeinke extends StatelessWidget {
         ChangeNotifierProvider<ValueNotifier<MineFilter?>>(
           create: (_) => ValueNotifier<MineFilter?>(null),
         ),
+        // Same jump also needs to force Map/Cal's own toggle to Calendar —
+        // that tab's remembered view (Settings) might be Map, and this is a
+        // "show me my schedule" action, not a "respect whatever I had open
+        // last" one.
+        ChangeNotifierProvider<ValueNotifier<MapCalView?>>(
+          create: (_) => ValueNotifier<MapCalView?>(null),
+        ),
       ],
       child: Consumer<SettingsService>(
         builder: (context, settings, child) => MaterialApp(
@@ -369,11 +377,24 @@ class _AppEntryState extends State<_AppEntry> with WidgetsBindingObserver {
           });
         }
 
-        // SSO-required: without an F3 Nation session, the only way in is the
-        // login gate (which still exposes Emergency info with no sign-in).
-        if (!hasF3 || f3Api.sessionInvalid) {
+        // A session that just died goes straight back to the sign-in
+        // screen (with its "your session expired" notice) — not the
+        // new-vs-returning fork below, which would be a confusing detour
+        // for someone who was signed in a moment ago.
+        if (f3Api.sessionInvalid) {
           _unlocked = false; // re-lock the local app-lock on next sign-in
           return const LoginGateScreen();
+        }
+
+        // SSO-required: without an F3 Nation session, the first thing a
+        // visitor sees is the new-vs-returning fork (FNG-01 in the
+        // official-app wireframes) — "I'm new to F3" leads into
+        // FngWelcomeScreen (browse/lingo/notif-prefs/placeholder); "I
+        // already post with F3" pushes LoginGateScreen (unchanged) to sign
+        // in for real.
+        if (!hasF3) {
+          _unlocked = false; // re-lock the local app-lock on next sign-in
+          return const WelcomeForkScreen();
         }
 
         // First run after sign-in: intro + optional setup (biometric/emergency).

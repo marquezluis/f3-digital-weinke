@@ -9,6 +9,7 @@ import '../models/region_models.dart';
 import '../models/f3_api_models.dart';
 import '../services/region_service.dart';
 import '../services/app_profile_service.dart';
+import '../services/auth_service.dart';
 import '../services/f3_api_service.dart';
 import '../services/settings_service.dart' hide AppRole;
 import '../theme/app_theme.dart';
@@ -362,7 +363,7 @@ class _BrotherhoodScreenState extends State<BrotherhoodScreen> {
           // only, never blocks manual entry if the API's unavailable.
           Future<void> onNameChanged(String value) async {
             final q = value.trim().toLowerCase();
-            if (q.length < 2 || !api.isConfigured) {
+            if (q.length < 2) {
               if (matches.isNotEmpty) setSheetState(() => matches = []);
               return;
             }
@@ -462,9 +463,8 @@ class _BrotherhoodScreenState extends State<BrotherhoodScreen> {
                   controller: name,
                   label: 'F3 Name',
                   icon: Icons.person_rounded),
-              // F3 Nation lookup (only when API configured)
-              if (api.isConfigured) ...[
-                const SizedBox(height: 4),
+              // F3 Nation lookup
+              const SizedBox(height: 4),
                 Row(
                   children: [
                     Expanded(
@@ -503,7 +503,10 @@ class _BrotherhoodScreenState extends State<BrotherhoodScreen> {
                                 final q = name.text.trim();
                                 if (q.isEmpty) return;
                                 setSheetState(() => f3Searching = true);
-                                final result = await api.findPaxByF3Name(q);
+                                final token =
+                                    await ctx.read<AuthService>().getF3AccessToken();
+                                final result = await api.findPaxByF3Name(q,
+                                    userAccessToken: token);
                                 // The sheet can close while this lookup is in
                                 // flight — setSheetState on a defunct
                                 // StatefulBuilder throws "setState() called
@@ -555,7 +558,6 @@ class _BrotherhoodScreenState extends State<BrotherhoodScreen> {
                     ),
                   ],
                 ),
-              ],
               _Field(
                   controller: contact,
                   label: 'Phone / Slack',

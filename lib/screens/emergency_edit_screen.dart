@@ -188,12 +188,10 @@ class _EmergencyEditScreenState extends State<EmergencyEditScreen> {
     final nav = Navigator.of(context);
     final auth = context.read<AuthService>();
     final api = context.read<F3ApiService>();
-    final authUserId = context.read<AppProfileService>().authUserId;
     await context.read<EmergencyService>().save(info);
     unawaited(_pushSyncedFields(
       auth: auth,
       api: api,
-      authUserId: authUserId,
       contactName: info.contactName,
       contactPhone: info.contactPhone,
       syncNotes: info.syncNotes,
@@ -218,7 +216,6 @@ class _EmergencyEditScreenState extends State<EmergencyEditScreen> {
   Future<void> _pushSyncedFields({
     required AuthService auth,
     required F3ApiService api,
-    required String authUserId,
     required String contactName,
     required String contactPhone,
     required String syncNotes,
@@ -231,10 +228,10 @@ class _EmergencyEditScreenState extends State<EmergencyEditScreen> {
   }) async {
     try {
       if (!_isLinked(auth)) return;
-      final userId = int.tryParse(authUserId);
-      if (userId == null) return;
+      final token = await auth.getF3AccessToken();
+      if (token == null) return;
       await api.updateUserProfile(
-        userId: userId,
+        userAccessToken: token,
         emergencyContact: contactName,
         emergencyPhone: contactPhone,
         emergencyNotes: syncNotes,
@@ -262,8 +259,6 @@ class _EmergencyEditScreenState extends State<EmergencyEditScreen> {
           'organ_donor': organDonor,
       };
       if (meta.isEmpty) return;
-      final token = await auth.getF3AccessToken();
-      if (token == null) return;
       await api.updateMyMeta(userAccessToken: token, meta: meta);
     } catch (_) {
       // Best-effort only.

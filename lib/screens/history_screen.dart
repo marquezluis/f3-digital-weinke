@@ -487,8 +487,8 @@ class _BackblastScreenState extends State<BackblastScreen> {
 
   /// Publish this backblast to F3 Nation: pick (or create) the event
   /// instance, write the backblast + counts, then attendance for each PAX and
-  /// Q credit. Writes go through the app API key; identity is the signed-in
-  /// user's token.
+  /// Q credit. Every write goes through the signed-in PAX's own access
+  /// token — there's no app-level credential to write through anymore.
   Future<void> _publish(WorkoutHistory entry) async {
     final auth = context.read<AuthService>();
     final api = context.read<F3ApiService>();
@@ -553,6 +553,7 @@ class _BackblastScreenState extends State<BackblastScreen> {
       final startDate =
           '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
       final err = await api.publishBackblast(
+        userAccessToken: token,
         eventInstanceId: existing?.numericId,
         orgId: existing?.orgId?.toString() ?? orgId,
         startDate: startDate,
@@ -573,13 +574,15 @@ class _BackblastScreenState extends State<BackblastScreen> {
       final eiId = chosen.instance?.numericId;
       if (eiId != null) {
         for (final paxName in entry.pax) {
-          final pax = await api.findPaxByF3Name(paxName.replaceAll('@', ''));
+          final pax = await api.findPaxByF3Name(paxName.replaceAll('@', ''),
+              userAccessToken: token);
           final uid = int.tryParse(pax?.id ?? '');
           if (uid == null) {
             failed.add(paxName);
             continue;
           }
           final e = await api.recordAttendance(
+            userAccessToken: token,
             eventInstanceId: eiId,
             userId: uid,
             attendanceTypeId: F3ApiService.attendanceTypePax,
@@ -594,6 +597,7 @@ class _BackblastScreenState extends State<BackblastScreen> {
         final quid = int.tryParse(profile.authUserId);
         if (quid != null) {
           await api.recordAttendance(
+            userAccessToken: token,
             eventInstanceId: eiId,
             userId: quid,
             attendanceTypeId: F3ApiService.attendanceTypeQ,
@@ -607,7 +611,7 @@ class _BackblastScreenState extends State<BackblastScreen> {
       String slackNote = '';
       if (eiId != null) {
         final withChannel = await api.getEventInstanceById(eiId,
-            includeSlackChannelId: true);
+            includeSlackChannelId: true, userAccessToken: token);
         final channelId = withChannel?.backblastSlackChannelId;
         if (channelId != null && channelId.isNotEmpty) {
           slackNote = ' · Posting to Slack channel $channelId';

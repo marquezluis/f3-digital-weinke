@@ -11,6 +11,12 @@ import 'spartan_service.dart';
 
 enum AppRole { pax, q }
 
+/// Which view the merged Map/Cal tab opens to (PROF-06 in the wireframes —
+/// "default Map vs Calendar view"). The tab itself also writes here
+/// whenever the PAX manually switches views, so it always reopens to
+/// whichever was used last, not just whatever was set in Settings.
+enum MapCalView { map, calendar }
+
 class SettingsService extends ChangeNotifier {
   static const _keyCouponMode      = 'coupon_mode';
   static const _keyIntensities     = 'intensities';
@@ -36,6 +42,7 @@ class SettingsService extends ChangeNotifier {
   static const _keyAtTheFlagSince  = 'at_the_flag_since';
   static const _keyAtTheFlagEventId = 'at_the_flag_event_instance_id';
   static const _keyFoundingQuestCelebrated = 'founding_quest_celebrated';
+  static const _keyMapCalDefaultView = 'map_cal_default_view';
 
   WorkoutSettings _settings = const WorkoutSettings();
   WorkoutSettings get settings => _settings;
@@ -78,6 +85,9 @@ class SettingsService extends ChangeNotifier {
 
   ThemeMode _themeMode = ThemeMode.dark;
   ThemeMode get themeMode => _themeMode;
+
+  MapCalView _mapCalDefaultView = MapCalView.map;
+  MapCalView get mapCalDefaultView => _mapCalDefaultView;
 
   Locale _locale = const Locale('en');
   Locale get locale => _locale;
@@ -203,6 +213,10 @@ class SettingsService extends ChangeNotifier {
       'dark'   => ThemeMode.dark,
       _        => ThemeMode.system,
     };
+    _mapCalDefaultView =
+        prefs.getString(_keyMapCalDefaultView) == 'calendar'
+            ? MapCalView.calendar
+            : MapCalView.map;
     const supportedLocales = {'en', 'es', 'fr'};
     final deviceLocale = PlatformDispatcher.instance.locale.languageCode;
     final defaultLocale =
@@ -305,6 +319,15 @@ class SettingsService extends ChangeNotifier {
       _                => 'dark',
     };
     await prefs.setString(_keyThemeMode, str);
+  }
+
+  Future<void> setMapCalDefaultView(MapCalView view) async {
+    if (_mapCalDefaultView == view) return;
+    _mapCalDefaultView = view;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+        _keyMapCalDefaultView, view == MapCalView.calendar ? 'calendar' : 'map');
   }
 
   Future<void> setMusicEnabled(bool value) async {
