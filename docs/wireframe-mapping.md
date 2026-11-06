@@ -44,10 +44,10 @@ actual files before the demo to confirm screen-by-screen wording matches.
 | HOME-01 | Region hub: SLT announcements (read state, reactions) | `home_screen.dart` (`_RegionInfoCard`, new this pass) | partial | Region name + AO count shown; announcements are a placeholder — no `/v1/regions/{id}/home` feed or per-user read-state exists |
 | HOME-02 | Special events, region info, SLT directory | `home_screen.dart` (`_RegionInfoCard`) | partial | Region info covered; no SLT/leadership directory — `/v1/org` carries no position/role data at the region level |
 | MAP-01 | AO map with filters | `map_cal_screen.dart` → `browse_aos_screen.dart` | partial | Map + day/weekday + state/region filters already existed; a workout-type filter does not |
-| CAL-01 | Week calendar with Q status, week nav | `map_cal_screen.dart` → `schedule_screen.dart` | partial | Month-grid nav + a fixed 7-day agenda already existed; no dedicated week-level prev/next control |
+| CAL-01 | Week calendar with Q status, week nav | `map_cal_screen.dart` → `schedule_screen.dart` | done | Month-grid nav already existed; the plain agenda's fixed 7-day window is now navigable week by week too (added in a follow-up pass) |
 | EVT-01 | HC, take Q | `schedule_screen.dart` | done | Pre-existing, real writes to the API |
 | EVT-02 | Preblast with gear chips and a private Q plan | `schedule_screen.dart` (preblast composer) | partial | Preblast posting is real; no gear-chip UI. "The Plan" (DW's own Weinke draft) stays device-local by design but isn't explicitly labeled as such in the preblast UI |
-| EVT-03 | Backblast with roster and FNG count | `history_screen.dart` / `save_session_sheet.dart` | partial | Publishing a real backblast + FNG count to the API is done; the roster is typed/rolled manually, not pre-filled from the real HC list + walk-ups |
+| EVT-03 | Backblast with roster and FNG count | `history_screen.dart` / `save_session_sheet.dart` / `timer_screen.dart` | done | Publishing a real backblast + FNG count to the API is done; roll call (`timer_screen.dart`'s `_WorkoutSummarySheetState`) now prefills from the real HC list for the linked event (added in a follow-up pass), Q still adds walk-ups/removes no-shows by editing the text. FNG count stays manual by necessity — FNGs aren't on any HC list to prefill from |
 | BB-01 | Backblast detail | `history_screen.dart`'s `BackblastScreen` | done | Pre-existing |
 
 ## Commz (6 screens)

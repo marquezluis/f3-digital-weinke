@@ -15,6 +15,11 @@ whether or not that build shipped, so "how many builds have we done on
 - Schedule's plain agenda (CAL-01) is now navigable week by week — prev/
   next buttons shift the 8-day window instead of it always being locked
   to "today through +7 days." "Jump to today" resets it back.
+- Q Mode's Name-O-Rama roll call (EVT-03/BB-01) now prefills from the
+  real F3 Nation HC list for today's checked-in event when "I'm at the
+  flag" linked one, instead of only DW's own local hard-commit tracking.
+  Still fully editable — the Q adds walk-ups or removes no-shows by
+  editing the text, same as before.
 
 ### Added (wireframe alignment, continued)
 - Home gained a Region Info card (HOME-01/02) showing the PAX's home

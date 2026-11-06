@@ -16,8 +16,10 @@ import '../models/exercise.dart';
 import '../models/mumblechatter_lines.dart';
 import '../models/timer_state.dart';
 import '../models/workout_plan.dart';
+import '../services/auth_service.dart';
 import '../services/current_workout_service.dart';
 import '../services/exercise_service.dart';
+import '../services/f3_api_service.dart';
 import '../services/region_service.dart';
 import '../services/settings_service.dart';
 import '../services/timer_service.dart';
@@ -2331,11 +2333,56 @@ class _WorkoutSummarySheet extends StatefulWidget {
 class _WorkoutSummarySheetState extends State<_WorkoutSummarySheet> {
   String _rolledPax = '';
 
-  /// Today's real HC list for the checked-in AO, if any — beats retyping
-  /// names that were already committed via Brotherhood's Add HC sheet.
-  /// Never overwrites names already entered this session.
+  // EVT-03/BB-01 in the official-app wireframes: the real F3 Nation HC
+  // list for today's checked-in event, if "I'm at the flag" linked one —
+  // null until loaded (or if there's nothing to load). Fetched once in
+  // initState so it's ready well before the Q reaches COT and opens roll
+  // call, not fetched on tap (which would add a visible delay right when
+  // they need the dialog).
+  List<String>? _realHcNames;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRealHcNames();
+  }
+
+  /// Best-effort: silently does nothing without a linked real event, or if
+  /// the fetch fails — the local hard-commit seed below still covers that
+  /// case, same as before this existed.
+  Future<void> _loadRealHcNames() async {
+    final eventId =
+        int.tryParse(context.read<SettingsService>().atTheFlagEventInstanceId ?? '');
+    if (eventId == null) return;
+    final auth = context.read<AuthService>();
+    final api = context.read<F3ApiService>();
+    final token = await auth.getF3AccessToken();
+    if (!mounted) return;
+    final records =
+        await api.getAttendanceForEvent(eventId, userAccessToken: token);
+    if (!mounted || records.isEmpty) return;
+    final names = records
+        .map((r) => r.f3Name)
+        .whereType<String>()
+        .where((n) => n.isNotEmpty)
+        .toSet()
+        .toList();
+    if (names.isNotEmpty) setState(() => _realHcNames = names);
+  }
+
+  /// Today's HC list for the checked-in AO, if any — beats retyping names
+  /// already committed. Never overwrites names already entered this
+  /// session (roll call is still the Q's own confirmation — walk-ups get
+  /// added and no-shows get removed right there, this is a starting
+  /// point, not a lock). Prefers the real F3 Nation HC list
+  /// (_realHcNames) over DW's own local hard-commit tracking — a real HC
+  /// through Schedule is a stronger signal than a locally-logged one, and
+  /// the two could otherwise disagree.
   String _seededRollCall() {
     if (_rolledPax.isNotEmpty) return _rolledPax;
+    if (_realHcNames != null && _realHcNames!.isNotEmpty) {
+      return _realHcNames!.join(', ');
+    }
     final aoName = context.read<SettingsService>().atTheFlagAo;
     if (aoName == null) return '';
     final region = context.read<RegionService>();
