@@ -107,6 +107,7 @@ class EmergencyScreen extends StatelessWidget {
                 rows: [
                   _Row('Contact', _join([i.contactName, i.contactRelationship])),
                   _Row('Phone', i.contactPhone, isPhone: true),
+                  _Row('Notes', i.syncNotes),
                   _Row('Blood type', i.bloodType),
                   _Row('Allergies', i.allergies),
                   _Row('Conditions', i.conditions),

@@ -11,6 +11,16 @@ whether or not that build shipped, so "how many builds have we done on
 
 ## [Unreleased]
 
+### Fixed
+- Merged `main`'s emergency-info F3 Nation sync (PR #1) and network-disclosure
+  README update (PR #4) into this branch. The emergency-info sync landed
+  after this branch's own API-key removal changed `F3ApiService.
+  updateUserProfile` from an app-key `userId:` call to a self-service
+  `userAccessToken:` call — `emergency_edit_screen.dart`'s sync push now
+  fetches the PAX's own access token once and uses it for both the
+  `updateUserProfile` and `updateMyMeta` calls, instead of the stale
+  `userId:` argument that no longer exists on that method.
+
 ### Added (wireframe alignment, continued further)
 - Schedule's plain agenda (CAL-01) is now navigable week by week — prev/
   next buttons shift the 8-day window instead of it always being locked

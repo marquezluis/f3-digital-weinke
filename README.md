@@ -493,7 +493,7 @@ flutter analyze
 
 - Signed in, a published backblast, attendance, HC, Q, and preblast all go to F3 Nation's real API, using your own OAuth access token — never a key shared across every install.
 - Your saved session's own notes, plan summary, and local history list stay **only on the device** (`shared_preferences`), whether or not you ever publish.
-- Emergency contact info is **always local-only, never synced** — it's PHI-sensitive and deliberately works with zero network/login from the login gate.
+- Emergency info is **mostly local-only**, readable from the login gate with no network or sign-in: it all lives in the device's secure storage first. Signed in, most fields additionally best-effort sync to F3 Nation — contact name/phone/notes to real profile columns, blood type/allergies/conditions/medications/preferred hospital/organ donor to the profile's freeform `meta` field. AO-site fields (nearest ER, AED location, EMS access notes) stay local-only always — they're per-location safety data, not yours to sync.
 - No Slack OAuth, no webhooks — a backblast reaches Slack only indirectly, via F3 Nation's own existing Slack integration once published, or by pasting the clipboard copy yourself.
 - To delete data: swipe open a session in History and delete it, or use the trash icon to wipe all sessions at once.
 - Clearing the app's local storage (or uninstalling) permanently removes all history.

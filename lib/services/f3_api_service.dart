@@ -271,13 +271,14 @@ class F3ApiService extends ChangeNotifier {
   }
 
   /// Generic authenticated PATCH. Returns (statusCode, decodedBodyOrNull).
-  /// Used for self-service writes to the signed-in PAX's own record
-  /// (/v1/me/profile) — unlike POST, which this app no longer has a
-  /// trusted app-level credential to send without a specific user's token.
+  /// Used for the self-service /v1/me/profile update — unlike the other
+  /// write helpers, this one always needs [bearerOverride]: it's a
+  /// protectedProcedure keyed off the caller's own session, so there's no
+  /// anonymous or app-level-credential path that could call it instead.
   Future<({int status, dynamic body})> _patch(
     String path,
     Map<String, dynamic> payload, {
-    String? bearerOverride,
+    required String bearerOverride,
   }) async {
     try {
       final res = await http
@@ -287,7 +288,7 @@ class F3ApiService extends ChangeNotifier {
             body: json.encode(payload),
           )
           .timeout(const Duration(seconds: 15));
-      if (res.statusCode == 401 && bearerOverride != null) {
+      if (res.statusCode == 401) {
         _markSessionInvalid();
       }
       dynamic decoded;
@@ -331,6 +332,9 @@ class F3ApiService extends ChangeNotifier {
     String? lastName,
     String? email,
     String? phone,
+    String? emergencyContact,
+    String? emergencyPhone,
+    String? emergencyNotes,
   }) async {
     final payload = <String, dynamic>{
       if (f3Name != null) 'f3Name': f3Name,
@@ -338,11 +342,38 @@ class F3ApiService extends ChangeNotifier {
       if (lastName != null) 'lastName': lastName,
       if (email != null) 'email': email,
       if (phone != null) 'phone': phone,
+      if (emergencyContact != null) 'emergencyContact': emergencyContact,
+      if (emergencyPhone != null) 'emergencyPhone': emergencyPhone,
+      if (emergencyNotes != null) 'emergencyNotes': emergencyNotes,
     };
     final res = await _patch('/v1/me/profile', payload,
         bearerOverride: userAccessToken);
     if (res.status == 200 || res.status == 201) return null;
     return 'Profile update failed (${res.status}): ${res.body}';
+  }
+
+  /// Merges fields into the signed-in PAX's own F3 Nation `meta` JSON —
+  /// per Tackle (2026-08-13), core/common fields get real columns
+  /// (`emergencyContact` etc., written via [updateUserProfile]), but
+  /// anything less common belongs in `meta` instead, freeform, for any app
+  /// to read. Unlike [updateUserProfile], this must go through
+  /// `PATCH /v1/me/profile` with the PAX's own token — that's the only
+  /// endpoint that merges into the existing `meta` object server-side
+  /// (`COALESCE(meta, '{}') || newMeta`); the app-key `POST /v1/user` path
+  /// would overwrite the whole column and silently erase whatever the real
+  /// F3 Me app already saved there (`f3_name_origin`, `my_f3_why`, ...).
+  /// Returns null on success, else an error string.
+  Future<String?> updateMyMeta({
+    required String userAccessToken,
+    required Map<String, dynamic> meta,
+  }) async {
+    final res = await _patch(
+      '/v1/me/profile',
+      {'meta': meta},
+      bearerOverride: userAccessToken,
+    );
+    if (res.status == 200 || res.status == 201) return null;
+    return 'Meta update failed (${res.status}): ${res.body}';
   }
 
   /// [userAccessToken] is optional — pass it when the caller already has
