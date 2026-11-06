@@ -652,6 +652,10 @@ class AppLocalizationsEs extends AppLocalizations {
       'Primero construye un Weinke — la rutina aparecerá aquí automáticamente.';
 
   @override
+  String get schedulePreblastPlanLocalNote =>
+      'Solo se envía este texto del plan en el preblast — tu borrador de Weinke permanece en este dispositivo.';
+
+  @override
   String get scheduleBuildWeinke => 'Construir mi Weinke';
 
   @override
@@ -708,6 +712,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get browseAosDayFilter => 'Día';
 
   @override
+  String get browseAosTypeFilter => 'Tipo';
+
+  @override
   String get browseAosClearAll => 'Borrar todo';
 
   @override
@@ -762,6 +769,9 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get browseAosFilterByDay => 'Filtrar por día de entrenamiento';
+
+  @override
+  String get browseAosFilterByType => 'Filtrar por tipo de entrenamiento';
 
   @override
   String browseAosShowOnMap(String name) {

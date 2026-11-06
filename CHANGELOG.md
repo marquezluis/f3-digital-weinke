@@ -11,6 +11,14 @@ whether or not that build shipped, so "how many builds have we done on
 
 ## [Unreleased]
 
+### Added (wireframe alignment, continued further still)
+- Browse AOs' map/list (MAP-01) gained a workout-type filter pill alongside
+  the existing state/region/day ones, filtering by the same `eventTypeName`
+  field already shown per-workout in each AO's schedule.
+- The preblast composer (EVT-02) now explicitly tells the Q that only the
+  shown plan text is sent — the Weinke draft itself stays on-device, same
+  as it always has, just not said out loud before.
+
 ### Fixed
 - Merged `main`'s emergency-info F3 Nation sync (PR #1) and network-disclosure
   README update (PR #4) into this branch. The emergency-info sync landed

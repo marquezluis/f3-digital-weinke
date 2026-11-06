@@ -1210,6 +1210,12 @@ abstract class AppLocalizations {
   /// **'Build a Weinke first — the routine shows up here automatically.'**
   String get schedulePreblastPlanEmpty;
 
+  /// No description provided for @schedulePreblastPlanLocalNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Only this plan text is sent in the preblast — your Weinke draft itself stays on this device.'**
+  String get schedulePreblastPlanLocalNote;
+
   /// No description provided for @scheduleBuildWeinke.
   ///
   /// In en, this message translates to:
@@ -1312,6 +1318,12 @@ abstract class AppLocalizations {
   /// **'Day'**
   String get browseAosDayFilter;
 
+  /// No description provided for @browseAosTypeFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'Type'**
+  String get browseAosTypeFilter;
+
   /// No description provided for @browseAosClearAll.
   ///
   /// In en, this message translates to:
@@ -1413,6 +1425,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Filter by workout day'**
   String get browseAosFilterByDay;
+
+  /// No description provided for @browseAosFilterByType.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter by workout type'**
+  String get browseAosFilterByType;
 
   /// No description provided for @browseAosShowOnMap.
   ///

@@ -191,6 +191,7 @@
   "schedulePreblastNotesLabel": "Notes (facultatif)",
   "schedulePreblastNotesHint": "Météo, rappels de matériel, tout autre point à signaler",
   "schedulePreblastPlanEmpty": "Construis d'abord un Weinke — la routine apparaîtra ici automatiquement.",
+  "schedulePreblastPlanLocalNote": "Seul ce texte de plan est envoyé dans le preblast — ton brouillon de Weinke reste sur cet appareil.",
   "scheduleBuildWeinke": "Construire mon Weinke",
   "scheduleEditWeinke": "Modifier le Weinke",
   "scheduleCancel": "Annuler",
@@ -209,6 +210,7 @@
   "browseAosStateFilter": "État",
   "browseAosRegionFilter": "Région",
   "browseAosDayFilter": "Jour",
+  "browseAosTypeFilter": "Type",
   "browseAosClearAll": "Tout effacer",
   "browseAosNoAosFound": "Aucun AO par ici",
   "browseAosCouldntLoad": "Impossible de charger les AO — tire pour actualiser.",
@@ -226,6 +228,7 @@
   "browseAosFilterByState": "Filtrer par état",
   "browseAosFilterByRegion": "Filtrer par région",
   "browseAosFilterByDay": "Filtrer par jour d'entraînement",
+  "browseAosFilterByType": "Filtrer par type d'entraînement",
   "browseAosShowOnMap": "Afficher {name} sur la carte",
 
   "profileTitle": "Profil",

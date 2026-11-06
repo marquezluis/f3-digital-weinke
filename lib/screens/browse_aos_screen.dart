@@ -72,6 +72,7 @@ class _BrowseAosScreenState extends State<BrowseAosScreen> {
   String? _stateFilter;
   String? _weekdayFilter;
   String? _regionFilter;
+  String? _typeFilter;
 
   @override
   void initState() {
@@ -169,8 +170,20 @@ class _BrowseAosScreenState extends State<BrowseAosScreen> {
       .map((day) => day[0].toUpperCase() + day.substring(1))
       .toList();
 
+  List<String> get _typeOptions => _locations
+      .expand((l) => l.schedule)
+      .map((w) => w.eventTypeName)
+      .whereType<String>()
+      .where((t) => t.isNotEmpty)
+      .toSet()
+      .toList()
+    ..sort();
+
   bool get _hasActiveFilters =>
-      _stateFilter != null || _weekdayFilter != null || _regionFilter != null;
+      _stateFilter != null ||
+      _weekdayFilter != null ||
+      _regionFilter != null ||
+      _typeFilter != null;
 
   Future<void> _findMe() async {
     setState(() {
@@ -218,6 +231,12 @@ class _BrowseAosScreenState extends State<BrowseAosScreen> {
       list = list
           .where((loc) =>
               loc.schedule.any((w) => w.weekday.toLowerCase() == day))
+          .toList();
+    }
+    if (_typeFilter != null) {
+      list = list
+          .where((loc) =>
+              loc.schedule.any((w) => w.eventTypeName == _typeFilter))
           .toList();
     }
     final sorted = [...list];
@@ -697,6 +716,23 @@ class _BrowseAosScreenState extends State<BrowseAosScreen> {
               _refitMap();
             },
           ),
+          const SizedBox(width: 8),
+          FilterPill(
+            // Workout-type values (Bootcamp, Ruck, Run, ...) come straight
+            // from the API's own eventTypeName and are matched against it,
+            // so — same as the weekday pill — only the chrome is localized.
+            label: _typeFilter ?? l10n.browseAosTypeFilter,
+            active: _typeFilter != null,
+            onTap: () async {
+              final picked = await showFilterPickerSheet(context,
+                  title: l10n.browseAosFilterByType,
+                  options: _typeOptions,
+                  current: _typeFilter);
+              if (picked == null) return;
+              setState(() => _typeFilter = picked.isEmpty ? null : picked);
+              _refitMap();
+            },
+          ),
           if (_hasActiveFilters) ...[
             const SizedBox(width: 8),
             TextButton(
@@ -705,6 +741,7 @@ class _BrowseAosScreenState extends State<BrowseAosScreen> {
                   _stateFilter = null;
                   _regionFilter = null;
                   _weekdayFilter = null;
+                  _typeFilter = null;
                 });
                 _refitMap();
               },

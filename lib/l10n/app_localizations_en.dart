@@ -645,6 +645,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Build a Weinke first — the routine shows up here automatically.';
 
   @override
+  String get schedulePreblastPlanLocalNote =>
+      'Only this plan text is sent in the preblast — your Weinke draft itself stays on this device.';
+
+  @override
   String get scheduleBuildWeinke => 'Build my Weinke';
 
   @override
@@ -700,6 +704,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get browseAosDayFilter => 'Day';
 
   @override
+  String get browseAosTypeFilter => 'Type';
+
+  @override
   String get browseAosClearAll => 'Clear all';
 
   @override
@@ -751,6 +758,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get browseAosFilterByDay => 'Filter by workout day';
+
+  @override
+  String get browseAosFilterByType => 'Filter by workout type';
 
   @override
   String browseAosShowOnMap(String name) {

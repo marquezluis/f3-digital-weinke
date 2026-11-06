@@ -1992,6 +1992,12 @@ class _PreblastComposerSheetState extends State<_PreblastComposerSheet> {
                     height: 1.4),
               ),
             ),
+            const SizedBox(height: 4),
+            Text(l10n.schedulePreblastPlanLocalNote,
+                style: TextStyle(
+                    color: context.f3textMuted,
+                    fontSize: 11,
+                    fontStyle: FontStyle.italic)),
             const SizedBox(height: 8),
             CheckboxListTile(
               value: _vq,
