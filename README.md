@@ -22,7 +22,7 @@ access to the full F3 Exicon — all without a network connection.
 | **Workout History** | Saves completed beatdowns locally. Records title, date, AO, Q name, PAX list, FNG count, plan summary, and notes. Sorted newest-first. All data stays on device. |
 | **Backblast Draft** | Auto-generates a Slack-ready backblast from any saved session. One tap copies the full text to clipboard for pasting into Slack or email. |
 | **Settings** | Coupon mode (No Coupons / Mixed 50-50 / Coupons Only), intensity filter (Beginner / Intermediate / Advanced). Settings are persisted between launches. |
-| **Offline-first** | Zero network calls. All data is bundled as a JSON asset or stored in `shared_preferences`. |
+| **Offline-first** | Planning, the timer, the Exicon and the Q Field Guide work with no network; their data is bundled as a JSON asset or stored on device. Signing in with F3 Nation unlocks the online features (schedule, AO browsing, check-in, backblast posting), which call the F3 Nation API. |
 
 ---
 
@@ -437,8 +437,9 @@ flutter analyze
 ### Privacy note — local-only storage (MVP)
 
 - All history data (PAX names, AO, notes, and any future photo paths) is stored **only on the device** using `shared_preferences`.
-- Nothing is uploaded to any server, Slack workspace, or third-party service.
-- No Slack OAuth, no webhooks, no cloud sync in this version.
+- Saved history stays on the device and is not synced to any server.
+- If you sign in with F3 Nation, the app talks to the F3 Nation API for the features that need it (schedule, AO data, HC/Q, check-in, and publishing a backblast you choose to post).
+- No Slack OAuth, no webhooks, no cloud sync of local history.
 - To delete data: swipe open a session in History and delete it, or use the trash icon to wipe all sessions at once.
 - Clearing the app's local storage (or uninstalling) permanently removes all history.
 
