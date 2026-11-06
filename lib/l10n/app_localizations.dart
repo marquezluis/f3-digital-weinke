@@ -856,6 +856,18 @@ abstract class AppLocalizations {
   /// **'NEXT 7 DAYS'**
   String get scheduleNext7Days;
 
+  /// No description provided for @scheduleWeekPrevious.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous week'**
+  String get scheduleWeekPrevious;
+
+  /// No description provided for @scheduleWeekNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Next week'**
+  String get scheduleWeekNext;
+
   /// No description provided for @scheduleUpcomingFiltered.
   ///
   /// In en, this message translates to:

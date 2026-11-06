@@ -132,6 +132,8 @@
   "scheduleTitle": "Horaire",
   "scheduleJumpToday": "Aller à aujourd'hui",
   "scheduleNext7Days": "LES 7 PROCHAINS JOURS",
+  "scheduleWeekPrevious": "Semaine précédente",
+  "scheduleWeekNext": "Semaine suivante",
   "scheduleUpcomingFiltered": "À VENIR",
   "scheduleTapDateHint": "Touche une date sur le calendrier ci-dessus pour voir seulement ce jour.",
   "scheduleNoMatches": "Aucun résultat",

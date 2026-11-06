@@ -11,6 +11,11 @@ whether or not that build shipped, so "how many builds have we done on
 
 ## [Unreleased]
 
+### Added (wireframe alignment, continued further)
+- Schedule's plain agenda (CAL-01) is now navigable week by week — prev/
+  next buttons shift the 8-day window instead of it always being locked
+  to "today through +7 days." "Jump to today" resets it back.
+
 ### Added (wireframe alignment, continued)
 - Home gained a Region Info card (HOME-01/02) showing the PAX's home
   region and its AO count, tapping through to Map/Cal — no SLT/leadership

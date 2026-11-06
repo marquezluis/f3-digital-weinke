@@ -270,6 +270,8 @@
   "scheduleTitle": "Schedule",
   "scheduleJumpToday": "Jump to today",
   "scheduleNext7Days": "NEXT 7 DAYS",
+  "scheduleWeekPrevious": "Previous week",
+  "scheduleWeekNext": "Next week",
   "scheduleUpcomingFiltered": "UPCOMING",
   "scheduleTapDateHint": "Tap a date on the calendar above to see just that day.",
   "scheduleNoMatches": "No matches",

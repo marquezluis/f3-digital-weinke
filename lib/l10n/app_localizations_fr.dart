@@ -452,6 +452,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get scheduleNext7Days => 'LES 7 PROCHAINS JOURS';
 
   @override
+  String get scheduleWeekPrevious => 'Semaine précédente';
+
+  @override
+  String get scheduleWeekNext => 'Semaine suivante';
+
+  @override
   String get scheduleUpcomingFiltered => 'À VENIR';
 
   @override

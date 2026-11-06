@@ -97,16 +97,42 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   bool _loadingCalendar = false;
   List<F3EventInstance> _calendarEvents = []; // whichever month is displayed
 
-  /// "Today" action: jumps the calendar back to the current month and clears
-  /// any selected date, returning to the default 7-day agenda.
+  static DateTime _todayNormalized() {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month, now.day);
+  }
+
+  // CAL-01 in the official-app wireframes: lets the plain (unfiltered)
+  // agenda be navigated week by week instead of always showing a fixed
+  // "today through +7 days" window. Defaults to today — _buildWeekAgenda's
+  // 8-day window (today through +7) is unchanged until this is navigated.
+  DateTime _agendaWeekStart = _todayNormalized();
+
+  /// "Today" action: jumps the calendar back to the current month, resets
+  /// the week agenda back to today, and clears any selected date.
   void _resetToToday() {
     final currentMonth = DateTime(DateTime.now().year, DateTime.now().month);
     final monthChanged = currentMonth != _calendarMonth;
+    final weekChanged = _agendaWeekStart != _todayNormalized();
     setState(() {
       _calendarMonth = currentMonth;
+      _agendaWeekStart = _todayNormalized();
       _selectedDay = null;
     });
     if (monthChanged) _loadCalendarMonth();
+    if (weekChanged) _load();
+  }
+
+  /// Shifts the week agenda by [deltaWeeks] (±1) and refetches anchored to
+  /// the new start — mirrors _changeMonth's pattern of an explicit [from]
+  /// so navigating to a past week still returns those events (the API has
+  /// no end-date filter, so "from the past" still returns today/future
+  /// too; _load's own windowing trims back down to 8 days).
+  void _shiftAgendaWeek(int deltaWeeks) {
+    setState(() {
+      _agendaWeekStart = _agendaWeekStart.add(Duration(days: 7 * deltaWeeks));
+    });
+    _load();
   }
 
   /// Fetches everything from the 1st of [_calendarMonth] through a generous
@@ -190,28 +216,35 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     final profile = context.read<AppProfileService>();
     final token = await auth.getF3AccessToken();
     final userId = int.tryParse(profile.authUserId);
-    final events =
-        await api.getUpcomingBeatdowns(userAccessToken: token, userId: userId);
+    // Anchored to _agendaWeekStart, not always "today" — week-nav
+    // (_shiftAgendaWeek) can move this into the past or further future; the
+    // API has no end-date filter, so fetching "from" an earlier date still
+    // returns today/future events too, same as _loadCalendarMonth already
+    // relies on for past months.
+    final events = await api.getUpcomingBeatdowns(
+        userAccessToken: token, userId: userId, from: _agendaWeekStart);
     if (!mounted) return;
-    // Recurring series now generate instances a year+ out — Schedule only
-    // shows today through the next 7 days. Today's events stay even once
-    // their time has passed (someone may still need to HC/take-Q after the
-    // fact), so this is a date-only cutoff, not a time-of-day one.
-    final today = DateTime.now();
-    final todayStart = DateTime(today.year, today.month, today.day);
-    final windowEnd = todayStart.add(const Duration(days: 8));
+    // Recurring series now generate instances a year+ out — the plain
+    // agenda only shows an 8-day window starting at _agendaWeekStart.
+    // Today's events stay even once their time has passed (someone may
+    // still need to HC/take-Q after the fact), so this is a date-only
+    // cutoff, not a time-of-day one.
+    final windowEnd = _agendaWeekStart.add(const Duration(days: 8));
     final windowed = events.where((e) {
       final d = DateTime(e.date.year, e.date.month, e.date.day);
-      return !d.isBefore(todayStart) && d.isBefore(windowEnd);
+      return !d.isBefore(_agendaWeekStart) && d.isBefore(windowEnd);
     }).toList();
     // A filtered view (AO/type/mine) can otherwise show whatever the
     // ~200-event over-fetch happens to reach — for a sparse AO that could be
-    // years out. Cap the filtered source to a sane forward window; the plain
-    // 7-day agenda above is unaffected since it reads _events, not this.
+    // years out. Cap the filtered source to a sane forward window from
+    // *today* (not _agendaWeekStart — the filtered agenda isn't week-nav
+    // aware, see _buildFilteredAgenda); the plain 7-day agenda above is
+    // unaffected since it reads _events, not this.
+    final todayStart = _todayNormalized();
     final filteredCap = todayStart.add(const Duration(days: 90));
     final capped = events.where((e) {
       final d = DateTime(e.date.year, e.date.month, e.date.day);
-      return d.isBefore(filteredCap);
+      return !d.isBefore(todayStart) && d.isBefore(filteredCap);
     }).toList();
     setState(() {
       _events = windowed;
@@ -417,12 +450,15 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     );
   }
 
-  /// Default state (no date tapped): the next 7 days, one section each,
-  /// shown whether or not that specific day has anything scheduled.
+  /// Default state (no date tapped): an 8-day window starting at
+  /// _agendaWeekStart (today by default), one section each, shown whether
+  /// or not that specific day has anything scheduled. Navigable week by
+  /// week via _shiftAgendaWeek (CAL-01 in the official-app wireframes) —
+  /// previously always showed a fixed "today through +7 days" window with
+  /// no way to look at any other week.
   Widget _buildWeekAgenda(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final today = DateTime.now();
-    final todayStart = DateTime(today.year, today.month, today.day);
+    final viewingCurrentWeek = _agendaWeekStart == _todayNormalized();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -432,12 +468,34 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             const Icon(Icons.view_agenda_rounded,
                 size: 13, color: F3Colors.accent),
             const SizedBox(width: 6),
-            Text(l10n.scheduleNext7Days,
-                style: TextStyle(
-                    color: context.f3textMuted,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.5)),
+            Expanded(
+              child: Text(
+                  viewingCurrentWeek
+                      ? l10n.scheduleNext7Days
+                      : '${_fmtDate(_agendaWeekStart)} – ${_fmtDate(_agendaWeekStart.add(const Duration(days: 7)))}',
+                  style: TextStyle(
+                      color: context.f3textMuted,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.5)),
+            ),
+            IconButton(
+              tooltip: l10n.scheduleWeekPrevious,
+              icon: const Icon(Icons.chevron_left_rounded, size: 18),
+              visualDensity: VisualDensity.compact,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              onPressed: () => _shiftAgendaWeek(-1),
+            ),
+            const SizedBox(width: 4),
+            IconButton(
+              tooltip: l10n.scheduleWeekNext,
+              icon: const Icon(Icons.chevron_right_rounded, size: 18),
+              visualDensity: VisualDensity.compact,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              onPressed: () => _shiftAgendaWeek(1),
+            ),
           ]),
         ),
         Padding(
@@ -456,7 +514,14 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           )
         else
           ...List.generate(7, (i) {
-            final day = todayStart.add(Duration(days: i));
+            final day = _agendaWeekStart.add(Duration(days: i));
+            // The real offset from today, not the loop index — i is only
+            // "days since the window start," which is the same thing as
+            // "days since today" only while viewing the current week.
+            // Elsewhere it would mislabel e.g. day 0 of next week as
+            // "Today."
+            final trueOffsetFromToday =
+                day.difference(_todayNormalized()).inDays;
             final dayEvents = _filteredEvents
                 .where((e) =>
                     e.date.year == day.year &&
@@ -473,7 +538,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                     child: Row(children: [
                       SizedBox(
                         width: 90,
-                        child: Text(_dayLabel(day, i, short: true),
+                        child: Text(_dayLabel(day, trueOffsetFromToday, short: true),
                             style: TextStyle(
                                 color: context.f3textMuted,
                                 fontSize: 11,
@@ -497,7 +562,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          _dayLabel(day, i),
+                          _dayLabel(day, trueOffsetFromToday),
                           style: TextStyle(
                               color: context.f3textMuted,
                               fontSize: 11,
