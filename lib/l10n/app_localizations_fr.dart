@@ -85,10 +85,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get settingsTitle => 'PARAMÈTRES';
 
   @override
-  String get settingsPreferencesDivider =>
-      'Préférences de l\'application ci-dessous — votre profil est ci-dessus';
-
-  @override
   String get settingsAppearance => 'APPARENCE';
 
   @override
@@ -658,6 +654,9 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get schedulePreblastPlanLocalNote =>
       'Seul ce texte de plan est envoyé dans le preblast — ton brouillon de Weinke reste sur cet appareil.';
+
+  @override
+  String get schedulePreblastGearLabel => 'Équipement nécessaire (optionnel)';
 
   @override
   String get scheduleBuildWeinke => 'Construire mon Weinke';

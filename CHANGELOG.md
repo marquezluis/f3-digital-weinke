@@ -11,6 +11,25 @@ whether or not that build shipped, so "how many builds have we done on
 
 ## [Unreleased]
 
+### Added (full Profile regroup, PROF-01..06)
+- The Profile tab now routes to a new `profile_hub_screen.dart` instead of
+  straight to Settings — identity up top (PROF-01), then PAX Vault trends
+  (PROF-02) and Badges & Milestones (PROF-03), both now reachable from
+  Profile too (previously only from Home/Brotherhood), a disabled
+  Leaderboards card explaining why it's not possible without backend
+  support (PROF-04), and Settings itself as its own card (PROF-06),
+  trimmed down to app preferences only now that identity lives in the hub.
+  Edit Profile and Emergency Contact (PROF-05) are unchanged, one tap from
+  the identity card same as before.
+
+### Added (wireframe alignment, continued once more)
+- The preblast composer (EVT-02) gained selectable gear chips (Coupons,
+  Sandbags, Weight Vest/Ruck, Jump Rope, Headlamp) — a fixed app-side list,
+  since F3 Nation's API has no gear concept to pull from. Selected gear
+  round-trips through a new `GEAR:` line in the posted preblast text, so
+  re-opening "Edit Preblast" on an already-posted one prefills the same
+  chips instead of losing the selection.
+
 ### Added (wireframe alignment, continued further still)
 - Browse AOs' map/list (MAP-01) gained a workout-type filter pill alongside
   the existing state/region/day ones, filtering by the same `eventTypeName`

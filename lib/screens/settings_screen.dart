@@ -12,7 +12,6 @@ import 'package:url_launcher/url_launcher.dart';
 import '../models/app_version.dart';
 import 'package:share_plus/share_plus.dart';
 import '../models/auth_models.dart';
-import '../widgets/self_avatar.dart';
 import 'admin_location_screen.dart';
 import '../services/app_profile_service.dart' hide AppRole;
 import '../services/auth_service.dart';
@@ -27,10 +26,8 @@ import '../services/f3_api_service.dart';
 import '../services/settings_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/date_format.dart';
-import '../utils/greeting.dart';
 import '../widgets/f3_glossary_sheet.dart';
 import '../widgets/theme_language_picker.dart';
-import 'profile_screen.dart';
 import 'emergency_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -50,58 +47,6 @@ class SettingsScreen extends StatelessWidget {
           return ListView(
             padding: const EdgeInsets.all(20),
             children: [
-              // ── Profile banner ────────────────────────────────────────────
-              // Already shows linked/synced status and (via Profile) email —
-              // a separate F3 Nation account card here was pure duplication.
-              const _ProfileBanner(isQ: true),
-
-              const SizedBox(height: 20),
-
-              // Manual F3 name field only when we don't already have it from
-              // the signed-in F3 Nation profile — no point asking twice.
-              Consumer<AppProfileService>(
-                builder: (context, profile, _) {
-                  if (profile.displayName.isNotEmpty) {
-                    return const SizedBox.shrink();
-                  }
-                  return Padding(
-                    padding: const EdgeInsets.only(top: 12),
-                    child: TextFormField(
-                      initialValue: service.myF3Name,
-                      decoration: InputDecoration(
-                        labelText: l10n.settingsMyF3Name,
-                        hintText: l10n.settingsMyF3NameHint,
-                        prefixIcon: const Icon(Icons.badge_rounded),
-                      ),
-                      onChanged: (val) => service.setMyF3Name(val.trim()),
-                    ),
-                  );
-                },
-              ),
-
-              const SizedBox(height: 28),
-
-              // ── Profile / Settings boundary ──────────────────────────────
-              // The "You" tab conflates identity (who you are) with app
-              // config (how the app behaves) on one long scroll — this marks
-              // where one ends and the other begins, rather than a full
-              // split into separate screens.
-              Row(children: [
-                Expanded(child: Divider(color: context.f3divider)),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  child: Text(
-                    l10n.settingsPreferencesDivider,
-                    style: TextStyle(
-                        color: context.f3textMuted,
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w600),
-                  ),
-                ),
-                Expanded(child: Divider(color: context.f3divider)),
-              ]),
-              const SizedBox(height: 20),
-
               // ── Appearance ────────────────────────────────────────────────
               _SectionHeader(l10n.settingsAppearance),
               const SizedBox(height: 8),
@@ -779,187 +724,6 @@ class _F3NationLinksSectionState extends State<_F3NationLinksSection> {
             ],
             const SizedBox(height: 28),
           ],
-        );
-      },
-    );
-  }
-}
-
-// ── Profile banner ───────────────────────────────────────────────────────────
-
-class _ProfileBanner extends StatefulWidget {
-  final bool isQ;
-  const _ProfileBanner({required this.isQ});
-
-  @override
-  State<_ProfileBanner> createState() => _ProfileBannerState();
-}
-
-class _ProfileBannerState extends State<_ProfileBanner> {
-  bool _synced = false;
-  bool _syncing = false;
-
-  bool _isLinked(AuthService auth) =>
-      auth.currentUser?.identities
-          .any((i) => i.provider == AuthProvider.f3nation) ??
-      false;
-
-  /// Schedules a sync if we're linked and haven't synced yet this session.
-  /// Called from `build()` (via a post-frame callback, guarded by
-  /// `_syncing`) rather than only once from `initState` — `SettingsScreen`
-  /// is built once at app startup inside the tab shell's `IndexedStack` and
-  /// never rebuilt from scratch, so an initState-only trigger can race
-  /// `AuthService` still restoring its persisted session: if `_isLinked`
-  /// reads false at that first-frame moment, the one-shot call bails and
-  /// never retries. Reacting to the `Consumer2` rebuild instead catches the
-  /// moment linked flips true, whenever that actually happens.
-  void _maybeSync(bool linked) {
-    if (!linked || _synced || _syncing) return;
-    _syncing = true;
-    WidgetsBinding.instance
-        .addPostFrameCallback((_) => _syncFromF3().whenComplete(() {
-              if (mounted) _syncing = false;
-            }));
-  }
-
-  /// When the account is linked, quietly refresh the local profile from the
-  /// F3 Nation database each time Settings opens — their DB is the source of
-  /// truth for F3 name, region, and avatar.
-  Future<void> _syncFromF3() async {
-    final auth = context.read<AuthService>();
-    final api = context.read<F3ApiService>();
-    final profile = context.read<AppProfileService>();
-    if (!_isLinked(auth)) return;
-
-    final token = await auth.getF3AccessToken();
-    if (token == null) return;
-    final f3 = await api.getMyProfile(userAccessToken: token);
-    if (f3 == null || !mounted) return;
-
-    await profile.applyF3Profile(
-      f3Name: f3.displayName,
-      region: f3.homeRegionName,
-      avatarUrl: f3.avatarUrl,
-      homeRegionId: f3.homeRegionId,
-      // The real F3 Nation numeric user id — every write (HC, take-Q,
-      // preblast, Schedule's calendar query) needs this, not the local
-      // guest-account id `authUserId` defaults to before this ever ran.
-      f3UserId: f3.id,
-    );
-    // Feed the per-user region into the API client so upcoming beatdowns and
-    // Slack routing target this PAX's own region, not the build default.
-    api.userOrgId = f3.homeRegionId;
-    if (mounted) setState(() => _synced = true);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Consumer2<AppProfileService, AuthService>(
-      builder: (context, profile, auth, _) {
-        _maybeSync(_isLinked(auth));
-        final name =
-            profile.displayName.isEmpty ? 'PAX' : profile.displayName;
-        final linked = _isLinked(auth);
-        final banner = Container(
-          margin: const EdgeInsets.only(bottom: 24),
-          child: Material(
-            color: context.f3card,
-            borderRadius: BorderRadius.circular(14),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(14),
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const ProfileScreen()),
-              ),
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                      color: F3Colors.accent.withValues(alpha: 0.3)),
-                ),
-                child: Row(children: [
-            // The whole card (not just this avatar) opens the full profile
-            // — see the InkWell wrapping `banner` below.
-            const SelfAvatar(size: 52),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('${greetingFor(AppLocalizations.of(context)!)},',
-                      style: TextStyle(
-                          color: context.f3textSecondary,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600)),
-                  Text(name,
-                      style: TextStyle(
-                          color: context.f3textPrimary,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 18)),
-                  if (profile.homeAo.isNotEmpty)
-                    Text(profile.homeAo,
-                        style: TextStyle(
-                            color: context.f3textSecondary, fontSize: 13)),
-                  if (profile.region.isNotEmpty)
-                    Text(profile.region,
-                        style: TextStyle(
-                            color: context.f3textMuted, fontSize: 12)),
-                  if (linked)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Row(mainAxisSize: MainAxisSize.min, children: [
-                        Icon(
-                            _synced
-                                ? Icons.verified_rounded
-                                : Icons.sync_rounded,
-                            color: F3Colors.accent, size: 13),
-                        const SizedBox(width: 4),
-                        Text(
-                          _synced
-                              ? 'Synced with F3 Nation'
-                              : 'Linked to F3 Nation',
-                          style: const TextStyle(
-                              color: F3Colors.accent,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700),
-                        ),
-                      ]),
-                    ),
-                ],
-              ),
-            ),
-            Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: F3Colors.accent.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                widget.isQ ? 'Q' : 'PAX',
-                style: const TextStyle(
-                    color: F3Colors.accent,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 13,
-                    letterSpacing: 1),
-              ),
-            ),
-                ]),
-              ),
-            ),
-          ),
-        );
-
-        // Pull down on the banner to force a re-sync from the F3 Nation DB.
-        if (!linked) return banner;
-        return RefreshIndicator(
-          onRefresh: _syncFromF3,
-          child: ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            shrinkWrap: true,
-            children: [banner],
-          ),
         );
       },
     );

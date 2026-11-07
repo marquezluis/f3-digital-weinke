@@ -46,7 +46,7 @@ actual files before the demo to confirm screen-by-screen wording matches.
 | MAP-01 | AO map with filters | `map_cal_screen.dart` → `browse_aos_screen.dart` | done | Map + day/weekday + state/region filters already existed; a workout-type filter (sourced from the same `eventTypeName` field already shown per-workout) was added in a follow-up pass |
 | CAL-01 | Week calendar with Q status, week nav | `map_cal_screen.dart` → `schedule_screen.dart` | done | Month-grid nav already existed; the plain agenda's fixed 7-day window is now navigable week by week too (added in a follow-up pass) |
 | EVT-01 | HC, take Q | `schedule_screen.dart` | done | Pre-existing, real writes to the API |
-| EVT-02 | Preblast with gear chips and a private Q plan | `schedule_screen.dart` (preblast composer) | partial | Preblast posting is real. "The Plan" (DW's own Weinke draft) now carries an explicit caption in the composer stating only that plan text is sent and the draft itself stays on-device (added in a follow-up pass). Gear-chip UI still not built — would need a new field threaded through the draft model, the assembled preblast text, and the existing-preblast parser, a bigger slice than this pass's label fix |
+| EVT-02 | Preblast with gear chips and a private Q plan | `schedule_screen.dart` (preblast composer) | done | Preblast posting is real. "The Plan" (DW's own Weinke draft) carries an explicit caption stating only that plan text is sent and the draft itself stays on-device. Gear chips (Coupons/Sandbags/Weight Vest-Ruck/Jump Rope/Headlamp — a fixed app-side list, not from any API) are now selectable, round-trip through a `GEAR:` line in the posted text, and prefill correctly on "Edit Preblast." Still no private Q-plan field — that's the one genuinely not-possible-without-backend part of this screen |
 | EVT-03 | Backblast with roster and FNG count | `history_screen.dart` / `save_session_sheet.dart` / `timer_screen.dart` | done | Publishing a real backblast + FNG count to the API is done; roll call (`timer_screen.dart`'s `_WorkoutSummarySheetState`) now prefills from the real HC list for the linked event (added in a follow-up pass), Q still adds walk-ups/removes no-shows by editing the text. FNG count stays manual by necessity — FNGs aren't on any HC list to prefill from |
 | BB-01 | Backblast detail | `history_screen.dart`'s `BackblastScreen` | done | Pre-existing |
 
@@ -74,14 +74,21 @@ actual files before the demo to confirm screen-by-screen wording matches.
 
 ## Profile (6 screens)
 
+The Profile tab now routes to `profile_hub_screen.dart` (added in a follow-up
+pass) instead of straight to `settings_screen.dart` — a hub grouping
+PROF-01..06 the same way `resources_hub_screen.dart` grouped Resources,
+instead of identity and app preferences sharing one long scroll. The
+identity banner and manual-F3-name field moved there verbatim from Settings;
+Settings itself is preferences-only now.
+
 | Screen | What the wireframe asks for | DW screen/file | Status | Notes |
 |---|---|---|---|---|
-| PROF-01 | F3 Me identity | `profile_screen.dart` | done | Real F3 Nation profile (name, roles, positions, region) |
-| PROF-02 | PAX Vault trends | `history_screen.dart` | partial | Trends come from DW's own saved sessions, not F3 Nation's PAX Vault (no such read endpoint integrated) |
-| PROF-03 | Badges and milestones | `achievements` screens (region_service.dart-backed) | done | Achievements + Founding Quest, pre-existing |
-| PROF-04 | Leaderboards | — | not built | Explicitly skipped per the task brief — API doesn't return the data |
+| PROF-01 | F3 Me identity | `profile_hub_screen.dart` (identity card) → `profile_screen.dart` | done | Real F3 Nation profile (name, roles, positions, region); identity card now lives in the hub, one tap from the full screen |
+| PROF-02 | PAX Vault trends | `profile_hub_screen.dart` → `history_screen.dart` | partial | Now has its own card in the Profile hub (previously only reachable from Home) — but trends still come from DW's own saved sessions, not F3 Nation's PAX Vault (no such read endpoint integrated) |
+| PROF-03 | Badges and milestones | `profile_hub_screen.dart` → `achievements_screen.dart` | done | Achievements + Founding Quest; now has its own card in the Profile hub (previously only reachable from Brotherhood) |
+| PROF-04 | Leaderboards | `profile_hub_screen.dart` (disabled card) | not possible without backend | Shown as a disabled card explaining why, instead of a dead link or a missing screen — `/v1/org` and friends have no region-wide stats endpoint |
 | PROF-05 | Edit profile, emergency contact | `profile_screen.dart`, `emergency_edit_screen.dart` | done | Pre-existing |
-| PROF-06 | Settings, default Map vs Calendar view | `settings_screen.dart` | done | New "Map/Cal opens to" toggle added this pass, writing the same setting `map_cal_screen.dart` reads |
+| PROF-06 | Settings, default Map vs Calendar view | `profile_hub_screen.dart` → `settings_screen.dart` | done | "Map/Cal opens to" toggle (added in an earlier pass); Settings is now a card in the hub rather than the whole tab |
 
 ## Not possible without backend — a standing list
 
@@ -99,3 +106,5 @@ block any ground-up build the same way:
   at the region level (HOME-02).
 - **PAX Vault** — no endpoint for aggregated historical trends beyond what a
   client computes itself from attendance records (PROF-02).
+- **Leaderboards** — no region-wide stats endpoint; `/v1/org` and friends
+  only ever return the signed-in PAX's own data (PROF-04).
