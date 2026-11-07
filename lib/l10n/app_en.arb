@@ -92,10 +92,6 @@
   "@settingsTitle": {
     "description": "Title for the settings screen."
   },
-  "settingsPreferencesDivider": "App preferences below — your profile is above",
-  "@settingsPreferencesDivider": {
-    "description": "Marks the boundary between the profile identity section and the app-settings sections below it on the You tab."
-  },
   "settingsAppearance": "APPEARANCE",
   "@settingsAppearance": {
     "description": "Section header for the appearance settings."
@@ -339,6 +335,7 @@
   "schedulePreblastNotesHint": "Weather, gear reminders, anything else worth flagging up top",
   "schedulePreblastPlanEmpty": "Build a Weinke first — the routine shows up here automatically.",
   "schedulePreblastPlanLocalNote": "Only this plan text is sent in the preblast — your Weinke draft itself stays on this device.",
+  "schedulePreblastGearLabel": "Gear needed (optional)",
   "scheduleBuildWeinke": "Build my Weinke",
   "scheduleEditWeinke": "Edit Weinke",
   "scheduleCancel": "Cancel",

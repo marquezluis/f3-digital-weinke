@@ -85,10 +85,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsTitle => 'SETTINGS';
 
   @override
-  String get settingsPreferencesDivider =>
-      'App preferences below — your profile is above';
-
-  @override
   String get settingsAppearance => 'APPEARANCE';
 
   @override
@@ -647,6 +643,9 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get schedulePreblastPlanLocalNote =>
       'Only this plan text is sent in the preblast — your Weinke draft itself stays on this device.';
+
+  @override
+  String get schedulePreblastGearLabel => 'Gear needed (optional)';
 
   @override
   String get scheduleBuildWeinke => 'Build my Weinke';

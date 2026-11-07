@@ -10,10 +10,10 @@
 // (resources_hub_screen.dart) replaces the former "Plan" tab — same Q
 // toolkit, now also including the previously-unreachable Q Builder, under
 // the wireframe's own grouping (Q Tools / Codex / QSource / App Help).
-// Profile stays routed to SettingsScreen, which already carries profile
-// identity alongside preferences — splitting those apart is a bigger
-// change than this pass's relabel+reorg (see resources_hub_screen.dart's
-// header for the same scoping call on Q Builder's prior unreachability).
+// Profile routes to ProfileHubScreen (PROF-01..06): identity up top, then
+// PAX Vault/Badges/Leaderboards, then Settings — previously routed
+// straight to SettingsScreen, which carried identity alongside preferences
+// on one long scroll (see profile_hub_screen.dart's header for the split).
 //
 // Previously (#91) this was Home/Plan/Schedule/Fellowship/You; Brotherhood
 // (PAX roster) doesn't have its own tab anymore — it's still reachable from
@@ -32,8 +32,8 @@ import '../theme/app_theme.dart';
 import 'home_screen.dart';
 import 'map_cal_screen.dart';
 import 'chat_screen.dart';
+import 'profile_hub_screen.dart';
 import 'resources_hub_screen.dart';
-import 'settings_screen.dart';
 import 'spartan_chat_screen.dart';
 
 class ShellScreen extends StatelessWidget {
@@ -44,7 +44,7 @@ class ShellScreen extends StatelessWidget {
     MapCalScreen(),        // 1 — Map/Cal (Browse AOs + Schedule, toggled)
     ChatScreen(),           // 2 — Commz (Region Chat, signed-in only)
     ResourcesHubScreen(),  // 3 — Resources (Q Tools / Codex / QSource / Help)
-    SettingsScreen(),      // 4 — Profile
+    ProfileHubScreen(),    // 4 — Profile (Identity / Vault / Badges / Settings)
   ];
 
   @override

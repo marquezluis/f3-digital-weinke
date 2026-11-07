@@ -1307,12 +1307,26 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
     if (planIdx == -1 || couponIdx == -1 || couponIdx < planIdx) return null;
     final plan = text.substring(planIdx + planMarker.length, couponIdx).trim();
     if (plan.isEmpty) return null;
-    final couponLine = text.substring(couponIdx + couponMarker.length).trim();
+    final afterCoupon = couponIdx + couponMarker.length;
+    // GEAR is written after COUPON (see _assemblePreblast) and only when
+    // non-empty, so the coupon line's own end has to stop there instead of
+    // running to the end of the string.
+    const gearMarker = '\nGEAR: ';
+    final gearIdx = text.indexOf(gearMarker, afterCoupon);
+    final couponLine =
+        text.substring(afterCoupon, gearIdx == -1 ? text.length : gearIdx).trim();
     final couponNeeded = couponLine.startsWith('Yes');
     var couponNotes = '';
     if (couponNeeded) {
       final dashIdx = couponLine.indexOf('—');
       if (dashIdx != -1) couponNotes = couponLine.substring(dashIdx + 1).trim();
+    }
+    var gear = const <String>[];
+    if (gearIdx != -1) {
+      final gearLine = text.substring(gearIdx + gearMarker.length).trim();
+      gear = gearLine.isEmpty
+          ? const []
+          : gearLine.split(',').map((g) => g.trim()).where((g) => g.isNotEmpty).toList();
     }
     var notes = '';
     const notesMarker = 'NOTES: ';
@@ -1327,6 +1341,7 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
       couponNeeded: couponNeeded,
       couponNotes: couponNotes,
       notes: notes,
+      gear: gear,
     );
   }
 
@@ -1439,6 +1454,7 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
       initialPlan: WeinkeExporter.planSummaryOnly(plan),
       initialCouponNeeded: WeinkeExporter.hasCoupon(plan),
       initialNotes: existingDraft?.notes ?? '',
+      initialGear: existingDraft?.gear ?? const [],
     );
   }
 
@@ -1446,6 +1462,7 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
     String? initialPlan,
     bool initialCouponNeeded = false,
     String initialNotes = '',
+    List<String> initialGear = const [],
   }) async {
     final l10n = AppLocalizations.of(context)!;
     final e = _event;
@@ -1464,6 +1481,7 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
         initialPlan: initialPlan ?? (e.preblast ?? ''),
         initialCouponNeeded: initialCouponNeeded,
         initialNotes: initialNotes,
+        initialGear: initialGear,
       ),
     );
     if (draft == null || draft.plan.trim().isEmpty || !mounted) return;
@@ -1588,6 +1606,9 @@ class _EventDetailSheetState extends State<_EventDetailSheet> {
       ..writeln('THE PLAN: ${draft.plan.trim()}')
       ..writeln(
           'COUPON: ${draft.couponNeeded ? 'Yes${draft.couponNotes.trim().isNotEmpty ? ' — ${draft.couponNotes.trim()}' : ''}' : 'No'}');
+    if (draft.gear.isNotEmpty) {
+      buf.writeln('GEAR: ${draft.gear.join(', ')}');
+    }
     return buf.toString().trimRight();
   }
 
@@ -1846,14 +1867,29 @@ class _PreblastDraft {
   final bool couponNeeded;
   final String couponNotes;
   final String notes;
+  final List<String> gear;
   const _PreblastDraft({
     required this.plan,
     required this.vq,
     required this.couponNeeded,
     required this.couponNotes,
     this.notes = '',
+    this.gear = const [],
   });
 }
+
+// Fixed, not from any API — F3 has no backend concept of "gear" to pull
+// from, so this is the same kind of app-side convenience list as the
+// coupon checkbox. Kept in English regardless of locale, same as the
+// weekday filter values above: these are standard F3 gear-call terms a Q
+// posts verbatim, not UI chrome to translate.
+const _preblastGearOptions = [
+  'Coupons',
+  'Sandbags',
+  'Weight Vest/Ruck',
+  'Jump Rope',
+  'Headlamp',
+];
 
 class _PreblastComposerSheet extends StatefulWidget {
   final F3EventInstance event;
@@ -1862,6 +1898,7 @@ class _PreblastComposerSheet extends StatefulWidget {
   final String initialPlan;
   final bool initialCouponNeeded;
   final String initialNotes;
+  final List<String> initialGear;
 
   const _PreblastComposerSheet({
     required this.event,
@@ -1870,6 +1907,7 @@ class _PreblastComposerSheet extends StatefulWidget {
     required this.initialPlan,
     this.initialCouponNeeded = false,
     this.initialNotes = '',
+    this.initialGear = const [],
   });
 
   @override
@@ -1881,6 +1919,7 @@ class _PreblastComposerSheetState extends State<_PreblastComposerSheet> {
   late final _couponNotesCtrl = TextEditingController();
   bool _vq = false;
   late bool _couponNeeded = widget.initialCouponNeeded;
+  late final Set<String> _selectedGear = {...widget.initialGear};
 
   @override
   void dispose() {
@@ -2033,6 +2072,36 @@ class _PreblastComposerSheetState extends State<_PreblastComposerSheet> {
                 ),
               ),
             ],
+            const SizedBox(height: 16),
+            Text(l10n.schedulePreblastGearLabel,
+                style: TextStyle(
+                    color: context.f3textSecondary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700)),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: _preblastGearOptions.map((gear) {
+                final selected = _selectedGear.contains(gear);
+                return FilterChip(
+                  label: Text(gear, style: const TextStyle(fontSize: 12.5)),
+                  selected: selected,
+                  onSelected: (v) => setState(() {
+                    if (v) {
+                      _selectedGear.add(gear);
+                    } else {
+                      _selectedGear.remove(gear);
+                    }
+                  }),
+                  visualDensity: VisualDensity.compact,
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  backgroundColor: context.f3card,
+                  selectedColor: F3Colors.accent.withValues(alpha: 0.2),
+                  side: BorderSide(color: context.f3divider),
+                );
+              }).toList(),
+            ),
             const SizedBox(height: 20),
             Row(
               children: [
@@ -2055,6 +2124,7 @@ class _PreblastComposerSheetState extends State<_PreblastComposerSheet> {
                                 couponNeeded: _couponNeeded,
                                 couponNotes: _couponNotesCtrl.text,
                                 notes: _notesCtrl.text,
+                                gear: _selectedGear.toList(),
                               ),
                             ),
                     child: Text(l10n.schedulePost),

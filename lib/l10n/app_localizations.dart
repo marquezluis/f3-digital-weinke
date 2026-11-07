@@ -238,12 +238,6 @@ abstract class AppLocalizations {
   /// **'SETTINGS'**
   String get settingsTitle;
 
-  /// Marks the boundary between the profile identity section and the app-settings sections below it on the You tab.
-  ///
-  /// In en, this message translates to:
-  /// **'App preferences below — your profile is above'**
-  String get settingsPreferencesDivider;
-
   /// Section header for the appearance settings.
   ///
   /// In en, this message translates to:
@@ -1215,6 +1209,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Only this plan text is sent in the preblast — your Weinke draft itself stays on this device.'**
   String get schedulePreblastPlanLocalNote;
+
+  /// No description provided for @schedulePreblastGearLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Gear needed (optional)'**
+  String get schedulePreblastGearLabel;
 
   /// No description provided for @scheduleBuildWeinke.
   ///
