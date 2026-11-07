@@ -47,12 +47,16 @@ toggle remembers whichever view was used last (also settable as a default
 in Profile → Settings).
 
 - **Map**: real, live, nationwide AO data. Search, filter by day/state/
-  region, Near Me Right Now, real AO logos, Get Directions.
-- **Calendar**: find a real upcoming beatdown. **HC** (sign up) — this is a
-  real write to the F3 Nation API, not a local checkbox. Open the event,
-  **take Q** for an open slot, write a **preblast** (point out: posts the
-  real `preblastRich` Slack block too, not just plain text — otherwise
-  Slack's own bot would think no preblast was ever posted).
+  region/workout-type, Near Me Right Now, real AO logos, Get Directions.
+- **Calendar**: find a real upcoming beatdown — now navigable week by week
+  (prev/next), not locked to a fixed 8-day window. **HC** (sign up) — this
+  is a real write to the F3 Nation API, not a local checkbox. Open the
+  event, **take Q** for an open slot, write a **preblast** (point out: the
+  gear chips — Coupons/Sandbags/Weight Vest-Ruck/Jump Rope/Headlamp — are
+  optional and round-trip on edit; posts the real `preblastRich` Slack
+  block too, not just plain text — otherwise Slack's own bot would think
+  no preblast was ever posted). Name-O-Rama roll call now prefills from the
+  real HC list for the linked event instead of only DW's local tracking.
 
 **Point out:** the whole chain — HC, take-Q, preblast — stays threaded on
 the same event instance id, so the app never re-asks "which event is this
@@ -75,10 +79,16 @@ of Pain), **The Codex** (Exicon + Lexicon), **QSource**, **App Help**.
 
 ## 5. Profile (2 min)
 
-Real F3 Me identity (name, roles, positions from F3 Nation), achievements
-and Founding Quest, history with the heatmap, the on-device-only emergency
-contact card (never synced — PHI stays local by design), and Settings
-(including the new "Map/Cal opens to" default-view toggle).
+Tap **Profile** — now a hub, grouped under the wireframes' own PROF-01..06
+naming instead of landing straight on Settings. **Identity card** up top
+(real F3 Me name, roles, positions, region) opening into the full profile
+(edit, emergency contact — most fields now best-effort sync to F3 Nation
+when signed in, not local-only). Below it: **PAX Vault** (saved-session
+trends and the activity heatmap), **Badges & Milestones** (achievements,
+Founding Quest), a **Leaderboards** card shown disabled with an honest
+one-line reason (no region-wide stats endpoint), and **Settings** as its
+own card (appearance, voice, music, the "Map/Cal opens to" default-view
+toggle, data/backup).
 
 ## 6. Commz and what DW doesn't do (1 min)
 
@@ -124,3 +134,20 @@ build-vs-buy tech series if there's a seat."
 - [ ] Decide in advance whether to mention the API key removal — worth a
       one-line callout if anyone asks about security, but not load-bearing
       for the demo itself.
+- [ ] None of the following has had a live device pass yet — all reasoned
+      through and unit-tested, but worth a quick walk before the demo:
+  - [ ] Map/Cal's new workout-type filter pill (alongside day/state/region).
+  - [ ] Calendar's week-by-week prev/next nav, especially around a month
+        boundary and the "jump to today" reset.
+  - [ ] Preblast gear chips — post one with a couple selected, reopen "Edit
+        Preblast," confirm the same chips come back selected.
+  - [ ] Name-O-Rama roll call prefilling from the real HC list for a linked
+        event (vs. the old local-tracking fallback when nothing's linked).
+  - [ ] The new Profile hub: every card opens the right screen (identity →
+        full profile, PAX Vault → history, Badges → achievements,
+        Settings), and the Leaderboards card stays inert, not a dead tap.
+  - [ ] Confirm the pagination field names (`total`/`hasMore`/
+        `hasNextPage`) in `F3ApiService._getAllPages` against a real
+        paginated response — implemented defensively since this sandbox
+        has never been able to reach `api.f3nation.com` (confirmed again
+        this pass: the egress proxy 403s it) to see a real payload shape.
